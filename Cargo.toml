@@ -3,7 +3,8 @@ name = "jsssa"
 version = "0.0.0"
 
 [dependencies]
-clippy="*"
+clippy = "*"
+rand = "0.3"
 
 [profile.release]
 lto = true
