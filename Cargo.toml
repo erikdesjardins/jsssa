@@ -3,3 +3,6 @@ name = "jsssa"
 version = "0.0.0"
 
 [dependencies]
+
+[profile.release]
+lto = true
