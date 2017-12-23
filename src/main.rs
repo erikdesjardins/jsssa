@@ -9,9 +9,9 @@ use std::process::{Command, Stdio};
 use std::io::Write;
 use rand::Rng;
 
-static ACORN_BIN: &[u8] = include_bytes!("../vendor/acorn.js");
+static BABYLON_BIN: &[u8] = include_bytes!("../vendor/babylon.js");
 
-fn run_acorn(js: &str) -> String {
+fn parse_js(js: &str) -> String {
     let mut path = env::temp_dir();
     let random_name: String = rand::thread_rng()
         .gen_ascii_chars()
@@ -20,7 +20,7 @@ fn run_acorn(js: &str) -> String {
     path.push(random_name);
 
     File::create(&path).unwrap()
-        .write_all(ACORN_BIN).unwrap();
+        .write_all(BABYLON_BIN).unwrap();
 
     let mut child = Command::new("node")
         .arg(&path)
@@ -38,7 +38,7 @@ fn run_acorn(js: &str) -> String {
 }
 
 fn main() {
-    let ast = run_acorn("1");
+    let ast = parse_js("1");
 
     println!("{}", ast);
 }
