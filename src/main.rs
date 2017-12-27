@@ -1,6 +1,8 @@
 #![feature(plugin)]
 #![plugin(clippy)]
 
+#![deny(warnings)]
+
 extern crate rand;
 extern crate serde;
 #[macro_use]
@@ -11,4 +13,5 @@ mod ast;
 mod parse;
 
 fn main() {
+    println!("{:?}", parse::parse("1"));
 }

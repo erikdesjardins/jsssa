@@ -120,6 +120,7 @@ node! {
 }
 
 union! {
+    #[allow(large_enum_variant)]
     enum Statement {
         ExpressionStatement,
         BlockStatement,
