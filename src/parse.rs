@@ -41,30 +41,41 @@ mod tests {
     fn basic_foo() {
         use ast::*;
 
-        assert_eq!(parse(r#"
-            'use strict';
-            function foo(x) {
-                return x + 1;
-            }
-        "#), File::new(Program::new(
-            vec![FunctionDeclaration::new(
-                Identifier::new("foo".to_owned()),
-                vec![Identifier::new("x".to_owned()).into()],
-                BlockStatement::new(
-                    vec![ReturnStatement::new(
-                        Some(BinaryExpression::new(
-                            BinaryOperator::Add,
-                            Box::new(Identifier::new("x".to_owned()).into()),
-                            Box::new(NumericLiteral::new(1.0).into())
-                        ).into())
-                    ).into()],
-                    vec![]
-                ),
-                false,
-                false,
-            ).into()],
-            vec![Directive::new(DirectiveLiteral::new("use strict".to_owned()))],
-            SourceType::Script,
-        )))
+        assert_eq!(
+            parse(
+                r#"
+                    'use strict';
+                    function foo(x) {
+                        return x + 1;
+                    }
+                "#
+            ),
+            File::new(Program::new(
+                vec![
+                    FunctionDeclaration::new(
+                        Identifier::new("foo".to_owned()),
+                        vec![Identifier::new("x".to_owned()).into()],
+                        BlockStatement::new(
+                            vec![
+                                ReturnStatement::new(Some(
+                                    BinaryExpression::new(
+                                        BinaryOperator::Add,
+                                        Box::new(Identifier::new("x".to_owned()).into()),
+                                        Box::new(NumericLiteral::new(1.0).into()),
+                                    ).into(),
+                                )).into(),
+                            ],
+                            vec![],
+                        ),
+                        false,
+                        false,
+                    ).into(),
+                ],
+                vec![
+                    Directive::new(DirectiveLiteral::new("use strict".to_owned())),
+                ],
+                SourceType::Script,
+            ))
+        )
     }
 }
