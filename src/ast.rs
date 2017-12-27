@@ -16,6 +16,7 @@ macro_rules! node {
             }
 
             impl $name {
+                #[allow(dead_code)]
                 pub fn new($($field_name: $field_type,)*) -> $name {
                     $name {
                         ty: $tag_name::$name,
