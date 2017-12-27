@@ -1,7 +1,7 @@
 // https://github.com/babel/babylon/blob/80d5f7592041e96ab672d164276e5f89038ced63/ast/spec.md
 
 macro_rules! node {
-    ($(struct $name:ident [$tag_name:ident] {
+    ($($(#[$attr:meta])* struct $name:ident [$tag_name:ident] {
         $($(#[$field_attr:meta])* $field_name:ident: $field_type:ty,)*
     })+) => {
         $(
@@ -10,6 +10,7 @@ macro_rules! node {
 
             #[derive(Serialize, Deserialize, Debug, PartialEq)]
             #[serde(rename_all = "camelCase")]
+            $(#[$attr])*
             pub struct $name {
                 #[serde(rename = "type")] ty: $tag_name,
                 $($(#[$field_attr])* pub $field_name: $field_type,)*
@@ -29,12 +30,13 @@ macro_rules! node {
 }
 
 macro_rules! union {
-    ($(enum $name:ident {
+    ($($(#[$attr:meta])* enum $name:ident {
         $($(#[$variant_attr:meta])* $variant_type:ident,)*
     })+) => {
         $(
             #[derive(Serialize, Deserialize, Debug, PartialEq)]
             #[serde(untagged)]
+            $(#[$attr])*
             pub enum $name {
                 $($(#[$variant_attr])* $variant_type($variant_type),)*
             }
@@ -51,12 +53,13 @@ macro_rules! union {
 }
 
 macro_rules! string_enum {
-    ($(enum $name:ident {
+    ($($(#[$attr:meta])* enum $name:ident {
         $($(#[$variant_attr:meta])* $variant_name:ident,)*
     })+) => {
         $(
             #[derive(Serialize, Deserialize, Debug, PartialEq)]
             #[serde(rename_all = "camelCase")]
+            $(#[$attr])*
             pub enum $name {
                 $($(#[$variant_attr])* $variant_name,)*
             }
