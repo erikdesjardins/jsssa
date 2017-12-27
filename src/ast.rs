@@ -414,7 +414,6 @@ string_enum! {
         Typeof,
         Void,
         Delete,
-        Throw,
     }
 }
 
