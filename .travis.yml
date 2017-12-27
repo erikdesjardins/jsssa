@@ -1,10 +1,8 @@
 language: rust
 cache: cargo
 before_script:
-  - export PATH="$PATH:$HOME/.cargo/bin"
-  - rustup toolchain install nightly
   - rustup default nightly
-  - which rustfmt || cargo install rustfmt-nightly
+  - cargo install rustfmt-nightly
 script:
   - cargo fmt -- --write-mode=diff
   - cargo build
