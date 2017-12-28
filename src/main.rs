@@ -1,6 +1,5 @@
 #![feature(plugin)]
 #![plugin(clippy)]
-
 #![deny(warnings)]
 
 extern crate rand;
