@@ -20,7 +20,7 @@ mod parse;
 
 fn main() {
     match parse::parse("1") {
-        Ok(ast) => println!("{:?}", ast),
+        Ok(ast) => println!("{}", serde_json::to_string(&ast).unwrap()),
         Err(err) => println!("{}", err),
     }
 }

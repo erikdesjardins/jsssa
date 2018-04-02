@@ -1,26 +1,42 @@
-// https://github.com/babel/babylon/blob/80d5f7592041e96ab672d164276e5f89038ced63/ast/spec.md
+//! https://github.com/babel/babylon/blob/80d5f7592041e96ab672d164276e5f89038ced63/ast/spec.md
+
+use serde::{Serialize, Serializer};
+use serde::ser::SerializeStruct;
+
+macro_rules! count {
+    () => ( 0 );
+    ($x:ident $($xs:ident)*) => ( 1 + count!($($xs)*) );
+}
 
 macro_rules! node {
-    ($($(#[$attr:meta])* struct $name:ident [$tag_name:ident] {
+    ($($(#[$attr:meta])* struct $name:ident {
         $($(#[$field_attr:meta])* $field_name:ident: $field_type:ty,)*
     })+) => {
         $(
-            #[derive(Serialize, Deserialize, Debug, PartialEq)]
-            enum $tag_name { $name }
-
-            #[derive(Serialize, Deserialize, Debug, PartialEq)]
+            #[derive(Deserialize, Debug, PartialEq)]
             #[serde(rename_all = "camelCase")]
             $(#[$attr])*
             pub struct $name {
-                #[serde(rename = "type")] ty: $tag_name,
                 $($(#[$field_attr])* pub $field_name: $field_type,)*
+            }
+
+            impl Serialize for $name {
+                fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+                    let mut s = Serializer::serialize_struct(
+                        serializer,
+                        stringify!($name),
+                        1 /* type */ + count!($($field_name)*)
+                    )?;
+                    s.serialize_field("type", stringify!($name))?;
+                    $(s.serialize_field(stringify!($field_name), &self.$field_name)?;)*
+                    s.end()
+                }
             }
 
             impl $name {
                 #[allow(dead_code)]
                 pub fn new($($field_name: $field_type,)*) -> $name {
                     $name {
-                        ty: $tag_name::$name,
                         $($field_name: $field_name,)*
                     }
                 }
@@ -35,7 +51,7 @@ macro_rules! union {
     })+) => {
         $(
             #[derive(Serialize, Deserialize, Debug, PartialEq)]
-            #[serde(untagged)]
+            #[serde(tag = "type")]
             $(#[$attr])*
             pub enum $name {
                 $($(#[$variant_attr])* $variant_type($variant_type),)*
@@ -68,11 +84,11 @@ macro_rules! string_enum {
 }
 
 node! {
-    struct File [FileTag] {
+    struct File {
         program: Program,
     }
 
-    struct Program [ProgramTag] {
+    struct Program {
         body: Vec<Statement>,
         directives: Vec<Directive>,
         source_type: SourceType,
@@ -87,34 +103,34 @@ string_enum! {
 }
 
 node! {
-    struct Identifier [IdentifierTag] {
+    struct Identifier {
         name: String,
     }
 
-    struct RegExpLiteral [RegExpLiteralTag] {
+    struct RegExpLiteral {
         pattern: String,
         flags: String,
     }
 
-    struct NullLiteral [NullLiteralTag] {}
+    struct NullLiteral {}
 
-    struct StringLiteral [StringLiteralTag] {
+    struct StringLiteral {
         value: String,
     }
 
-    struct BooleanLiteral [BooleanLiteralTag] {
+    struct BooleanLiteral {
         value: bool,
     }
 
-    struct NumericLiteral [NumericLiteralTag] {
+    struct NumericLiteral {
         value: f64,
     }
 
-    struct Directive [DirectiveTag] {
+    struct Directive {
         value: DirectiveLiteral,
     }
 
-    struct DirectiveLiteral [DirectiveLiteralTag] {
+    struct DirectiveLiteral {
         value: String,
     }
 }
@@ -147,96 +163,96 @@ union! {
 }
 
 node! {
-    struct ExpressionStatement [ExpressionStatementTag] {
+    struct ExpressionStatement {
         expression: Expression,
     }
 
-    struct BlockStatement [BlockStatementTag] {
+    struct BlockStatement {
         body: Vec<Statement>,
         directives: Vec<Directive>,
     }
 
-    struct EmptyStatement [EmptyStatementTag] {}
+    struct EmptyStatement {}
 
-    struct DebuggerStatement [DebuggerStatementTag] {}
+    struct DebuggerStatement {}
 
-    struct WithStatement [WithStatementTag] {
+    struct WithStatement {
         object: Expression,
         body: Box<Statement>,
     }
 
-    struct ReturnStatement [ReturnStatementTag] {
+    struct ReturnStatement {
         argument: Option<Expression>,
     }
 
-    struct LabeledStatement [LabeledStatementTag] {
+    struct LabeledStatement {
         label: Identifier,
         body: Box<Statement>,
     }
 
-    struct BreakStatement [BreakStatementTag] {
+    struct BreakStatement {
         label: Option<Identifier>,
     }
 
-    struct ContinueStatement [ContinueStatementTag] {
+    struct ContinueStatement {
         label: Option<Identifier>,
     }
 
-    struct IfStatement [IfStatementTag] {
+    struct IfStatement {
         test: Expression,
         consequent: Box<Statement>,
         alternate: Option<Box<Statement>>,
     }
 
-    struct SwitchStatement [SwitchStatementTag] {
+    struct SwitchStatement {
         discriminant: Expression,
         cases: Vec<SwitchCase>,
     }
 
-    struct SwitchCase [SwitchCaseTag] {
+    struct SwitchCase {
         test: Option<Expression>,
         consequent: Vec<Statement>,
     }
 
-    struct ThrowStatement [ThrowStatementTag] {
+    struct ThrowStatement {
         argument: Expression,
     }
 
-    struct TryStatement [TryStatementTag] {
+    struct TryStatement {
         block: BlockStatement,
         handler: Option<CatchClause>,
         finalizer: Option<BlockStatement>,
     }
 
-    struct CatchClause [CatchClauseTag] {
+    struct CatchClause {
         param: Option<Pattern>,
         body: BlockStatement,
     }
 
-    struct WhileStatement [WhileStatementTag] {
+    struct WhileStatement {
         test: Expression,
         body: Box<Statement>,
     }
 
-    struct DoWhileStatement [DoWhileStatementTag] {
+    struct DoWhileStatement {
         body: Box<Statement>,
         test: Expression,
     }
 
-    struct ForStatement [ForStatementTag] {
+    struct ForStatement {
         init: Option<VarDeclOrExpr>,
         test: Option<Expression>,
         update: Option<Expression>,
         body: Box<Statement>,
     }
 
-    struct ForInStatement [ForInStatementTag] {
+    struct ForInStatement {
         left: VarDeclOrExpr,
         right: Expression,
         body: Box<Statement>,
     }
 
-    struct ForOfStatement [ForOfStatementTag] {
+    struct ForOfStatement {
         left: VarDeclOrExpr,
         right: Expression,
         body: Box<Statement>,
@@ -252,7 +268,7 @@ union! {
 }
 
 node! {
-    struct FunctionDeclaration [FunctionDeclarationTag] {
+    struct FunctionDeclaration {
         id: Identifier,
         params: Vec<Pattern>,
         body: BlockStatement,
@@ -260,7 +276,7 @@ node! {
         async: bool,
     }
 
-    struct VariableDeclaration [VariableDeclarationTag] {
+    struct VariableDeclaration {
         kind: VariableKind,
         declarations: Vec<VariableDeclarator>,
     }
@@ -275,7 +291,7 @@ string_enum! {
 }
 
 node! {
-    struct VariableDeclarator [VariableDeclaratorTag] {
+    struct VariableDeclarator {
         id: Pattern,
         init: Option<Expression>,
     }
@@ -313,9 +329,9 @@ union! {
 }
 
 node! {
-    struct ThisExpression [ThisExpressionTag] {}
+    struct ThisExpression {}
 
-    struct ArrowFunctionExpression [ArrowFunctionExpressionTag] {
+    struct ArrowFunctionExpression {
         params: Vec<Pattern>,
         body: Box<BlockStmtOrExpr>,
         async: bool,
@@ -330,16 +346,16 @@ union! {
 }
 
 node! {
-    struct YieldExpression [YieldExpressionTag] {
+    struct YieldExpression {
         argument: Option<Box<Expression>>,
         delegate: bool,
     }
 
-    struct AwaitExpression [AwaitExpressionTag] {
+    struct AwaitExpression {
         argument: Option<Box<Expression>>,
     }
 
-    struct ArrayExpression [ArrayExpressionTag] {
+    struct ArrayExpression {
         elements: Vec<Option<ExprOrSpread>>,
     }
 }
@@ -352,7 +368,7 @@ union! {
 }
 
 node! {
-    struct ObjectExpression [ObjectExpressionTag] {
+    struct ObjectExpression {
         properties: Vec<PropOrMethodOrSpread>,
     }
 }
@@ -366,13 +382,13 @@ union! {
 }
 
 node! {
-    struct ObjectProperty [ObjectPropertyTag] {
+    struct ObjectProperty {
         key: Expression,
         shorthand: bool,
         value: Expression,
     }
 
-    struct ObjectMethod [ObjectMethodTag] {
+    struct ObjectMethod {
         kind: ObjectMethodKind,
         key: Expression,
         params: Vec<Pattern>,
@@ -391,11 +407,11 @@ string_enum! {
 }
 
 node! {
-    struct SpreadElement [SpreadElementTag] {
+    struct SpreadElement {
         argument: Expression,
     }
 
-    struct FunctionExpression [FunctionExpressionTag] {
+    struct FunctionExpression {
         id: Option<Identifier>,
         params: Vec<Pattern>,
         body: BlockStatement,
@@ -403,7 +419,7 @@ node! {
         async: bool,
     }
 
-    struct UnaryExpression [UnaryExpressionTag] {
+    struct UnaryExpression {
         operator: UnaryOperator,
         prefix: bool,
         argument: Box<Expression>,
@@ -423,7 +439,7 @@ string_enum! {
 }
 
 node! {
-    struct UpdateExpression [UpdateExpressionTag] {
+    struct UpdateExpression {
         operator: UpdateOperator,
         argument: Box<Expression>,
         prefix: bool,
@@ -438,7 +454,7 @@ string_enum! {
 }
 
 node! {
-    struct BinaryExpression [BinaryExpressionTag] {
+    struct BinaryExpression {
         operator: BinaryOperator,
         left: Box<Expression>,
         right: Box<Expression>,
@@ -472,7 +488,7 @@ string_enum! {
 }
 
 node! {
-    struct AssignmentExpression [AssignmentExpressionTag] {
+    struct AssignmentExpression {
         operator: AssignmentOperator,
         left: Box<PatOrExpr>,
         right: Box<Expression>,
@@ -504,7 +520,7 @@ union! {
 }
 
 node! {
-    struct LogicalExpression [LogicalExpressionTag] {
+    struct LogicalExpression {
         operator: LogicalOperator,
         left: Box<Expression>,
         right: Box<Expression>,
@@ -519,7 +535,7 @@ string_enum! {
 }
 
 node! {
-    struct MemberExpression [MemberExpressionTag] {
+    struct MemberExpression {
         object: Box<ExprOrSuper>,
         property: Box<Expression>,
     }
@@ -533,34 +549,34 @@ union! {
 }
 
 node! {
-    struct Super [SuperTag] {}
+    struct Super {}
 
-    struct ConditionalExpression [ConditionalExpressionTag] {
+    struct ConditionalExpression {
         test: Box<Expression>,
         alternate: Box<Expression>,
         consequent: Box<Expression>,
     }
 
-    struct CallExpression [CallExpressionTag] {
+    struct CallExpression {
         callee: Box<ExprOrSuper>,
         arguments: Vec<ExprOrSpread>,
     }
 
-    struct NewExpression [NewExpressionTag] {
+    struct NewExpression {
         callee: Box<ExprOrSuper>,
         arguments: Vec<ExprOrSpread>,
     }
 
-    struct SequenceExpression [SequenceExpressionTag] {
+    struct SequenceExpression {
         expressions: Vec<Expression>,
     }
 
-    struct TemplateLiteral [TemplateLiteralTag] {
+    struct TemplateLiteral {
         quasis: Vec<TemplateElement>,
         expressions: Vec<Expression>,
     }
 
-    struct TemplateElement [TemplateElementTag] {
+    struct TemplateElement {
         tail: bool,
         value: TemplateElementInner,
     }
@@ -573,7 +589,7 @@ pub struct TemplateElementInner {
 }
 
 node! {
-    struct TaggedTemplateExpression [TaggedTemplateExpressionTag] {
+    struct TaggedTemplateExpression {
         tag: Box<Expression>,
         quasi: TemplateLiteral,
     }
@@ -591,7 +607,7 @@ union! {
 }
 
 node! {
-    struct ObjectPattern [ObjectPatternTag] {
+    struct ObjectPattern {
         properties: Vec<AssignOrRest>,
     }
 }
@@ -604,44 +620,44 @@ string_enum! {
 }
 
 node! {
-    struct AssignmentProperty [AssignmentPropertyTag] {
+    struct AssignmentProperty {
         key: Expression,
         shorthand: bool,
         value: Pattern,
     }
 
-    struct RestElement [RestElementTag] {
+    struct RestElement {
         argument: Box<Pattern>,
     }
 
-    struct ArrayPattern [ArrayPatternTag] {
+    struct ArrayPattern {
         elements: Vec<Option<Pattern>>,
     }
 
-    struct AssignmentPattern [AssignmentPatternTag] {
+    struct AssignmentPattern {
         left: Box<Pattern>,
         right: Expression,
     }
 }
 
 node! {
-    struct ClassDeclaration [ClassDeclarationTag] {
+    struct ClassDeclaration {
         id: Identifier,
         super_class: Option<Expression>,
         body: ClassBody,
     }
 
-    struct ClassExpression [ClassExpressionTag] {
+    struct ClassExpression {
         id: Option<Identifier>,
         super_class: Option<Box<Expression>>,
         body: ClassBody,
     }
 
-    struct ClassBody [ClassBodyTag] {
+    struct ClassBody {
         body: Vec<ClassMethod>,
     }
 
-    struct ClassMethod [ClassMethodTag] {
+    struct ClassMethod {
         kind: ClassMethodKind,
         key: Expression,
         params: Vec<Pattern>,
