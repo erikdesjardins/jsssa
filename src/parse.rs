@@ -19,7 +19,7 @@ static BABYLON_BIN: &'static str = include_str!("../vendor/babylon.js");
 pub fn parse(js: &str) -> Result<ast::File, Error> {
     let converted_ast;
     let babylon_ast = unsafe {
-        let runtime = Runtime::new().unwrap();
+        let runtime = Runtime::new().expect("SpiderMonkey runtime failed to initialize");
         let context = runtime.cx();
 
         // prepare simple global object
@@ -73,7 +73,7 @@ pub fn parse(js: &str) -> Result<ast::File, Error> {
 
         assert!(parse_result.is_string());
         converted_ast = String::from_jsval(context, parse_result.handle(), ()).unwrap();
-        converted_ast.get_success_value().unwrap()
+        converted_ast.get_success_value().expect("converting parse result to Rust string")
     };
 
     let ast = serde_json::from_str(babylon_ast).context("failed to parse babylon output")?;
