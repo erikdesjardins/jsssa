@@ -6,5 +6,5 @@ before_script:
 script:
   - cargo fmt -- --write-mode=diff
   - cargo test
-  - cargo build --release --feature clippy && strip target/release/jsssa
+  - cargo build --release --features clippy && strip target/release/jsssa
   - ls -lh target/release
