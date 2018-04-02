@@ -675,3 +675,141 @@ string_enum! {
         Set,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn basic_deserialize_raw_babylon_output() {
+        use serde_json;
+
+        assert_eq!(
+            serde_json::from_str::<File>(r#"{"type":"File","start":0,"end":149,"loc":{"start":{"line":1,"column":0},"end":{"line":6,"column":16}},"program":{"type":"Program","start":0,"end":149,"loc":{"start":{"line":1,"column":0},"end":{"line":6,"column":16}},"sourceType":"script","body":[{"type":"FunctionDeclaration","start":55,"end":132,"loc":{"start":{"line":3,"column":20},"end":{"line":5,"column":21}},"id":{"type":"Identifier","start":64,"end":67,"loc":{"start":{"line":3,"column":29},"end":{"line":3,"column":32},"identifierName":"foo"},"name":"foo"},"generator":false,"async":false,"params":[{"type":"Identifier","start":68,"end":69,"loc":{"start":{"line":3,"column":33},"end":{"line":3,"column":34},"identifierName":"x"},"name":"x"}],"body":{"type":"BlockStatement","start":71,"end":132,"loc":{"start":{"line":3,"column":36},"end":{"line":5,"column":21}},"body":[{"type":"ReturnStatement","start":97,"end":110,"loc":{"start":{"line":4,"column":24},"end":{"line":4,"column":37}},"argument":{"type":"BinaryExpression","start":104,"end":109,"loc":{"start":{"line":4,"column":31},"end":{"line":4,"column":36}},"left":{"type":"Identifier","start":104,"end":105,"loc":{"start":{"line":4,"column":31},"end":{"line":4,"column":32},"identifierName":"x"},"name":"x"},"operator":"+","right":{"type":"NumericLiteral","start":108,"end":109,"loc":{"start":{"line":4,"column":35},"end":{"line":4,"column":36}},"extra":{"rawValue":1,"raw":"1"},"value":1}}}],"directives":[]}}],"directives":[{"type":"Directive","start":21,"end":34,"loc":{"start":{"line":2,"column":20},"end":{"line":2,"column":33}},"value":{"type":"DirectiveLiteral","start":21,"end":33,"loc":{"start":{"line":2,"column":20},"end":{"line":2,"column":32}},"value":"use strict","extra":{"raw":"'use strict'","rawValue":"use strict"}}}]},"comments":[]}"#)
+                .unwrap(),
+            File::new(Program::new(
+                vec![
+                    FunctionDeclaration::new(
+                        Identifier::new("foo".to_owned()),
+                        vec![Identifier::new("x".to_owned()).into()],
+                        BlockStatement::new(
+                            vec![
+                                ReturnStatement::new(Some(
+                                    BinaryExpression::new(
+                                        BinaryOperator::Add,
+                                        Box::new(Identifier::new("x".to_owned()).into()),
+                                        Box::new(NumericLiteral::new(1.0).into()),
+                                    ).into(),
+                                )).into(),
+                            ],
+                            vec![],
+                        ),
+                        false,
+                        false,
+                    ).into(),
+                ],
+                vec![
+                    Directive::new(DirectiveLiteral::new("use strict".to_owned())),
+                ],
+                SourceType::Script,
+            ))
+        );
+    }
+
+    #[test]
+    fn basic_deserialize_pretty_output() {
+        use serde_json;
+
+        assert_eq!(
+            serde_json::from_str::<File>(r#"{
+                "type": "File",
+                "program": {
+                    "type": "Program",
+                    "sourceType": "script",
+                    "body": [
+                        {
+                            "type": "FunctionDeclaration",
+                            "id": {
+                                "type": "Identifier",
+                                "name": "foo"
+                            },
+                            "generator": false,
+                            "async": false,
+                            "params": [
+                                {
+                                    "type": "Identifier",
+                                    "name": "x"
+                                }
+                            ],
+                            "body": {
+                                "type": "BlockStatement",
+                                "body": [
+                                    {
+                                        "type": "ReturnStatement",
+                                        "argument": {
+                                            "type": "BinaryExpression",
+                                            "left": {
+                                                "type": "Identifier",
+                                                "name": "x"
+                                            },
+                                            "operator": "+",
+                                            "right": {
+                                                "type": "NumericLiteral",
+                                                "extra": {
+                                                    "rawValue": 1,
+                                                    "raw": "1"
+                                                },
+                                                "value": 1
+                                            }
+                                        }
+                                    }
+                                ],
+                                "directives": []
+                            }
+                        }
+                    ],
+                    "directives": [
+                        {
+                            "type": "Directive",
+                            "value": {
+                                "type": "DirectiveLiteral",
+                                "value": "use strict",
+                                "extra": {
+                                    "raw": "'use strict'",
+                                    "rawValue": "use strict"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "comments": []
+            }"#).unwrap(),
+            File::new(Program::new(
+                vec![
+                    FunctionDeclaration::new(
+                        Identifier::new("foo".to_owned()),
+                        vec![Identifier::new("x".to_owned()).into()],
+                        BlockStatement::new(
+                            vec![
+                                ReturnStatement::new(Some(
+                                    BinaryExpression::new(
+                                        BinaryOperator::Add,
+                                        Box::new(Identifier::new("x".to_owned()).into()),
+                                        Box::new(NumericLiteral::new(1.0).into()),
+                                    ).into(),
+                                )).into(),
+                            ],
+                            vec![],
+                        ),
+                        false,
+                        false,
+                    ).into(),
+                ],
+                vec![
+                    Directive::new(DirectiveLiteral::new("use strict".to_owned())),
+                ],
+                SourceType::Script,
+            ))
+        );
+    }
+}
