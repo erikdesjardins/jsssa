@@ -3,13 +3,17 @@ name = "jsssa"
 version = "0.0.0"
 
 [dependencies]
-clippy = "*"
 failure = "0.1"
 failure_derive = "0.1"
+mozjs = { version = "0.6", default-features = false }
 rand = "0.3"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 
 [profile.release]
+panic = "abort"
 lto = true
+codegen-units = 1
+incremental = false
+opt-level = "z"
