@@ -1,7 +1,7 @@
 //! https://github.com/babel/babylon/blob/80d5f7592041e96ab672d164276e5f89038ced63/ast/spec.md
 
-use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
+use serde::{Serialize, Serializer};
 
 macro_rules! count {
     () => ( 0 );
@@ -615,14 +615,14 @@ make_ast! {
 
 #[cfg(test)]
 mod tests {
-    use serde_json;
     use super::*;
+    use serde_json;
 
     #[test]
     fn basic_serialize() {
         let prog = File::new(Program::new(
             vec![
-                ExpressionStatement::new(NumericLiteral::new(1.0).into()).into()
+                ExpressionStatement::new(NumericLiteral::new(1.0).into()).into(),
             ],
             vec![],
             SourceType::Script,
@@ -670,69 +670,71 @@ mod tests {
     #[test]
     fn basic_deserialize_pretty_output() {
         assert_eq!(
-            serde_json::from_str::<File>(r#"{
-                "type": "File",
-                "program": {
-                    "type": "Program",
-                    "sourceType": "script",
-                    "body": [
-                        {
-                            "type": "FunctionDeclaration",
-                            "id": {
-                                "type": "Identifier",
-                                "name": "foo"
-                            },
-                            "generator": false,
-                            "async": false,
-                            "params": [
-                                {
+            serde_json::from_str::<File>(
+                r#"{
+                    "type": "File",
+                    "program": {
+                        "type": "Program",
+                        "sourceType": "script",
+                        "body": [
+                            {
+                                "type": "FunctionDeclaration",
+                                "id": {
                                     "type": "Identifier",
-                                    "name": "x"
-                                }
-                            ],
-                            "body": {
-                                "type": "BlockStatement",
-                                "body": [
+                                    "name": "foo"
+                                },
+                                "generator": false,
+                                "async": false,
+                                "params": [
                                     {
-                                        "type": "ReturnStatement",
-                                        "argument": {
-                                            "type": "BinaryExpression",
-                                            "left": {
-                                                "type": "Identifier",
-                                                "name": "x"
-                                            },
-                                            "operator": "+",
-                                            "right": {
-                                                "type": "NumericLiteral",
-                                                "extra": {
-                                                    "rawValue": 1,
-                                                    "raw": "1"
-                                                },
-                                                "value": 1
-                                            }
-                                        }
+                                        "type": "Identifier",
+                                        "name": "x"
                                     }
                                 ],
-                                "directives": []
-                            }
-                        }
-                    ],
-                    "directives": [
-                        {
-                            "type": "Directive",
-                            "value": {
-                                "type": "DirectiveLiteral",
-                                "value": "use strict",
-                                "extra": {
-                                    "raw": "'use strict'",
-                                    "rawValue": "use strict"
+                                "body": {
+                                    "type": "BlockStatement",
+                                    "body": [
+                                        {
+                                            "type": "ReturnStatement",
+                                            "argument": {
+                                                "type": "BinaryExpression",
+                                                "left": {
+                                                    "type": "Identifier",
+                                                    "name": "x"
+                                                },
+                                                "operator": "+",
+                                                "right": {
+                                                    "type": "NumericLiteral",
+                                                    "extra": {
+                                                        "rawValue": 1,
+                                                        "raw": "1"
+                                                    },
+                                                    "value": 1
+                                                }
+                                            }
+                                        }
+                                    ],
+                                    "directives": []
                                 }
                             }
-                        }
-                    ]
-                },
-                "comments": []
-            }"#).unwrap(),
+                        ],
+                        "directives": [
+                            {
+                                "type": "Directive",
+                                "value": {
+                                    "type": "DirectiveLiteral",
+                                    "value": "use strict",
+                                    "extra": {
+                                        "raw": "'use strict'",
+                                        "rawValue": "use strict"
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    "comments": []
+                }"#
+            ).unwrap(),
             File::new(Program::new(
                 vec![
                     FunctionDeclaration::new(

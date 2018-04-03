@@ -5,7 +5,7 @@ use mozjs::conversions::{FromJSValConvertible, ToJSValConvertible};
 use mozjs::jsapi::{CompartmentOptions, HandleValueArray, JSAutoCompartment, JS_NewGlobalObject,
                    OnNewGlobalHookOption};
 use mozjs::jsval::UndefinedValue;
-use mozjs::rust::wrappers::{JS_CallFunctionValue, JS_GetPendingException, JS_ErrorFromException};
+use mozjs::rust::wrappers::{JS_CallFunctionValue, JS_ErrorFromException, JS_GetPendingException};
 use mozjs::rust::{Runtime, SIMPLE_GLOBAL_CLASS};
 use serde_json;
 
@@ -36,13 +36,17 @@ pub fn parse(js: &str) -> Result<ast::File, Error> {
 
         // run global Babylon code, which returns our parse function
         rooted!(in(context) let mut parse_to_string_fn = UndefinedValue());
-        assert!(runtime.evaluate_script(
-            global.handle(),
-            BABYLON_BIN,
-            "<synthetic_jsssa_setup>",
-            0,
-            parse_to_string_fn.handle_mut()
-        ).is_ok());
+        assert!(
+            runtime
+                .evaluate_script(
+                    global.handle(),
+                    BABYLON_BIN,
+                    "<synthetic_jsssa_setup>",
+                    0,
+                    parse_to_string_fn.handle_mut()
+                )
+                .is_ok()
+        );
         assert!(parse_to_string_fn.is_object());
 
         // call our parse function
@@ -55,7 +59,7 @@ pub fn parse(js: &str) -> Result<ast::File, Error> {
             global.handle(),
             parse_to_string_fn.handle(),
             &HandleValueArray::from_rooted_slice(&[*js_js]) as *const HandleValueArray,
-            parse_result.handle_mut()
+            parse_result.handle_mut(),
         );
 
         if !succeeded {
@@ -73,7 +77,9 @@ pub fn parse(js: &str) -> Result<ast::File, Error> {
 
         assert!(parse_result.is_string());
         converted_ast = String::from_jsval(context, parse_result.handle(), ()).unwrap();
-        converted_ast.get_success_value().expect("converting parse result to Rust string")
+        converted_ast
+            .get_success_value()
+            .expect("converting parse result to Rust string")
     };
 
     let ast = serde_json::from_str(babylon_ast).context("failed to parse babylon output")?;
@@ -83,7 +89,7 @@ pub fn parse(js: &str) -> Result<ast::File, Error> {
 #[derive(Fail, Debug, PartialEq)]
 #[fail(display = "JS parse error: {}", message)]
 struct ParseError {
-    message: String
+    message: String,
 }
 
 #[cfg(test)]
@@ -136,7 +142,9 @@ mod tests {
     fn basic_error() {
         assert_eq!(
             parse("1..").unwrap_err().downcast::<ParseError>().unwrap(),
-            ParseError { message: "Unexpected token (1:3)".to_string() }
+            ParseError {
+                message: "Unexpected token (1:3)".to_string()
+            }
         );
     }
 }
