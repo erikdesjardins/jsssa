@@ -8,82 +8,89 @@ macro_rules! count {
     ($x:ident $($xs:ident)*) => ( 1 + count!($($xs)*) );
 }
 
-macro_rules! node {
-    ($($(#[$attr:meta])* struct $name:ident {
-        $($(#[$field_attr:meta])* $field_name:ident: $field_type:ty,)*
-    })+) => {
+macro_rules! make_ast {
+    () => {};
+    (
+        $(#[$attr:meta])*
+        struct $name:ident {
+            $($(#[$field_attr:meta])* $field_name:ident: $field_type:ty,)*
+        }
+        $($rest:tt)*
+    ) => {
+        #[derive(Deserialize, Debug, PartialEq)]
+        #[serde(rename_all = "camelCase")]
+        $(#[$attr])*
+        pub struct $name {
+            $($(#[$field_attr])* pub $field_name: $field_type,)*
+        }
+
+        impl Serialize for $name {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+                let mut s = Serializer::serialize_struct(
+                    serializer,
+                    stringify!($name),
+                    1 /* type */ + count!($($field_name)*)
+                )?;
+                s.serialize_field("type", stringify!($name))?;
+                $(s.serialize_field(stringify!($field_name), &self.$field_name)?;)*
+                s.end()
+            }
+        }
+
+        impl $name {
+            #[allow(dead_code)]
+            pub fn new($($field_name: $field_type,)*) -> $name {
+                $name {
+                    $($field_name: $field_name,)*
+                }
+            }
+        }
+
+        make_ast!{$($rest)*}
+    };
+    (
+        $(#[$attr:meta])*
+        enum $name:ident {
+            $($(#[$variant_attr:meta])* $variant_type:ident,)*
+        }
+        $($rest:tt)*
+    ) => {
+        #[derive(Serialize, Deserialize, Debug, PartialEq)]
+        #[serde(tag = "type")]
+        $(#[$attr])*
+        pub enum $name {
+            $($(#[$variant_attr])* $variant_type($variant_type),)*
+        }
+
         $(
-            #[derive(Deserialize, Debug, PartialEq)]
-            #[serde(rename_all = "camelCase")]
-            $(#[$attr])*
-            pub struct $name {
-                $($(#[$field_attr])* pub $field_name: $field_type,)*
-            }
-
-            impl Serialize for $name {
-                fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-                    let mut s = Serializer::serialize_struct(
-                        serializer,
-                        stringify!($name),
-                        1 /* type */ + count!($($field_name)*)
-                    )?;
-                    s.serialize_field("type", stringify!($name))?;
-                    $(s.serialize_field(stringify!($field_name), &self.$field_name)?;)*
-                    s.end()
+            impl From<$variant_type> for $name {
+                fn from(variant: $variant_type) -> $name {
+                    $name::$variant_type(variant)
                 }
             }
+        )*
 
-            impl $name {
-                #[allow(dead_code)]
-                pub fn new($($field_name: $field_type,)*) -> $name {
-                    $name {
-                        $($field_name: $field_name,)*
-                    }
-                }
-            }
-        )+
+        make_ast!{$($rest)*}
+    };
+    (
+        $(#[$attr:meta])*
+        string enum $name:ident {
+            $($(#[$variant_attr:meta])* $variant_name:ident,)*
+        }
+        $($rest:tt)*
+    ) => {
+        #[derive(Serialize, Deserialize, Debug, PartialEq)]
+        #[serde(rename_all = "camelCase")]
+        $(#[$attr])*
+        pub enum $name {
+            $($(#[$variant_attr])* $variant_name,)*
+        }
+
+        make_ast!{$($rest)*}
     };
 }
 
-macro_rules! union {
-    ($($(#[$attr:meta])* enum $name:ident {
-        $($(#[$variant_attr:meta])* $variant_type:ident,)*
-    })+) => {
-        $(
-            #[derive(Serialize, Deserialize, Debug, PartialEq)]
-            #[serde(tag = "type")]
-            $(#[$attr])*
-            pub enum $name {
-                $($(#[$variant_attr])* $variant_type($variant_type),)*
-            }
-
-            $(
-                impl From<$variant_type> for $name {
-                    fn from(variant: $variant_type) -> $name {
-                        $name::$variant_type(variant)
-                    }
-                }
-            )*
-        )+
-    }
-}
-
-macro_rules! string_enum {
-    ($($(#[$attr:meta])* enum $name:ident {
-        $($(#[$variant_attr:meta])* $variant_name:ident,)*
-    })+) => {
-        $(
-            #[derive(Serialize, Deserialize, Debug, PartialEq)]
-            #[serde(rename_all = "camelCase")]
-            $(#[$attr])*
-            pub enum $name {
-                $($(#[$variant_attr])* $variant_name,)*
-            }
-        )+
-    }
-}
-
-node! {
+make_ast! {
     struct File {
         program: Program,
     }
@@ -93,16 +100,12 @@ node! {
         directives: Vec<Directive>,
         source_type: SourceType,
     }
-}
 
-string_enum! {
-    enum SourceType {
+    string enum SourceType {
         Script,
         Module,
     }
-}
 
-node! {
     struct Identifier {
         name: String,
     }
@@ -133,9 +136,7 @@ node! {
     struct DirectiveLiteral {
         value: String,
     }
-}
 
-union! {
     #[allow(large_enum_variant)]
     enum Statement {
         ExpressionStatement,
@@ -160,9 +161,7 @@ union! {
         VariableDeclaration,
         ClassDeclaration,
     }
-}
 
-node! {
     struct ExpressionStatement {
         expression: Expression,
     }
@@ -258,16 +257,12 @@ node! {
         body: Box<Statement>,
         await: bool,
     }
-}
 
-union! {
     enum VarDeclOrExpr {
         VariableDeclaration,
         Expression,
     }
-}
 
-node! {
     struct FunctionDeclaration {
         id: Identifier,
         params: Vec<Pattern>,
@@ -280,24 +275,18 @@ node! {
         kind: VariableKind,
         declarations: Vec<VariableDeclarator>,
     }
-}
 
-string_enum! {
-    enum VariableKind {
+    string enum VariableKind {
         Var,
         Let,
         Const,
     }
-}
 
-node! {
     struct VariableDeclarator {
         id: Pattern,
         init: Option<Expression>,
     }
-}
 
-union! {
     enum Expression {
         Identifier,
         RegExpLiteral,
@@ -326,9 +315,7 @@ union! {
         TaggedTemplateExpression,
         ClassExpression,
     }
-}
 
-node! {
     struct ThisExpression {}
 
     struct ArrowFunctionExpression {
@@ -336,16 +323,12 @@ node! {
         body: Box<BlockStmtOrExpr>,
         async: bool,
     }
-}
 
-union! {
     enum BlockStmtOrExpr {
         BlockStatement,
         Expression,
     }
-}
 
-node! {
     struct YieldExpression {
         argument: Option<Box<Expression>>,
         delegate: bool,
@@ -358,30 +341,22 @@ node! {
     struct ArrayExpression {
         elements: Vec<Option<ExprOrSpread>>,
     }
-}
 
-union! {
     enum ExprOrSpread {
         Expression,
         SpreadElement,
     }
-}
 
-node! {
     struct ObjectExpression {
         properties: Vec<PropOrMethodOrSpread>,
     }
-}
 
-union! {
     enum PropOrMethodOrSpread {
         ObjectProperty,
         ObjectMethod,
         SpreadElement,
     }
-}
 
-node! {
     struct ObjectProperty {
         key: Expression,
         shorthand: bool,
@@ -396,17 +371,13 @@ node! {
         generator: bool,
         async: bool,
     }
-}
 
-string_enum! {
-    enum ObjectMethodKind {
+    string enum ObjectMethodKind {
         Get,
         Set,
         Method,
     }
-}
 
-node! {
     struct SpreadElement {
         argument: Expression,
     }
@@ -424,10 +395,8 @@ node! {
         prefix: bool,
         argument: Box<Expression>,
     }
-}
 
-string_enum! {
-    enum UnaryOperator {
+    string enum UnaryOperator {
         #[serde(rename = "+")] Plus,
         #[serde(rename = "-")] Minus,
         #[serde(rename = "!")] Not,
@@ -436,33 +405,25 @@ string_enum! {
         Void,
         Delete,
     }
-}
 
-node! {
     struct UpdateExpression {
         operator: UpdateOperator,
         argument: Box<Expression>,
         prefix: bool,
     }
-}
 
-string_enum! {
-    enum UpdateOperator {
+    string enum UpdateOperator {
         #[serde(rename = "++")] Incr,
         #[serde(rename = "--")] Decr,
     }
-}
 
-node! {
     struct BinaryExpression {
         operator: BinaryOperator,
         left: Box<Expression>,
         right: Box<Expression>,
     }
-}
 
-string_enum! {
-    enum BinaryOperator {
+    string enum BinaryOperator {
         #[serde(rename = "==")] Eq,
         #[serde(rename = "!=")] NotEq,
         #[serde(rename = "===")] StrictEq,
@@ -485,18 +446,14 @@ string_enum! {
         In,
         Instanceof,
     }
-}
 
-node! {
     struct AssignmentExpression {
         operator: AssignmentOperator,
         left: Box<PatOrExpr>,
         right: Box<Expression>,
     }
-}
 
-string_enum! {
-    enum AssignmentOperator {
+    string enum AssignmentOperator {
         #[serde(rename = "=")] Eq,
         #[serde(rename = "+=")] AddEq,
         #[serde(rename = "-=")] SubEq,
@@ -510,45 +467,33 @@ string_enum! {
         #[serde(rename = "^=")] BitXorEq,
         #[serde(rename = "&=")] BitAndEq,
     }
-}
 
-union! {
     enum PatOrExpr {
         Pattern,
         Expression,
     }
-}
 
-node! {
     struct LogicalExpression {
         operator: LogicalOperator,
         left: Box<Expression>,
         right: Box<Expression>,
     }
-}
 
-string_enum! {
-    enum LogicalOperator {
+    string enum LogicalOperator {
         #[serde(rename = "||")] Or,
         #[serde(rename = "&&")] And,
     }
-}
 
-node! {
     struct MemberExpression {
         object: Box<ExprOrSuper>,
         property: Box<Expression>,
     }
-}
 
-union! {
     enum ExprOrSuper {
         Expression,
         Super,
     }
-}
 
-node! {
     struct Super {}
 
     struct ConditionalExpression {
@@ -580,22 +525,17 @@ node! {
         tail: bool,
         value: TemplateElementInner,
     }
-}
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct TemplateElementInner {
-    cooked: Option<String>,
-    raw: String,
-}
+    struct TemplateElementInner {
+        cooked: Option<String>,
+        raw: String,
+    }
 
-node! {
     struct TaggedTemplateExpression {
         tag: Box<Expression>,
         quasi: TemplateLiteral,
     }
-}
 
-union! {
     enum Pattern {
         Identifier,
         MemberExpression,
@@ -604,22 +544,16 @@ union! {
         RestElement,
         AssignmentPattern,
     }
-}
 
-node! {
     struct ObjectPattern {
         properties: Vec<AssignOrRest>,
     }
-}
 
-string_enum! {
-    enum AssignOrRest {
+    string enum AssignOrRest {
         AssignmentProperty,
         RestElement,
     }
-}
 
-node! {
     struct AssignmentProperty {
         key: Expression,
         shorthand: bool,
@@ -638,9 +572,7 @@ node! {
         left: Box<Pattern>,
         right: Expression,
     }
-}
 
-node! {
     struct ClassDeclaration {
         id: Identifier,
         super_class: Option<Expression>,
@@ -665,10 +597,8 @@ node! {
         generator: bool,
         async: bool,
     }
-}
 
-string_enum! {
-    enum ClassMethodKind {
+    string enum ClassMethodKind {
         Constructor,
         Method,
         Get,

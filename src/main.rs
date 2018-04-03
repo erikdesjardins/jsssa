@@ -2,6 +2,7 @@
 #![cfg_attr(feature="clippy", plugin(clippy))]
 #![cfg_attr(feature="clippy", deny(warnings))]
 #![cfg_attr(not(feature="clippy"), allow(unknown_lints))]
+#![recursion_limit="128"]
 
 extern crate failure;
 #[macro_use]
