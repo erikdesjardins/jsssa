@@ -26,8 +26,7 @@ macro_rules! make_ast {
 
         impl Serialize for $name {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-                let mut s = Serializer::serialize_struct(
-                    serializer,
+                let mut s = serializer.serialize_struct(
                     stringify!($name),
                     1 /* type */ + count!($($field_name)*)
                 )?;
@@ -55,11 +54,19 @@ macro_rules! make_ast {
         }
         $($rest:tt)*
     ) => {
-        #[derive(Serialize, Deserialize, Debug, PartialEq)]
+        #[derive(Deserialize, Debug, PartialEq)]
         #[serde(tag = "type")]
         $(#[$attr])*
         pub enum $name {
             $($(#[$variant_attr])* $variant_type($variant_type),)*
+        }
+
+        impl Serialize for $name {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+                match *self {
+                    $($name::$variant_type(ref field) => field.serialize(serializer),)*
+                }
+            }
         }
 
         $(
@@ -608,12 +615,26 @@ make_ast! {
 
 #[cfg(test)]
 mod tests {
+    use serde_json;
     use super::*;
 
     #[test]
-    fn basic_deserialize_raw_babylon_output() {
-        use serde_json;
+    fn basic_serialize() {
+        let prog = File::new(Program::new(
+            vec![
+                ExpressionStatement::new(NumericLiteral::new(1.0).into()).into()
+            ],
+            vec![],
+            SourceType::Script,
+        ));
+        assert_eq!(
+            serde_json::to_string(&prog).unwrap(),
+            r#"{"type":"File","program":{"type":"Program","body":[{"type":"ExpressionStatement","expression":{"type":"NumericLiteral","value":1.0}}],"directives":[],"source_type":"script"}}"#
+        );
+    }
 
+    #[test]
+    fn basic_deserialize_raw_babylon_output() {
         assert_eq!(
             serde_json::from_str::<File>(r#"{"type":"File","start":0,"end":149,"loc":{"start":{"line":1,"column":0},"end":{"line":6,"column":16}},"program":{"type":"Program","start":0,"end":149,"loc":{"start":{"line":1,"column":0},"end":{"line":6,"column":16}},"sourceType":"script","body":[{"type":"FunctionDeclaration","start":55,"end":132,"loc":{"start":{"line":3,"column":20},"end":{"line":5,"column":21}},"id":{"type":"Identifier","start":64,"end":67,"loc":{"start":{"line":3,"column":29},"end":{"line":3,"column":32},"identifierName":"foo"},"name":"foo"},"generator":false,"async":false,"params":[{"type":"Identifier","start":68,"end":69,"loc":{"start":{"line":3,"column":33},"end":{"line":3,"column":34},"identifierName":"x"},"name":"x"}],"body":{"type":"BlockStatement","start":71,"end":132,"loc":{"start":{"line":3,"column":36},"end":{"line":5,"column":21}},"body":[{"type":"ReturnStatement","start":97,"end":110,"loc":{"start":{"line":4,"column":24},"end":{"line":4,"column":37}},"argument":{"type":"BinaryExpression","start":104,"end":109,"loc":{"start":{"line":4,"column":31},"end":{"line":4,"column":36}},"left":{"type":"Identifier","start":104,"end":105,"loc":{"start":{"line":4,"column":31},"end":{"line":4,"column":32},"identifierName":"x"},"name":"x"},"operator":"+","right":{"type":"NumericLiteral","start":108,"end":109,"loc":{"start":{"line":4,"column":35},"end":{"line":4,"column":36}},"extra":{"rawValue":1,"raw":"1"},"value":1}}}],"directives":[]}}],"directives":[{"type":"Directive","start":21,"end":34,"loc":{"start":{"line":2,"column":20},"end":{"line":2,"column":33}},"value":{"type":"DirectiveLiteral","start":21,"end":33,"loc":{"start":{"line":2,"column":20},"end":{"line":2,"column":32}},"value":"use strict","extra":{"raw":"'use strict'","rawValue":"use strict"}}}]},"comments":[]}"#)
                 .unwrap(),
@@ -648,8 +669,6 @@ mod tests {
 
     #[test]
     fn basic_deserialize_pretty_output() {
-        use serde_json;
-
         assert_eq!(
             serde_json::from_str::<File>(r#"{
                 "type": "File",
