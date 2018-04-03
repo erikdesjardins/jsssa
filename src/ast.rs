@@ -49,7 +49,7 @@ macro_rules! make_ast {
     };
     (
         $(#[$attr:meta])*
-        enum $name:ident {
+        union $name:ident {
             $($(#[$variant_attr:meta])* $variant_type:ident,)*
         }
         $($rest:tt)*
@@ -81,7 +81,7 @@ macro_rules! make_ast {
     };
     (
         $(#[$attr:meta])*
-        string enum $name:ident {
+        enum $name:ident {
             $($(#[$variant_attr:meta])* $variant_name:ident,)*
         }
         $($rest:tt)*
@@ -108,7 +108,7 @@ make_ast! {
         source_type: SourceType,
     }
 
-    string enum SourceType {
+    enum SourceType {
         Script,
         Module,
     }
@@ -145,7 +145,7 @@ make_ast! {
     }
 
     #[allow(large_enum_variant)]
-    enum Statement {
+    union Statement {
         ExpressionStatement,
         BlockStatement,
         EmptyStatement,
@@ -265,7 +265,7 @@ make_ast! {
         await: bool,
     }
 
-    enum VarDeclOrExpr {
+    union VarDeclOrExpr {
         VariableDeclaration,
         Expression,
     }
@@ -283,7 +283,7 @@ make_ast! {
         declarations: Vec<VariableDeclarator>,
     }
 
-    string enum VariableKind {
+    enum VariableKind {
         Var,
         Let,
         Const,
@@ -294,7 +294,7 @@ make_ast! {
         init: Option<Expression>,
     }
 
-    enum Expression {
+    union Expression {
         Identifier,
         RegExpLiteral,
         NullLiteral,
@@ -331,7 +331,7 @@ make_ast! {
         async: bool,
     }
 
-    enum BlockStmtOrExpr {
+    union BlockStmtOrExpr {
         BlockStatement,
         Expression,
     }
@@ -349,7 +349,7 @@ make_ast! {
         elements: Vec<Option<ExprOrSpread>>,
     }
 
-    enum ExprOrSpread {
+    union ExprOrSpread {
         Expression,
         SpreadElement,
     }
@@ -358,7 +358,7 @@ make_ast! {
         properties: Vec<PropOrMethodOrSpread>,
     }
 
-    enum PropOrMethodOrSpread {
+    union PropOrMethodOrSpread {
         ObjectProperty,
         ObjectMethod,
         SpreadElement,
@@ -379,7 +379,7 @@ make_ast! {
         async: bool,
     }
 
-    string enum ObjectMethodKind {
+    enum ObjectMethodKind {
         Get,
         Set,
         Method,
@@ -403,7 +403,7 @@ make_ast! {
         argument: Box<Expression>,
     }
 
-    string enum UnaryOperator {
+    enum UnaryOperator {
         #[serde(rename = "+")] Plus,
         #[serde(rename = "-")] Minus,
         #[serde(rename = "!")] Not,
@@ -419,7 +419,7 @@ make_ast! {
         prefix: bool,
     }
 
-    string enum UpdateOperator {
+    enum UpdateOperator {
         #[serde(rename = "++")] Incr,
         #[serde(rename = "--")] Decr,
     }
@@ -430,7 +430,7 @@ make_ast! {
         right: Box<Expression>,
     }
 
-    string enum BinaryOperator {
+    enum BinaryOperator {
         #[serde(rename = "==")] Eq,
         #[serde(rename = "!=")] NotEq,
         #[serde(rename = "===")] StrictEq,
@@ -460,7 +460,7 @@ make_ast! {
         right: Box<Expression>,
     }
 
-    string enum AssignmentOperator {
+    enum AssignmentOperator {
         #[serde(rename = "=")] Eq,
         #[serde(rename = "+=")] AddEq,
         #[serde(rename = "-=")] SubEq,
@@ -475,7 +475,7 @@ make_ast! {
         #[serde(rename = "&=")] BitAndEq,
     }
 
-    enum PatOrExpr {
+    union PatOrExpr {
         Pattern,
         Expression,
     }
@@ -486,7 +486,7 @@ make_ast! {
         right: Box<Expression>,
     }
 
-    string enum LogicalOperator {
+    enum LogicalOperator {
         #[serde(rename = "||")] Or,
         #[serde(rename = "&&")] And,
     }
@@ -496,7 +496,7 @@ make_ast! {
         property: Box<Expression>,
     }
 
-    enum ExprOrSuper {
+    union ExprOrSuper {
         Expression,
         Super,
     }
@@ -543,7 +543,7 @@ make_ast! {
         quasi: TemplateLiteral,
     }
 
-    enum Pattern {
+    union Pattern {
         Identifier,
         MemberExpression,
         ObjectPattern,
@@ -556,7 +556,7 @@ make_ast! {
         properties: Vec<AssignOrRest>,
     }
 
-    string enum AssignOrRest {
+    enum AssignOrRest {
         AssignmentProperty,
         RestElement,
     }
@@ -605,7 +605,7 @@ make_ast! {
         async: bool,
     }
 
-    string enum ClassMethodKind {
+    enum ClassMethodKind {
         Constructor,
         Method,
         Get,
