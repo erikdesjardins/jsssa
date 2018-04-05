@@ -25,8 +25,7 @@ mod parse;
 mod util;
 
 fn main() {
-    match parse::parse("1") {
-        Ok(ast) => println!("{}", serde_json::to_string(&ast).unwrap()),
-        Err(err) => println!("{}", err),
-    }
+    let ast = parse::parse("1").unwrap();
+    let ir = ast2ir::convert(ast);
+    println!("{:?}", ir);
 }
