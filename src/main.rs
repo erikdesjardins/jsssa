@@ -20,6 +20,7 @@ mod ast;
 mod ast2ir;
 mod ffi;
 mod ir;
+mod ir2ast;
 mod parse;
 mod util;
 
