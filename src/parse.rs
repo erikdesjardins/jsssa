@@ -19,7 +19,7 @@ static BABYLON_BIN: &'static str = include_str!("../vendor/babylon.js");
 pub fn parse(js: &str) -> Result<ast::File, Error> {
     let converted_ast;
     let babylon_ast = unsafe {
-        let runtime = Runtime::new().map_err(|()| RuntimeFailedToInitialize)?;
+        let runtime = Runtime::new().map_err(|()| SpiderMonkeyError::FailedToInitialize)?;
         let context = runtime.cx();
 
         // prepare simple global object
@@ -77,10 +77,10 @@ pub fn parse(js: &str) -> Result<ast::File, Error> {
 
         assert!(parse_result.is_string());
         converted_ast = String::from_jsval(context, parse_result.handle(), ())
-            .map_err(|()| SpiderMonkeyStringWasNull)?;
+            .map_err(|()| SpiderMonkeyError::StringWasNull)?;
         converted_ast
             .get_success_value()
-            .ok_or(FailedToConvertParseResult)?
+            .ok_or(SpiderMonkeyError::FailedToConvertParseResult)?
     };
 
     let ast = serde_json::from_str(babylon_ast).context("failed to parse babylon output")?;
@@ -88,22 +88,20 @@ pub fn parse(js: &str) -> Result<ast::File, Error> {
 }
 
 #[derive(Fail, Debug, PartialEq)]
-#[fail(display = "SpiderMonkey runtime failed to initialize")]
-struct RuntimeFailedToInitialize;
+enum SpiderMonkeyError {
+    #[fail(display = "SpiderMonkey runtime failed to initialize")]
+    FailedToInitialize,
+    #[fail(display = "SpiderMonkey failed to convert parse result")]
+    FailedToConvertParseResult,
+    #[fail(display = "SpiderMonkey parse result was null")]
+    StringWasNull,
+}
 
 #[derive(Fail, Debug, PartialEq)]
 #[fail(display = "JS parse error: {}", message)]
 struct ParseError {
     message: String,
 }
-
-#[derive(Fail, Debug, PartialEq)]
-#[fail(display = "Failed to convert parse result to Rust string")]
-struct FailedToConvertParseResult;
-
-#[derive(Fail, Debug, PartialEq)]
-#[fail(display = "SpiderMonkey parse result was null")]
-struct SpiderMonkeyStringWasNull;
 
 #[cfg(test)]
 mod tests {
