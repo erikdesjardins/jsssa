@@ -231,7 +231,7 @@ make_ast! {
     }
 
     struct CatchClause {
-        param: Option<Pattern>,
+        param: Pattern,
         body: BlockStatement,
     }
 
