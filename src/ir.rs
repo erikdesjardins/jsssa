@@ -49,7 +49,7 @@ impl Block {
         Block {
             directives: vec![],
             bindings: vec![],
-            children: vec![]
+            children: vec![],
         }
     }
 }
@@ -65,7 +65,11 @@ pub enum Stmt {
     Debugger,
     Block(Box<Block>),
     IfElse(Ref<SSA>, Box<Block>, Box<Block>),
-    Try(Box<Block>, Option<(Ref<Mutable>, Box<Block>)>, Option<Box<Block>>)
+    Try(
+        Box<Block>,
+        Option<(Ref<Mutable>, Box<Block>)>,
+        Option<Box<Block>>,
+    ),
 }
 
 #[derive(Debug)]
@@ -130,5 +134,5 @@ pub enum CallKind {
 #[derive(Debug)]
 pub enum FnKind {
     Func { async: bool, gen: bool },
-    Arrow { async: bool }
+    Arrow { async: bool },
 }

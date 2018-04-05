@@ -6,25 +6,24 @@ use util::*;
 
 pub fn convert(ast: ast::File) -> ir::Block {
     let ast::File {
-        program: ast::Program {
-            body,
-            directives,
-            source_type: _,
-        },
+        program:
+            ast::Program {
+                body,
+                directives,
+                source_type: _,
+            },
     } = ast;
 
     convert_block(body, directives)
 }
 
 fn convert_block(body: Vec<ast::Statement>, directives: Vec<ast::Directive>) -> ir::Block {
-    let (children, bindings) = body
-        .into_iter()
-        .map(convert_statement)
-        .fold((vec![], vec![]), |(mut stmts, mut refs), (ss, rs)| {
-            stmts.extend(ss);
-            refs.extend(rs);
-            (stmts, refs)
-        });
+    let (mut children, mut bindings) = (vec![], vec![]);
+
+    for (stmts, refs) in body.into_iter().map(convert_statement) {
+        children.extend(stmts);
+        bindings.extend(refs);
+    }
 
     ir::Block {
         directives: directives.into_iter().map(|d| d.value.value).collect(),
@@ -141,18 +140,15 @@ fn convert_expression(expr: ast::Expression) -> (Vec<ir::Expr>, ir::Expr) {
 
     match expr {
         // todo Identifier(ast::Identifier { name }) =>
-        RegExpLiteral(ast::RegExpLiteral { pattern, flags }) =>
-            (vec![], ir::Expr::RegExp(pattern, flags)),
-        NullLiteral(ast::NullLiteral {}) =>
-            (vec![], ir::Expr::Null),
-        StringLiteral(ast::StringLiteral { value }) =>
-            (vec![], ir::Expr::String(value)),
-        BooleanLiteral(ast::BooleanLiteral { value }) =>
-            (vec![], ir::Expr::Bool(value)),
-        NumericLiteral(ast::NumericLiteral { value }) =>
-            (vec![], ir::Expr::Bool(value)),
-        ThisExpression(ast::ThisExpression {}) =>
-            (vec![], ir::Expr::This),
+        // todo we're gonna need to pass in a ParamEnv or Scope or something
+        RegExpLiteral(ast::RegExpLiteral { pattern, flags }) => {
+            (vec![], ir::Expr::RegExp(pattern, flags))
+        }
+        NullLiteral(ast::NullLiteral {}) => (vec![], ir::Expr::Null),
+        StringLiteral(ast::StringLiteral { value }) => (vec![], ir::Expr::String(value)),
+        BooleanLiteral(ast::BooleanLiteral { value }) => (vec![], ir::Expr::Bool(value)),
+        NumericLiteral(ast::NumericLiteral { value }) => (vec![], ir::Expr::Number(value)),
+        ThisExpression(ast::ThisExpression {}) => (vec![], ir::Expr::This),
     }
 }
 
@@ -160,13 +156,8 @@ fn convert_pattern(pat: ast::Pattern) -> ir::Ref<ir::Mutable> {
     use ast::Pattern::*;
 
     match pat {
-        Identifier(ast::Identifier { name }) =>
-            ir::Ref::new(name),
-        MemberExpression(_) |
-        ObjectPattern(_) |
-        ArrayPattern(_) |
-        RestElement(_) |
-        AssignmentPattern(_) =>
-            unimplemented!("complex patterns not yet supported"),
+        Identifier(ast::Identifier { name }) => ir::Ref::new(name),
+        MemberExpression(_) | ObjectPattern(_) | ArrayPattern(_) | RestElement(_)
+        | AssignmentPattern(_) => unimplemented!("complex patterns not yet supported"),
     }
 }
