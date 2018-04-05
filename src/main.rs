@@ -2,6 +2,7 @@
 #![cfg_attr(feature = "clippy", plugin(clippy))]
 #![cfg_attr(feature = "clippy", deny(warnings))]
 #![cfg_attr(not(feature = "clippy"), allow(unknown_lints))]
+#![feature(box_syntax)]
 #![recursion_limit = "128"]
 
 extern crate failure;
@@ -16,8 +17,11 @@ extern crate serde_derive;
 extern crate serde_json;
 
 mod ast;
+mod ast2ir;
 mod ffi;
+mod ir;
 mod parse;
+mod util;
 
 fn main() {
     match parse::parse("1") {
