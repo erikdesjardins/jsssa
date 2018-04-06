@@ -40,7 +40,6 @@ impl<T: RefType> Ref<T> {
 #[derive(Debug)]
 pub struct Block {
     pub directives: Vec<String>,
-    pub bindings: Vec<Ref<Mutable>>,
     pub children: Vec<Stmt>,
 }
 
@@ -48,7 +47,6 @@ impl Block {
     pub fn empty() -> Self {
         Block {
             directives: vec![],
-            bindings: vec![],
             children: vec![],
         }
     }
@@ -80,6 +78,9 @@ pub enum Expr {
     Null,
     Undefined,
     This,
+    Read(Ref<SSA>),
+    ReadBinding(Ref<Mutable>),
+    ReadGlobal(String),
     Array(Vec<Option<Ref<SSA>>>),
     Object(Vec<(Ref<SSA>, Ref<SSA>)>),
     RegExp(String, String),

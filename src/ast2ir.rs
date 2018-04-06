@@ -1,8 +1,11 @@
+use std::collections::HashMap;
 use std::iter::once;
 
 use ast;
 use ir;
 use util::*;
+
+type ScopeMap = Map<String, ir::Ref<ir::Mutable>>;
 
 pub fn convert(ast: ast::File) -> ir::Block {
     let ast::File {
@@ -14,49 +17,50 @@ pub fn convert(ast: ast::File) -> ir::Block {
             },
     } = ast;
 
-    convert_block(body, directives)
+    convert_block(body, directives, &HashMap::default())
 }
 
-fn convert_block(body: Vec<ast::Statement>, directives: Vec<ast::Directive>) -> ir::Block {
-    let (mut children, mut bindings) = (vec![], vec![]);
+fn convert_block(
+    body: Vec<ast::Statement>,
+    directives: Vec<ast::Directive>,
+    parent_scopes: &ScopeMap,
+) -> ir::Block {
+    let mut scope = parent_scopes.clone();
 
-    for (stmts, refs) in body.into_iter().map(convert_statement) {
-        children.extend(stmts);
-        bindings.extend(refs);
-    }
+    let children = body.into_iter()
+        .flat_map(|stmt| convert_statement(stmt, &mut scope))
+        .collect();
 
     ir::Block {
         directives: directives.into_iter().map(|d| d.value.value).collect(),
-        bindings,
         children,
     }
 }
 
-fn convert_statement(stmt: ast::Statement) -> (Vec<ir::Stmt>, Vec<ir::Ref<ir::Mutable>>) {
+fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt> {
     use ast::Statement::*;
 
     match stmt {
         ExpressionStatement(ast::ExpressionStatement { expression }) => {
-            let stmts = convert_expression(expression)
+            convert_expression(expression, scope)
                 .coalesce()
                 .into_iter()
                 .map(ir::Stmt::Expr)
-                .collect();
-            (stmts, vec![])
+                .collect()
         },
         BlockStatement(ast::BlockStatement { body, directives }) =>
-            (vec![ir::Stmt::Block(box convert_block(body, directives))], vec![]),
+            vec![ir::Stmt::Block(box convert_block(body, directives, scope))],
         EmptyStatement(ast::EmptyStatement {}) =>
-            (vec![], vec![]),
+            vec![],
         DebuggerStatement(ast::DebuggerStatement {}) =>
-            (vec![ir::Stmt::Debugger], vec![]),
+            vec![ir::Stmt::Debugger],
         WithStatement(_) =>
             unimplemented!("with() statement not supported"),
         ReturnStatement(ast::ReturnStatement { argument }) => {
             let ref_ = ir::Ref::new("return_".to_string());
-            let stmts = match argument {
+            match argument {
                 Some(argument) => {
-                    let (exprs, return_value) = convert_expression(argument);
+                    let (exprs, return_value) = convert_expression(argument, scope);
                     exprs
                         .into_iter()
                         .map(ir::Stmt::Expr)
@@ -70,8 +74,7 @@ fn convert_statement(stmt: ast::Statement) -> (Vec<ir::Stmt>, Vec<ir::Ref<ir::Mu
                         ir::Stmt::Return(ref_),
                     ]
                 }
-            };
-            (stmts, vec![])
+            }
         },
         LabeledStatement(_) |
         BreakStatement(_) |
@@ -79,68 +82,74 @@ fn convert_statement(stmt: ast::Statement) -> (Vec<ir::Stmt>, Vec<ir::Ref<ir::Mu
             unimplemented!("labels not yet supported"),
         IfStatement(ast::IfStatement { test, consequent, alternate }) => {
             let ref_ = ir::Ref::new("if_".to_string());
-            let (exprs, test_value) = convert_expression(test);
-            let stmts = exprs
+            let (exprs, test_value) = convert_expression(test, scope);
+            exprs
                 .into_iter()
                 .map(ir::Stmt::Expr)
                 .chain(once(ir::Stmt::Assign(ref_.clone(), test_value)))
                 .chain(once(ir::Stmt::IfElse(
                     ref_,
                     {
-                        let (children, bindings) = convert_statement(*consequent);
-                        box ir::Block { directives: vec![], bindings, children }
+                        let children = convert_statement(*consequent, scope);
+                        box ir::Block { directives: vec![], children }
                     },
                     match alternate {
                         Some(alternate) => {
-                            let (children, bindings) = convert_statement(*alternate);
-                            box ir::Block { directives: vec![], bindings, children }
+                            let children = convert_statement(*alternate, scope);
+                            box ir::Block { directives: vec![], children }
                         },
                         None => box ir::Block::empty()
                     },
                 )))
-                .collect();
-            (stmts, vec![])
+                .collect()
         },
         SwitchStatement(_) =>
             // remember, switch cases aren't evaluated (!) until they're checked for equality
             unimplemented!("switch statements not yet supported"),
         ThrowStatement(ast::ThrowStatement { argument }) => {
             let ref_ = ir::Ref::new("throw_".to_string());
-            let (exprs, throw_value) = convert_expression(argument);
-            let stmts = exprs
+            let (exprs, throw_value) = convert_expression(argument, scope);
+            exprs
                 .into_iter()
                 .map(ir::Stmt::Expr)
                 .chain(once(ir::Stmt::Assign(ref_.clone(), throw_value)))
                 .chain(once(ir::Stmt::Throw(ref_)))
-                .collect();
-            (stmts, vec![])
+                .collect()
         },
         TryStatement(ast::TryStatement { block, handler, finalizer }) => {
             let try = ir::Stmt::Try(
                 {
                     let ast::BlockStatement { body, directives } = block;
-                    box convert_block(body, directives)
+                    box convert_block(body, directives, scope)
                 },
                 handler.map(|ast::CatchClause { param, body }| {
                     let ast::BlockStatement { body, directives } = body;
-                    (convert_pattern(param), box convert_block(body, directives))
+                    let mut catch_scope = scope.clone();
+                    let ref_ = convert_pattern(param, &mut catch_scope);
+                    (ref_, box convert_block(body, directives, &catch_scope))
                 }),
                 finalizer.map(|finalizer| {
                     let ast::BlockStatement { body, directives } = finalizer;
-                    box convert_block(body, directives)
+                    box convert_block(body, directives, scope)
                 }),
             );
-            (vec![try], vec![])
+            vec![try]
         },
+        _ => unimplemented!(),
     }
 }
 
-fn convert_expression(expr: ast::Expression) -> (Vec<ir::Expr>, ir::Expr) {
+fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Expr>, ir::Expr) {
     use ast::Expression::*;
 
     match expr {
-        // todo Identifier(ast::Identifier { name }) =>
-        // todo we're gonna need to pass in a ParamEnv or Scope or something
+        Identifier(ast::Identifier { name }) => {
+            let expr = match scope.get(&name) {
+                Some(ref_) => ir::Expr::ReadBinding(ref_.clone()),
+                None => ir::Expr::ReadGlobal(name),
+            };
+            (vec![], expr)
+        }
         RegExpLiteral(ast::RegExpLiteral { pattern, flags }) => {
             (vec![], ir::Expr::RegExp(pattern, flags))
         }
@@ -149,14 +158,19 @@ fn convert_expression(expr: ast::Expression) -> (Vec<ir::Expr>, ir::Expr) {
         BooleanLiteral(ast::BooleanLiteral { value }) => (vec![], ir::Expr::Bool(value)),
         NumericLiteral(ast::NumericLiteral { value }) => (vec![], ir::Expr::Number(value)),
         ThisExpression(ast::ThisExpression {}) => (vec![], ir::Expr::This),
+        _ => unimplemented!(),
     }
 }
 
-fn convert_pattern(pat: ast::Pattern) -> ir::Ref<ir::Mutable> {
+fn convert_pattern(pat: ast::Pattern, scope: &mut ScopeMap) -> ir::Ref<ir::Mutable> {
     use ast::Pattern::*;
 
     match pat {
-        Identifier(ast::Identifier { name }) => ir::Ref::new(name),
+        Identifier(ast::Identifier { name }) => {
+            let ref_ = ir::Ref::new(name.clone());
+            scope.insert(name, ref_.clone());
+            ref_
+        }
         MemberExpression(_) | ObjectPattern(_) | ArrayPattern(_) | RestElement(_)
         | AssignmentPattern(_) => unimplemented!("complex patterns not yet supported"),
     }
