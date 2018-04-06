@@ -39,6 +39,7 @@ fn convert_block(
 
 fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt> {
     use ast::Statement::*;
+
     match stmt {
         ExpressionStatement(ast::ExpressionStatement { expression }) => {
             convert_expression(expression, scope)
@@ -140,6 +141,7 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
 
 fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Expr>, ir::Expr) {
     use ast::Expression::*;
+
     match expr {
         Identifier(ast::Identifier { name }) => {
             let expr = match scope.get(&name) {
@@ -162,6 +164,7 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Expr>
             async,
         }) => {
             use ast::BlockStmtOrExpr::*;
+
             let mut fn_scope = scope.clone();
             let refs = params
                 .into_iter()
@@ -196,6 +199,7 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Expr>
 
 fn convert_pattern(pat: ast::Pattern, scope: &mut ScopeMap) -> ir::Ref<ir::Mutable> {
     use ast::Pattern::*;
+
     match pat {
         Identifier(ast::Identifier { name }) => {
             let ref_ = ir::Ref::new(name.clone());
