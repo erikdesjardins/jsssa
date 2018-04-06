@@ -1,3 +1,4 @@
+use std::fmt::{self, Debug};
 use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -11,10 +12,19 @@ pub enum SSA {}
 #[derive(Clone, Debug)]
 pub enum Mutable {}
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Ref<T: RefType>(Rc<RefInner<T>>);
 
-#[derive(Debug, PartialEq)]
+impl<T: RefType> Debug for Ref<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        f.debug_tuple("Ref")
+            .field(&self.0.id)
+            .field(&self.0.name_hint)
+            .finish()
+    }
+}
+
+#[derive(PartialEq)]
 struct RefInner<T: RefType> {
     id: usize,
     name_hint: String,
