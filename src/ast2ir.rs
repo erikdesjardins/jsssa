@@ -39,7 +39,6 @@ fn convert_block(
 
 fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt> {
     use ast::Statement::*;
-
     match stmt {
         ExpressionStatement(ast::ExpressionStatement { expression }) => {
             convert_expression(expression, scope)
@@ -141,7 +140,6 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
 
 fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Expr>, ir::Expr) {
     use ast::Expression::*;
-
     match expr {
         Identifier(ast::Identifier { name }) => {
             let expr = match scope.get(&name) {
@@ -158,13 +156,46 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Expr>
         BooleanLiteral(ast::BooleanLiteral { value }) => (vec![], ir::Expr::Bool(value)),
         NumericLiteral(ast::NumericLiteral { value }) => (vec![], ir::Expr::Number(value)),
         ThisExpression(ast::ThisExpression {}) => (vec![], ir::Expr::This),
+        ArrowFunctionExpression(ast::ArrowFunctionExpression {
+            params,
+            body,
+            async,
+        }) => {
+            use ast::BlockStmtOrExpr::*;
+            let mut fn_scope = scope.clone();
+            let refs = params
+                .into_iter()
+                .map(|param| convert_pattern(param, &mut fn_scope))
+                .collect();
+            let body = match *body {
+                BlockStatement(block) => {
+                    let ast::BlockStatement { body, directives } = block;
+                    convert_block(body, directives, &fn_scope)
+                }
+                Expression(expr) => {
+                    let ref_ = ir::Ref::new("arrow_".to_string());
+                    let (exprs, return_value) = convert_expression(expr, &fn_scope);
+                    let stmts = exprs
+                        .into_iter()
+                        .map(ir::Stmt::Expr)
+                        .chain(once(ir::Stmt::Assign(ref_.clone(), return_value)))
+                        .chain(once(ir::Stmt::Return(ref_)))
+                        .collect();
+                    ir::Block {
+                        directives: vec![],
+                        children: stmts,
+                    }
+                }
+            };
+            let func = ir::Expr::Function(ir::FnKind::Arrow { async }, None, refs, box body);
+            (vec![], func)
+        }
         _ => unimplemented!(),
     }
 }
 
 fn convert_pattern(pat: ast::Pattern, scope: &mut ScopeMap) -> ir::Ref<ir::Mutable> {
     use ast::Pattern::*;
-
     match pat {
         Identifier(ast::Identifier { name }) => {
             let ref_ = ir::Ref::new(name.clone());
