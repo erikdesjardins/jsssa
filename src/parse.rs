@@ -158,4 +158,29 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    fn tagged_and_untagged_unions() {
+        use ast::*;
+
+        // if a union like BlockStmtOrExpr is tagged,
+        // serde will require Expression to be tagged `type: Expression`,
+        // but that's not the case, since each expression subtype has its own tag
+        assert_eq!(
+            parse("(x => 1)").unwrap(),
+            File::new(Program::new(
+                vec![
+                    ExpressionStatement::new(
+                        ArrowFunctionExpression::new(
+                            vec![Identifier::new("x".to_string()).into()],
+                            box Expression::from(NumericLiteral::new(1.0)).into(),
+                            false,
+                        ).into(),
+                    ).into(),
+                ],
+                vec![],
+                SourceType::Script,
+            ))
+        );
+    }
 }

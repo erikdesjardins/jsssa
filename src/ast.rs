@@ -55,7 +55,6 @@ macro_rules! make_ast {
         $($rest:tt)*
     ) => {
         #[derive(Deserialize, Debug, PartialEq)]
-        #[serde(tag = "type")]
         $(#[$attr])*
         pub enum $name {
             $($(#[$variant_attr])* $variant_type($variant_type),)*
@@ -145,6 +144,7 @@ make_ast! {
     }
 
     #[allow(large_enum_variant)]
+    #[serde(tag = "type")]
     union Statement {
         ExpressionStatement,
         BlockStatement,
@@ -265,6 +265,7 @@ make_ast! {
         await: bool,
     }
 
+    #[serde(untagged)]
     union VarDeclOrExpr {
         VariableDeclaration,
         Expression,
@@ -294,6 +295,7 @@ make_ast! {
         init: Option<Expression>,
     }
 
+    #[serde(tag = "type")]
     union Expression {
         Identifier,
         RegExpLiteral,
@@ -331,6 +333,7 @@ make_ast! {
         async: bool,
     }
 
+    #[serde(untagged)]
     union BlockStmtOrExpr {
         BlockStatement,
         Expression,
@@ -349,6 +352,7 @@ make_ast! {
         elements: Vec<Option<ExprOrSpread>>,
     }
 
+    #[serde(untagged)]
     union ExprOrSpread {
         Expression,
         SpreadElement,
@@ -358,6 +362,7 @@ make_ast! {
         properties: Vec<PropOrMethodOrSpread>,
     }
 
+    #[serde(tag = "type")]
     union PropOrMethodOrSpread {
         ObjectProperty,
         ObjectMethod,
@@ -475,6 +480,7 @@ make_ast! {
         #[serde(rename = "&=")] BitAndEq,
     }
 
+    #[serde(untagged)]
     union PatOrExpr {
         Pattern,
         Expression,
@@ -496,6 +502,7 @@ make_ast! {
         property: Box<Expression>,
     }
 
+    #[serde(untagged)]
     union ExprOrSuper {
         Expression,
         Super,
@@ -543,6 +550,7 @@ make_ast! {
         quasi: TemplateLiteral,
     }
 
+    #[serde(tag = "type")]
     union Pattern {
         Identifier,
         MemberExpression,
