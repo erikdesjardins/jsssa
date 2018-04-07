@@ -45,6 +45,10 @@ impl<T: RefType> Ref<T> {
     pub fn name_hint(&self) -> &str {
         &self.0.name_hint
     }
+
+    pub fn might_be_used(&self) -> bool {
+        Rc::strong_count(&self.0) > 1
+    }
 }
 
 #[derive(Debug)]
