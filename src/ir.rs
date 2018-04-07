@@ -95,7 +95,7 @@ pub enum Expr {
     Read(Ref<SSA>),
     ReadBinding(Ref<Mutable>),
     ReadGlobal(String),
-    Array(Vec<Option<Ref<SSA>>>),
+    Array(Vec<Option<(EleKind, Ref<SSA>)>>),
     Object(Vec<(Ref<SSA>, Ref<SSA>)>),
     RegExp(String, String),
     Unary(UnaryOp, Ref<SSA>),
@@ -140,6 +140,12 @@ pub enum BinaryOp {
     BitAnd,
     In,
     Instanceof,
+}
+
+#[derive(Debug)]
+pub enum EleKind {
+    Single,
+    Spread,
 }
 
 #[derive(Debug)]

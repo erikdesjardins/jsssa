@@ -197,6 +197,30 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             stmts.push(ir::Stmt::Assign(ref_.clone(), await_value));
             (stmts, ir::Expr::Await(ref_))
         }
+        ArrayExpression(ast::ArrayExpression { elements }) => {
+            use ast::ExprOrSpread::*;
+
+            let mut statements = vec![];
+            let elements = elements
+                .into_iter()
+                .map(|ele| {
+                    ele.map(|e| {
+                        let (kind, expr) = match e {
+                            Expression(e) => (ir::EleKind::Single, e),
+                            SpreadElement(ast::SpreadElement { argument: e }) => {
+                                (ir::EleKind::Spread, e)
+                            }
+                        };
+                        let ref_ = ir::Ref::new("array_".to_string());
+                        let (stmts, ele_value) = convert_expression(expr, scope);
+                        statements.extend(stmts);
+                        statements.push(ir::Stmt::Assign(ref_.clone(), ele_value));
+                        (kind, ref_)
+                    })
+                })
+                .collect();
+            (statements, ir::Expr::Array(elements))
+        }
         _ => unimplemented!(),
     }
 }
