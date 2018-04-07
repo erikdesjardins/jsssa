@@ -221,6 +221,74 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                 .collect();
             (statements, ir::Expr::Array(elements))
         }
+        ObjectExpression(ast::ObjectExpression { properties }) => {
+            use ast::PropOrMethodOrSpread::*;
+
+            let mut statements = vec![];
+            let properties = properties
+                .into_iter()
+                .map(|prop| match prop {
+                    ObjectProperty(ast::ObjectProperty {
+                        key,
+                        shorthand: _,
+                        value,
+                    }) => {
+                        let ref_key = ir::Ref::new("key_".to_string());
+                        let (stmts, key_value) = convert_expression(key, scope);
+                        statements.extend(stmts);
+                        statements.push(ir::Stmt::Assign(ref_key.clone(), key_value));
+                        let ref_value = ir::Ref::new("value_".to_string());
+                        let (stmts, value_value) = convert_expression(value, scope);
+                        statements.extend(stmts);
+                        statements.push(ir::Stmt::Assign(ref_value.clone(), value_value));
+                        (ir::PropKind::Simple, ref_key, ref_value)
+                    }
+                    ObjectMethod(ast::ObjectMethod {
+                        kind,
+                        key,
+                        params,
+                        body: block,
+                        generator,
+                        async,
+                    }) => {
+                        use ast::ObjectMethodKind::*;
+
+                        let kind = match kind {
+                            Get => ir::PropKind::Get,
+                            Set => ir::PropKind::Set,
+                            Method => ir::PropKind::Simple,
+                        };
+                        let ref_key = ir::Ref::new("key_".to_string());
+                        let (stmts, key_value) = convert_expression(key, scope);
+                        statements.extend(stmts);
+                        statements.push(ir::Stmt::Assign(ref_key.clone(), key_value));
+
+                        let mut fn_scope = scope.clone();
+                        let param_refs = params
+                            .into_iter()
+                            .map(|param| convert_pattern(param, &mut fn_scope))
+                            .collect();
+                        let ast::BlockStatement { body, directives } = block;
+                        let body = convert_block(body, directives, &fn_scope);
+                        let fn_value = ir::Expr::Function(
+                            ir::FnKind::Func {
+                                async,
+                                gen: generator,
+                            },
+                            None,
+                            param_refs,
+                            box body,
+                        );
+                        let ref_value = ir::Ref::new("value_".to_string());
+                        statements.push(ir::Stmt::Assign(ref_value.clone(), fn_value));
+
+                        (kind, ref_key, ref_value)
+                    }
+                    SpreadElement(_) => unimplemented!("object spread not implemented"),
+                })
+                .collect();
+            (statements, ir::Expr::Object(properties))
+        }
         _ => unimplemented!(),
     }
 }

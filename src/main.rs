@@ -24,7 +24,7 @@ mod parse;
 mod util;
 
 fn main() {
-    let ast = parse::parse("(x => [1, x])").unwrap();
+    let ast = parse::parse("(x => [1, { x }])").unwrap();
     let ir = ast2ir::convert(ast);
     println!("{:?}", ir);
 }
