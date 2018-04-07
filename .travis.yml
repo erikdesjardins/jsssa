@@ -1,9 +1,9 @@
 language: rust
+rust: nightly
 cache:
   cargo: true
   timeout: 1000
 before_script:
-  - rustup default nightly
   - rustup component add rustfmt-preview
 script:
   - cargo fmt -- --write-mode=diff
