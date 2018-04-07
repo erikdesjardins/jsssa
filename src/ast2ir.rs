@@ -57,12 +57,10 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
             let ref_ = ir::Ref::new("return_".to_string());
             match argument {
                 Some(argument) => {
-                    let (exprs, return_value) = convert_expression(argument, scope);
+                    let (mut exprs, return_value) = convert_expression(argument, scope);
+                    exprs.push(ir::Stmt::Assign(ref_.clone(), return_value));
+                    exprs.push(ir::Stmt::Return(ref_));
                     exprs
-                        .into_iter()
-                        .chain(once(ir::Stmt::Assign(ref_.clone(), return_value)))
-                        .chain(once(ir::Stmt::Return(ref_)))
-                        .collect()
                 },
                 None => {
                     vec![
@@ -78,37 +76,33 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
             unimplemented!("labels not yet supported"),
         IfStatement(ast::IfStatement { test, consequent, alternate }) => {
             let ref_ = ir::Ref::new("if_".to_string());
-            let (exprs, test_value) = convert_expression(test, scope);
-            exprs
-                .into_iter()
-                .chain(once(ir::Stmt::Assign(ref_.clone(), test_value)))
-                .chain(once(ir::Stmt::IfElse(
-                    ref_,
-                    {
-                        let children = convert_statement(*consequent, scope);
+            let (mut exprs, test_value) = convert_expression(test, scope);
+            exprs.push(ir::Stmt::Assign(ref_.clone(), test_value));
+            exprs.push(ir::Stmt::IfElse(
+                ref_,
+                {
+                    let children = convert_statement(*consequent, scope);
+                    box ir::Block { directives: vec![], children }
+                },
+                match alternate {
+                    Some(alternate) => {
+                        let children = convert_statement(*alternate, scope);
                         box ir::Block { directives: vec![], children }
                     },
-                    match alternate {
-                        Some(alternate) => {
-                            let children = convert_statement(*alternate, scope);
-                            box ir::Block { directives: vec![], children }
-                        },
-                        None => box ir::Block::empty()
-                    },
-                )))
-                .collect()
+                    None => box ir::Block::empty()
+                },
+            ));
+            exprs
         },
         SwitchStatement(_) =>
             // remember, switch cases aren't evaluated (!) until they're checked for equality
             unimplemented!("switch statements not yet supported"),
         ThrowStatement(ast::ThrowStatement { argument }) => {
             let ref_ = ir::Ref::new("throw_".to_string());
-            let (exprs, throw_value) = convert_expression(argument, scope);
+            let (mut exprs, throw_value) = convert_expression(argument, scope);
+            exprs.push(ir::Stmt::Assign(ref_.clone(), throw_value));
+            exprs.push(ir::Stmt::Throw(ref_));
             exprs
-                .into_iter()
-                .chain(once(ir::Stmt::Assign(ref_.clone(), throw_value)))
-                .chain(once(ir::Stmt::Throw(ref_)))
-                .collect()
         },
         TryStatement(ast::TryStatement { block, handler, finalizer }) => {
             let try = ir::Stmt::Try(
@@ -171,15 +165,12 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                 }
                 Expression(expr) => {
                     let ref_ = ir::Ref::new("arrow_".to_string());
-                    let (exprs, return_value) = convert_expression(expr, &fn_scope);
-                    let stmts = exprs
-                        .into_iter()
-                        .chain(once(ir::Stmt::Assign(ref_.clone(), return_value)))
-                        .chain(once(ir::Stmt::Return(ref_)))
-                        .collect();
+                    let (mut exprs, return_value) = convert_expression(expr, &fn_scope);
+                    exprs.push(ir::Stmt::Assign(ref_.clone(), return_value));
+                    exprs.push(ir::Stmt::Return(ref_));
                     ir::Block {
                         directives: vec![],
-                        children: stmts,
+                        children: exprs,
                     }
                 }
             };
@@ -188,20 +179,17 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
         }
         YieldExpression(ast::YieldExpression { argument, delegate }) => {
             let ref_ = ir::Ref::new("yield_".to_string());
-            let (exprs, yield_value) = match argument {
-                Some(argument) => convert_expression(*argument, &scope),
+            let (mut exprs, yield_value) = match argument {
+                Some(argument) => convert_expression(*argument, scope),
                 None => (vec![], ir::Expr::Undefined),
             };
-            let stmts = exprs
-                .into_iter()
-                .chain(once(ir::Stmt::Assign(ref_.clone(), yield_value)))
-                .collect();
+            exprs.push(ir::Stmt::Assign(ref_.clone(), yield_value));
             let kind = if delegate {
                 ir::YieldKind::Delegate
             } else {
                 ir::YieldKind::Single
             };
-            (stmts, ir::Expr::Yield(kind, ref_))
+            (exprs, ir::Expr::Yield(kind, ref_))
         }
         AwaitExpression(ast::AwaitExpression { argument }) => {
             let ref_ = ir::Ref::new("await_".to_string());
