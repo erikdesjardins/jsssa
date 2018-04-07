@@ -345,7 +345,7 @@ make_ast! {
     }
 
     struct AwaitExpression {
-        argument: Option<Box<Expression>>,
+        argument: Box<Expression>,
     }
 
     struct ArrayExpression {

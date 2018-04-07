@@ -103,6 +103,7 @@ pub enum Expr {
     Call(CallKind, Ref<SSA>, Vec<Ref<SSA>>),
     Function(FnKind, Option<String>, Vec<Ref<Mutable>>, Box<Block>),
     Yield(YieldKind, Ref<SSA>),
+    Await(Ref<SSA>),
 }
 
 #[derive(Debug)]

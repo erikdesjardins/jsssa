@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::iter::once;
 
 use ast;
 use ir;
@@ -203,6 +202,12 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                 ir::YieldKind::Single
             };
             (stmts, ir::Expr::Yield(kind, ref_))
+        }
+        AwaitExpression(ast::AwaitExpression { argument }) => {
+            let ref_ = ir::Ref::new("await_".to_string());
+            let (mut exprs, await_value) = convert_expression(*argument, scope);
+            exprs.push(ir::Stmt::Assign(ref_.clone(), await_value));
+            (exprs, ir::Expr::Await(ref_))
         }
         _ => unimplemented!(),
     }
