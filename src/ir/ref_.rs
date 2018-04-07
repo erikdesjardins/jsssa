@@ -45,7 +45,7 @@ impl<T: RefType> Ref<T> {
 }
 
 #[derive(Clone)]
-struct LiveRef<T: RefType>(Rc<LiveRefInner<T>>);
+pub struct LiveRef<T: RefType>(Rc<LiveRefInner<T>>);
 
 struct LiveRefInner<T: RefType> {
     id: usize,
