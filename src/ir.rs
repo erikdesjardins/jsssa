@@ -12,30 +12,59 @@ pub enum SSA {}
 #[derive(Clone, Debug)]
 pub enum Mutable {}
 
-#[derive(Clone, PartialEq)]
-pub struct Ref<T: RefType>(Rc<RefInner<T>>);
+#[derive(Clone)]
+pub enum Ref<T: RefType> {
+    Dead,
+    Live(LiveRef<T>),
+}
 
 impl<T: RefType> Debug for Ref<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        f.debug_tuple("Ref")
-            .field(&self.0.id)
-            .field(&self.0.name_hint)
-            .finish()
+        let mut f = f.debug_tuple("Ref");
+        match self {
+            Ref::Dead => {
+                f.field(&"Dead");
+            }
+            Ref::Live(LiveRef(inner)) => {
+                f.field(&inner.id);
+                f.field(&inner.name_hint);
+            }
+        }
+        f.finish()
     }
 }
 
-#[derive(PartialEq)]
-struct RefInner<T: RefType> {
+impl<T: RefType> Ref<T> {
+    pub fn new(name_hint: String) -> Self {
+        Ref::Live(LiveRef::new(name_hint))
+    }
+
+    pub fn dead() -> Self {
+        Ref::Dead
+    }
+}
+
+#[derive(Clone)]
+struct LiveRef<T: RefType>(Rc<LiveRefInner<T>>);
+
+struct LiveRefInner<T: RefType> {
     id: usize,
     name_hint: String,
     _t: PhantomData<T>,
 }
 
-impl<T: RefType> Ref<T> {
-    pub fn new(name_hint: String) -> Self {
+impl<T: RefType> PartialEq for LiveRef<T> {
+    fn eq(&self, other: &Self) -> bool {
+        // compare only by id, which is unique by construction
+        self.0.id == self.0.id
+    }
+}
+
+impl<T: RefType> LiveRef<T> {
+    fn new(name_hint: String) -> Self {
         static ID_COUNTER: AtomicUsize = AtomicUsize::new(1);
 
-        Ref(Rc::new(RefInner {
+        LiveRef(Rc::new(LiveRefInner {
             id: ID_COUNTER.fetch_add(1, Ordering::Relaxed),
             name_hint,
             _t: PhantomData,
