@@ -1,5 +1,5 @@
 language: rust
-rust: nightly
+rust: nightly-2018-04-05
 cache:
   cargo: true
   timeout: 1000
