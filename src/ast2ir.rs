@@ -42,11 +42,9 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
 
     match stmt {
         ExpressionStatement(ast::ExpressionStatement { expression }) => {
-            convert_expression(expression, scope)
-                .coalesce()
-                .into_iter()
-                .map(ir::Stmt::Expr)
-                .collect()
+            let (mut exprs, last_expr) = convert_expression(expression, scope);
+            exprs.push(ir::Stmt::Expr(last_expr));
+            exprs
         },
         BlockStatement(ast::BlockStatement { body, directives }) =>
             vec![ir::Stmt::Block(box convert_block(body, directives, scope))],
@@ -63,7 +61,6 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
                     let (exprs, return_value) = convert_expression(argument, scope);
                     exprs
                         .into_iter()
-                        .map(ir::Stmt::Expr)
                         .chain(once(ir::Stmt::Assign(ref_.clone(), return_value)))
                         .chain(once(ir::Stmt::Return(ref_)))
                         .collect()
@@ -85,7 +82,6 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
             let (exprs, test_value) = convert_expression(test, scope);
             exprs
                 .into_iter()
-                .map(ir::Stmt::Expr)
                 .chain(once(ir::Stmt::Assign(ref_.clone(), test_value)))
                 .chain(once(ir::Stmt::IfElse(
                     ref_,
@@ -111,7 +107,6 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
             let (exprs, throw_value) = convert_expression(argument, scope);
             exprs
                 .into_iter()
-                .map(ir::Stmt::Expr)
                 .chain(once(ir::Stmt::Assign(ref_.clone(), throw_value)))
                 .chain(once(ir::Stmt::Throw(ref_)))
                 .collect()
@@ -139,7 +134,7 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
     }
 }
 
-fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Expr>, ir::Expr) {
+fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>, ir::Expr) {
     use ast::Expression::*;
 
     match expr {
@@ -180,7 +175,6 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Expr>
                     let (exprs, return_value) = convert_expression(expr, &fn_scope);
                     let stmts = exprs
                         .into_iter()
-                        .map(ir::Stmt::Expr)
                         .chain(once(ir::Stmt::Assign(ref_.clone(), return_value)))
                         .chain(once(ir::Stmt::Return(ref_)))
                         .collect();

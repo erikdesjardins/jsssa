@@ -4,15 +4,3 @@ use std::hash::BuildHasherDefault;
 
 // use a deterministically-seeded map for consistent iteration order
 pub type Map<K, V> = HashMap<K, V, BuildHasherDefault<DefaultHasher>>;
-
-pub trait Coalesce<T> {
-    fn coalesce(self) -> Vec<T>;
-}
-
-impl<T> Coalesce<T> for (Vec<T>, T) {
-    fn coalesce(self) -> Vec<T> {
-        let (mut xs, x) = self;
-        xs.push(x);
-        xs
-    }
-}
