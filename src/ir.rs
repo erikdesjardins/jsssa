@@ -102,6 +102,7 @@ pub enum Expr {
     Binary(BinaryOp, Ref<SSA>, Ref<SSA>),
     Call(CallKind, Ref<SSA>, Vec<Ref<SSA>>),
     Function(FnKind, Option<String>, Vec<Ref<Mutable>>, Box<Block>),
+    Yield(YieldKind, Ref<SSA>),
 }
 
 #[derive(Debug)]
@@ -150,4 +151,10 @@ pub enum CallKind {
 pub enum FnKind {
     Func { async: bool, gen: bool },
     Arrow { async: bool },
+}
+
+#[derive(Debug)]
+pub enum YieldKind {
+    Single,
+    Delegate,
 }

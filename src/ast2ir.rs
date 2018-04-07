@@ -187,6 +187,23 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             let func = ir::Expr::Function(ir::FnKind::Arrow { async }, None, refs, box body);
             (vec![], func)
         }
+        YieldExpression(ast::YieldExpression { argument, delegate }) => {
+            let ref_ = ir::Ref::new("yield_".to_string());
+            let (exprs, yield_value) = match argument {
+                Some(argument) => convert_expression(*argument, &scope),
+                None => (vec![], ir::Expr::Undefined),
+            };
+            let stmts = exprs
+                .into_iter()
+                .chain(once(ir::Stmt::Assign(ref_.clone(), yield_value)))
+                .collect();
+            let kind = if delegate {
+                ir::YieldKind::Delegate
+            } else {
+                ir::YieldKind::Single
+            };
+            (stmts, ir::Expr::Yield(kind, ref_))
+        }
         _ => unimplemented!(),
     }
 }
