@@ -289,6 +289,50 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                 .collect();
             (statements, ir::Expr::Object(properties))
         }
+        FunctionExpression(ast::FunctionExpression {
+            id,
+            params,
+            body,
+            generator,
+            async,
+        }) => {
+            let name = id.map(|id| id.name);
+            let mut fn_scope = scope.clone();
+            let refs = params
+                .into_iter()
+                .map(|param| convert_pattern(param, &mut fn_scope))
+                .collect();
+            let recursive_ref = if let Some(ref name) = &name {
+                let recursive_ref = ir::Ref::new(name.clone());
+                fn_scope.insert(name.clone(), recursive_ref.clone());
+                Some(recursive_ref)
+            } else {
+                None
+            };
+            let ast::BlockStatement { body, directives } = body;
+            let mut block = convert_block(body, directives, &fn_scope);
+            if let Some(recursive_ref) = recursive_ref {
+                let desugar_ref = ir::Ref::new("curfn_".to_string());
+                block.children.insert(
+                    0,
+                    ir::Stmt::Assign(desugar_ref.clone(), ir::Expr::CurrentFunction),
+                );
+                block
+                    .children
+                    .insert(1, ir::Stmt::AssignBinding(recursive_ref, desugar_ref));
+            }
+
+            let func = ir::Expr::Function(
+                ir::FnKind::Func {
+                    async,
+                    gen: generator,
+                },
+                name,
+                refs,
+                box block,
+            );
+            (vec![], func)
+        }
         _ => unimplemented!(),
     }
 }

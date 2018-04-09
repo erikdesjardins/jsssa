@@ -51,6 +51,7 @@ pub enum Expr {
     Binary(BinaryOp, Ref<SSA>, Ref<SSA>),
     Call(CallKind, Ref<SSA>, Vec<Ref<SSA>>),
     Function(FnKind, Option<String>, Vec<Ref<Mutable>>, Box<Block>),
+    CurrentFunction,
     Yield(YieldKind, Ref<SSA>),
     Await(Ref<SSA>),
 }
