@@ -333,6 +333,39 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             );
             (vec![], func)
         }
+        UnaryExpression(ast::UnaryExpression {
+            operator,
+            prefix: _,
+            argument,
+        }) => {
+            let op = match operator {
+                ast::UnaryOperator::Plus => ir::UnaryOp::Plus,
+                ast::UnaryOperator::Minus => ir::UnaryOp::Minus,
+                ast::UnaryOperator::Not => ir::UnaryOp::Not,
+                ast::UnaryOperator::Tilde => ir::UnaryOp::Tilde,
+                ast::UnaryOperator::Typeof => ir::UnaryOp::Typeof,
+                ast::UnaryOperator::Void => ir::UnaryOp::Void,
+                // need to preserve member access
+                ast::UnaryOperator::Delete => match *argument {
+                    MemberExpression(expr) => {
+                        let ast::MemberExpression { object, property } = expr;
+                        let obj_ref = ir::Ref::new("obj_".to_string());
+                        let (mut stmts, obj_value) = convert_expr_or_super(*object, scope);
+                        stmts.push(ir::Stmt::Assign(obj_ref.clone(), obj_value));
+                        let prop_ref = ir::Ref::new("prop_".to_string());
+                        let (prop_stmts, prop_value) = convert_expression(*property, scope);
+                        stmts.extend(prop_stmts);
+                        stmts.push(ir::Stmt::Assign(prop_ref.clone(), prop_value));
+                        return (stmts, ir::Expr::Delete(obj_ref, prop_ref));
+                    }
+                    _ => unimplemented!("deletion of non-MemberExpression not supported"),
+                },
+            };
+            let ref_ = ir::Ref::new("unary_".to_string());
+            let (mut stmts, expr_value) = convert_expression(*argument, scope);
+            stmts.push(ir::Stmt::Assign(ref_.clone(), expr_value));
+            (stmts, ir::Expr::Unary(op, ref_))
+        }
         _ => unimplemented!(),
     }
 }
@@ -348,5 +381,17 @@ fn convert_pattern(pat: ast::Pattern, scope: &mut ScopeMap) -> ir::Ref<ir::Mutab
         }
         MemberExpression(_) | ObjectPattern(_) | ArrayPattern(_) | RestElement(_)
         | AssignmentPattern(_) => unimplemented!("complex patterns not yet supported"),
+    }
+}
+
+fn convert_expr_or_super(
+    expr_or_super: ast::ExprOrSuper,
+    scope: &ScopeMap,
+) -> (Vec<ir::Stmt>, ir::Expr) {
+    use ast::ExprOrSuper::*;
+
+    match expr_or_super {
+        Expression(expr) => convert_expression(expr, scope),
+        Super(ast::Super {}) => (vec![], ir::Expr::Super),
     }
 }
