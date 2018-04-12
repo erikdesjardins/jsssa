@@ -267,8 +267,8 @@ make_ast! {
 
     #[serde(untagged)]
     union VarDeclOrExpr {
-        VariableDeclaration,
         Expression,
+        VariableDeclaration,
     }
 
     struct FunctionDeclaration {
@@ -335,8 +335,8 @@ make_ast! {
 
     #[serde(untagged)]
     union BlockStmtOrExpr {
-        BlockStatement,
         Expression,
+        BlockStatement,
     }
 
     struct YieldExpression {
@@ -482,8 +482,8 @@ make_ast! {
 
     #[serde(untagged)]
     union PatOrExpr {
-        Pattern,
         Expression,
+        Pattern,
     }
 
     struct LogicalExpression {
