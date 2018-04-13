@@ -56,7 +56,7 @@ struct LiveRefInner<T: RefType> {
 impl<T: RefType> PartialEq for LiveRef<T> {
     fn eq(&self, other: &Self) -> bool {
         // compare only by id, which is unique by construction
-        self.0.id == self.0.id
+        self.0.id == other.0.id
     }
 }
 
