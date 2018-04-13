@@ -372,6 +372,39 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             stmts.push(ir::Stmt::Assign(ref_.clone(), expr_value));
             (stmts, ir::Expr::Unary(op, ref_))
         }
+        UpdateExpression(ast::UpdateExpression {
+            operator,
+            argument,
+            prefix,
+        }) => {
+            let one_ref = ir::Ref::new("one_".to_string());
+            let read_ref = ir::Ref::new("update_read_".to_string());
+            let write_ref = ir::Ref::new("update_write_".to_string());
+            let (read, write) = match *argument {
+                Identifier(ast::Identifier { name }) => match scope.get(&name) {
+                    Some(ref_) => (
+                        ir::Expr::ReadBinding(ref_.clone()),
+                        ir::Stmt::AssignBinding(ref_.clone(), write_ref.clone()),
+                    ),
+                    None => (
+                        ir::Expr::ReadGlobal(name.clone()),
+                        ir::Stmt::AssignGlobal(name, write_ref.clone()),
+                    ),
+                },
+                arg => panic!("unexpected UpdateExpression argument: {:?}", arg),
+            };
+            let stmts = vec![
+                ir::Stmt::Assign(read_ref.clone(), read),
+                ir::Stmt::Assign(one_ref.clone(), ir::Expr::Number(1.0)),
+                ir::Stmt::Assign(
+                    write_ref.clone(),
+                    ir::Expr::Binary(ir::BinaryOp::Add, read_ref.clone(), one_ref),
+                ),
+                write,
+            ];
+            let value = if prefix { write_ref } else { read_ref };
+            (stmts, ir::Expr::Read(value))
+        }
         _ => unimplemented!(),
     }
 }
