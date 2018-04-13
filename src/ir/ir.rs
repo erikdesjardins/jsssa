@@ -23,6 +23,8 @@ pub enum Stmt {
     AssignGlobal(String, Ref<SSA>),
     Return(Ref<SSA>),
     Throw(Ref<SSA>),
+    Break,
+    Continue,
     Debugger,
     Block(Box<Block>),
     IfElse(Ref<SSA>, Box<Block>, Box<Block>),
