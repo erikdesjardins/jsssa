@@ -217,7 +217,7 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                                 (ir::EleKind::Spread, e)
                             }
                         };
-                        let ref_ = ir::Ref::new("array_".to_string());
+                        let ref_ = ir::Ref::new("ele_".to_string());
                         let (stmts, ele_value) = convert_expression(expr, scope);
                         statements.extend(stmts);
                         statements.push(ir::Stmt::Assign(ref_.clone(), ele_value));
@@ -378,8 +378,8 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             prefix,
         }) => {
             let one_ref = ir::Ref::new("one_".to_string());
-            let read_ref = ir::Ref::new("update_read_".to_string());
-            let write_ref = ir::Ref::new("update_write_".to_string());
+            let read_ref = ir::Ref::new("read_".to_string());
+            let write_ref = ir::Ref::new("write_".to_string());
             let (read, write) = match *argument {
                 Identifier(ast::Identifier { name }) => match scope.get(&name) {
                     Some(ref_) => (
