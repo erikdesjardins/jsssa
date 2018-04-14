@@ -24,7 +24,7 @@ mod parse;
 mod util;
 
 fn main() {
-    let ast = parse::parse("(function f(x) { return +[1, { x }, f, ++g]; })").unwrap();
+    let ast = parse::parse("(function f(x) { return +[1, { x }, f + 1, ++g]; })").unwrap();
     let ir = ast2ir::convert(ast);
     println!("{:?}", ir);
 }

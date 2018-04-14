@@ -405,6 +405,43 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             let value = if prefix { write_ref } else { read_ref };
             (stmts, ir::Expr::Read(value))
         }
+        BinaryExpression(ast::BinaryExpression {
+            operator,
+            left,
+            right,
+        }) => {
+            let left_ref = ir::Ref::new("left_".to_string());
+            let right_ref = ir::Ref::new("right_".to_string());
+            let op = match operator {
+                ast::BinaryOperator::Eq => ir::BinaryOp::Eq,
+                ast::BinaryOperator::NotEq => ir::BinaryOp::NotEq,
+                ast::BinaryOperator::StrictEq => ir::BinaryOp::StrictEq,
+                ast::BinaryOperator::NotStrictEq => ir::BinaryOp::NotStrictEq,
+                ast::BinaryOperator::Lt => ir::BinaryOp::Lt,
+                ast::BinaryOperator::Lte => ir::BinaryOp::Lte,
+                ast::BinaryOperator::Gt => ir::BinaryOp::Gt,
+                ast::BinaryOperator::Gte => ir::BinaryOp::Gte,
+                ast::BinaryOperator::ShiftLeft => ir::BinaryOp::ShiftLeft,
+                ast::BinaryOperator::ShiftRight => ir::BinaryOp::ShiftRight,
+                ast::BinaryOperator::ShiftRightZero => ir::BinaryOp::ShiftRightZero,
+                ast::BinaryOperator::Add => ir::BinaryOp::Add,
+                ast::BinaryOperator::Sub => ir::BinaryOp::Sub,
+                ast::BinaryOperator::Mul => ir::BinaryOp::Mul,
+                ast::BinaryOperator::Div => ir::BinaryOp::Div,
+                ast::BinaryOperator::Mod => ir::BinaryOp::Mod,
+                ast::BinaryOperator::BitOr => ir::BinaryOp::BitOr,
+                ast::BinaryOperator::BitXor => ir::BinaryOp::BitXor,
+                ast::BinaryOperator::BitAnd => ir::BinaryOp::BitAnd,
+                ast::BinaryOperator::In => ir::BinaryOp::In,
+                ast::BinaryOperator::Instanceof => ir::BinaryOp::Instanceof,
+            };
+            let (mut stmts, left_value) = convert_expression(*left, scope);
+            stmts.push(ir::Stmt::Assign(left_ref.clone(), left_value));
+            let (right_stmts, right_value) = convert_expression(*right, scope);
+            stmts.extend(right_stmts);
+            stmts.push(ir::Stmt::Assign(right_ref.clone(), right_value));
+            (stmts, ir::Expr::Binary(op, left_ref, right_ref))
+        }
         _ => unimplemented!(),
     }
 }
