@@ -8,9 +8,16 @@ pub struct Block {
 
 impl Block {
     pub fn empty() -> Self {
-        Block {
+        Self {
             directives: vec![],
             children: vec![],
+        }
+    }
+
+    pub fn with_children(children: Vec<Stmt>) -> Self {
+        Self {
+            directives: vec![],
+            children,
         }
     }
 }
@@ -27,6 +34,7 @@ pub enum Stmt {
     Continue,
     Debugger,
     Block(Box<Block>),
+    Loop(Box<Block>),
     IfElse(Ref<SSA>, Box<Block>, Box<Block>),
     Try(
         Box<Block>,

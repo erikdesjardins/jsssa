@@ -88,12 +88,12 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
                 ref_,
                 {
                     let children = convert_statement(*consequent, scope);
-                    box ir::Block { directives: vec![], children }
+                    box ir::Block::with_children(children)
                 },
                 match alternate {
                     Some(alternate) => {
                         let children = convert_statement(*alternate, scope);
-                        box ir::Block { directives: vec![], children }
+                        box ir::Block::with_children(children)
                     },
                     None => box ir::Block::empty()
                 },
@@ -129,6 +129,33 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
             );
             vec![try]
         },
+        while_stmt@WhileStatement(_) | while_stmt@DoWhileStatement(_) => {
+            let (test, body, prefix) = match while_stmt {
+                WhileStatement(ast::WhileStatement { test, body }) => (test, body, true),
+                DoWhileStatement(ast::DoWhileStatement { body, test }) => (test, body, false),
+                _ => unreachable!(),
+            };
+            let cond_ref = ir::Ref::new("while_".to_string());
+            let inverted_ref = ir::Ref::new("unless_".to_string());
+            let (mut test_stmts, test_value) = convert_expression(test, scope);
+            test_stmts.push(ir::Stmt::Assign(cond_ref.clone(), test_value));
+            test_stmts.push(ir::Stmt::Assign(
+                inverted_ref.clone(),
+                ir::Expr::Unary(ir::UnaryOp::Not, cond_ref)
+            ));
+            test_stmts.push(ir::Stmt::IfElse(
+                inverted_ref,
+                box ir::Block::with_children(vec![ir::Stmt::Break]),
+                box ir::Block::empty()
+            ));
+            let body_stmts = convert_statement(*body, scope);
+            let stmts = if prefix {
+                test_stmts.into_iter().chain(body_stmts)
+            } else {
+                body_stmts.into_iter().chain(test_stmts)
+            }.collect();
+            vec![ir::Stmt::Loop(box ir::Block::with_children(stmts))]
+        }
         _ => unimplemented!(),
     }
 }
@@ -174,10 +201,7 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                     let (mut stmts, return_value) = convert_expression(expr, &fn_scope);
                     stmts.push(ir::Stmt::Assign(ref_.clone(), return_value));
                     stmts.push(ir::Stmt::Return(ref_));
-                    ir::Block {
-                        directives: vec![],
-                        children: stmts,
-                    }
+                    ir::Block::with_children(stmts)
                 }
             };
             let func = ir::Expr::Function(ir::FnKind::Arrow { async }, None, refs, box body);
