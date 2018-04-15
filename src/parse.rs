@@ -141,9 +141,9 @@ mod tests {
                         false,
                     ).into(),
                 ],
-                vec![
-                    Directive::new(DirectiveLiteral::new("use strict".to_owned())),
-                ],
+                vec![Directive::new(DirectiveLiteral::new(
+                    "use strict".to_owned(),
+                ))],
                 SourceType::Script,
             ))
         )

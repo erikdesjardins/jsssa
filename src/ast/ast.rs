@@ -629,9 +629,7 @@ mod tests {
     #[test]
     fn basic_serialize() {
         let prog = File::new(Program::new(
-            vec![
-                ExpressionStatement::new(NumericLiteral::new(1.0).into()).into(),
-            ],
+            vec![ExpressionStatement::new(NumericLiteral::new(1.0).into()).into()],
             vec![],
             SourceType::Script,
         ));
@@ -764,9 +762,9 @@ mod tests {
                         false,
                     ).into(),
                 ],
-                vec![
-                    Directive::new(DirectiveLiteral::new("use strict".to_owned())),
-                ],
+                vec![Directive::new(DirectiveLiteral::new(
+                    "use strict".to_owned(),
+                ))],
                 SourceType::Script,
             ))
         );
