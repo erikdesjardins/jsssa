@@ -12,10 +12,18 @@ pub enum SSA {}
 #[derive(Clone, Debug)]
 pub enum Mutable {}
 
-#[derive(Clone)]
 pub enum Ref<T: RefType> {
     Dead,
     Live(LiveRef<T>),
+}
+
+impl<T: RefType> Clone for Ref<T> {
+    fn clone(&self) -> Self {
+        match self {
+            Ref::Dead => Ref::Dead,
+            Ref::Live(live_ref) => Ref::Live(LiveRef(live_ref.0.clone())),
+        }
+    }
 }
 
 impl<T: RefType> Debug for Ref<T> {
@@ -40,7 +48,6 @@ impl<T: RefType> Ref<T> {
     }
 }
 
-#[derive(Clone)]
 pub struct LiveRef<T: RefType>(Rc<LiveRefInner<T>>);
 
 struct LiveRefInner<T: RefType> {
