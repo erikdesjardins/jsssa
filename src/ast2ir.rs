@@ -470,6 +470,96 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             stmts.push(ir::Stmt::Assign(right_ref.clone(), right_value));
             (stmts, ir::Expr::Binary(op, left_ref, right_ref))
         }
+        AssignmentExpression(ast::AssignmentExpression {
+            operator,
+            left,
+            right,
+        }) => {
+            let value_ref = ir::Ref::new("val_".to_string());
+            let (mut stmts, read_expr, write_stmt) = match *left {
+                ast::PatOrExpr::Pattern(pat) => match pat {
+                    ast::Pattern::Identifier(ast::Identifier { name }) => match scope.get(&name) {
+                        Some(binding) => (
+                            vec![],
+                            ir::Expr::ReadBinding(binding.clone()),
+                            ir::Stmt::AssignBinding(binding.clone(), value_ref.clone()),
+                        ),
+                        None => (
+                            vec![],
+                            ir::Expr::ReadGlobal(name.clone()),
+                            ir::Stmt::AssignGlobal(name.clone(), value_ref.clone()),
+                        ),
+                    },
+                    ast::Pattern::MemberExpression(ast::MemberExpression {
+                        object,
+                        property,
+                    }) => {
+                        let obj_ref = ir::Ref::new("obj_".to_string());
+                        let prop_ref = ir::Ref::new("prop_".to_string());
+                        let (mut stmts, obj_value) = convert_expr_or_super(*object, scope);
+                        stmts.push(ir::Stmt::Assign(obj_ref.clone(), obj_value));
+                        let (prop_stmts, prop_value) = convert_expression(*property, scope);
+                        stmts.extend(prop_stmts);
+                        stmts.push(ir::Stmt::Assign(prop_ref.clone(), prop_value));
+                        (
+                            stmts,
+                            ir::Expr::ReadMember(obj_ref.clone(), prop_ref.clone()),
+                            ir::Stmt::AssignMember(obj_ref, prop_ref, value_ref.clone()),
+                        )
+                    }
+                    _ => unimplemented!("assigning to complex patterns not yet supported"),
+                },
+                ast::PatOrExpr::Expression(_) => {
+                    unimplemented!("assigning to Expression (impossible?)")
+                }
+            };
+            match operator {
+                ast::AssignmentOperator::Eq => {
+                    let (right_stmts, right_val) = convert_expression(*right, scope);
+                    stmts.extend(right_stmts);
+                    stmts.push(ir::Stmt::Assign(value_ref.clone(), right_val));
+                    stmts.push(write_stmt);
+                }
+                op @ ast::AssignmentOperator::AddEq
+                | op @ ast::AssignmentOperator::SubEq
+                | op @ ast::AssignmentOperator::MulEq
+                | op @ ast::AssignmentOperator::DivEq
+                | op @ ast::AssignmentOperator::ModEq
+                | op @ ast::AssignmentOperator::ShiftLeftEq
+                | op @ ast::AssignmentOperator::ShiftRightEq
+                | op @ ast::AssignmentOperator::ShiftRightZeroEq
+                | op @ ast::AssignmentOperator::BitOrEq
+                | op @ ast::AssignmentOperator::BitXorEq
+                | op @ ast::AssignmentOperator::BitAndEq => {
+                    let left_ref = ir::Ref::new("left_".to_string());
+                    let right_ref = ir::Ref::new("right_".to_string());
+                    let op = match op {
+                        ast::AssignmentOperator::Eq => unreachable!(),
+                        ast::AssignmentOperator::AddEq => ir::BinaryOp::Add,
+                        ast::AssignmentOperator::SubEq => ir::BinaryOp::Sub,
+                        ast::AssignmentOperator::MulEq => ir::BinaryOp::Mul,
+                        ast::AssignmentOperator::DivEq => ir::BinaryOp::Div,
+                        ast::AssignmentOperator::ModEq => ir::BinaryOp::Mod,
+                        ast::AssignmentOperator::ShiftLeftEq => ir::BinaryOp::ShiftLeft,
+                        ast::AssignmentOperator::ShiftRightEq => ir::BinaryOp::ShiftRight,
+                        ast::AssignmentOperator::ShiftRightZeroEq => ir::BinaryOp::ShiftRightZero,
+                        ast::AssignmentOperator::BitOrEq => ir::BinaryOp::BitOr,
+                        ast::AssignmentOperator::BitXorEq => ir::BinaryOp::BitXor,
+                        ast::AssignmentOperator::BitAndEq => ir::BinaryOp::BitAnd,
+                    };
+                    stmts.push(ir::Stmt::Assign(left_ref.clone(), read_expr));
+                    let (right_stmts, right_val) = convert_expression(*right, scope);
+                    stmts.extend(right_stmts);
+                    stmts.push(ir::Stmt::Assign(right_ref.clone(), right_val));
+                    stmts.push(ir::Stmt::Assign(
+                        value_ref.clone(),
+                        ir::Expr::Binary(op, left_ref, right_ref),
+                    ));
+                    stmts.push(write_stmt);
+                }
+            }
+            (stmts, ir::Expr::Read(value_ref))
+        }
         _ => unimplemented!(),
     }
 }

@@ -28,6 +28,8 @@ fn main() {
         r#"
             (function f(x) {
                 while (true);
+                x = y;
+                z.foo = x;
                 return +[1, { x }, f + 1, ++g];
             });
         "#,

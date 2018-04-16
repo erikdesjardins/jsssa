@@ -482,8 +482,8 @@ make_ast! {
 
     #[serde(untagged)]
     union PatOrExpr {
-        Expression,
         Pattern,
+        Expression,
     }
 
     struct LogicalExpression {
