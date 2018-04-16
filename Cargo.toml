@@ -3,7 +3,7 @@ name = "jsssa"
 version = "0.0.0"
 
 [dependencies]
-clippy = { version = "0.0.191", optional = true }
+clippy = { version = "*", optional = true }
 failure = "0.1"
 failure_derive = "0.1"
 mozjs = { version = "0.6", default-features = false }
