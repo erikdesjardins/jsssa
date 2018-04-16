@@ -26,11 +26,11 @@ mod util;
 fn main() {
     let ast = parse::parse(
         r#"
-        (function f(x) {
-            while (true);
-            return +[1, { x }, f + 1, ++g];
-        });
-    "#,
+            (function f(x) {
+                while (true);
+                return +[1, { x }, f + 1, ++g];
+            });
+        "#,
     ).unwrap();
     let ir = ast2ir::convert(ast);
     println!("{:?}", ir);
