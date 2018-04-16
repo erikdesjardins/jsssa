@@ -417,12 +417,16 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                 },
                 arg => panic!("unexpected UpdateExpression argument: {:?}", arg),
             };
+            let op = match operator {
+                ast::UpdateOperator::Incr => ir::BinaryOp::Add,
+                ast::UpdateOperator::Decr => ir::BinaryOp::Sub,
+            };
             let stmts = vec![
                 ir::Stmt::Assign(read_ref.clone(), read),
                 ir::Stmt::Assign(one_ref.clone(), ir::Expr::Number(1.0)),
                 ir::Stmt::Assign(
                     write_ref.clone(),
-                    ir::Expr::Binary(ir::BinaryOp::Add, read_ref.clone(), one_ref),
+                    ir::Expr::Binary(op, read_ref.clone(), one_ref),
                 ),
                 write,
             ];
