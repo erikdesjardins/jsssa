@@ -490,10 +490,7 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                             ir::Stmt::WriteGlobal(name.clone(), value_ref.clone()),
                         ),
                     },
-                    ast::Pattern::MemberExpression(ast::MemberExpression {
-                        object,
-                        property,
-                    }) => {
+                    ast::Pattern::MemberExpression(ast::MemberExpression { object, property }) => {
                         let obj_ref = ir::Ref::new("obj_".to_string());
                         let prop_ref = ir::Ref::new("prop_".to_string());
                         let (mut stmts, obj_value) = convert_expr_or_super(*object, scope);
