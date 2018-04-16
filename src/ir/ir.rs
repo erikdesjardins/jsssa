@@ -120,7 +120,7 @@ pub enum PropKind {
 
 #[derive(Debug)]
 pub enum CallKind {
-    Call,
+    Fn,
     New,
 }
 
