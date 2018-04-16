@@ -38,10 +38,6 @@ impl<T: RefType> Ref<T> {
     pub fn new(name_hint: String) -> Self {
         Ref::Live(LiveRef::new(name_hint))
     }
-
-    pub fn dead() -> Self {
-        Ref::Dead
-    }
 }
 
 #[derive(Clone)]

@@ -24,11 +24,10 @@ impl Block {
 
 #[derive(Debug)]
 pub enum Stmt {
-    Expr(Expr),
-    Assign(Ref<SSA>, Expr),
-    AssignBinding(Ref<Mutable>, Ref<SSA>),
-    AssignGlobal(String, Ref<SSA>),
-    AssignMember(Ref<SSA>, Ref<SSA>, Ref<SSA>),
+    Expr(Ref<SSA>, Expr),
+    WriteBinding(Ref<Mutable>, Ref<SSA>),
+    WriteGlobal(String, Ref<SSA>),
+    WriteMember(Ref<SSA>, Ref<SSA>, Ref<SSA>),
     Return(Ref<SSA>),
     Throw(Ref<SSA>),
     Break,
