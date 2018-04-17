@@ -552,7 +552,11 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             }
             (stmts, ir::Expr::Read(value_ref))
         }
-        LogicalExpression(ast::LogicalExpression { operator, left, right }) => {
+        LogicalExpression(ast::LogicalExpression {
+            operator,
+            left,
+            right,
+        }) => {
             let left_ref = ir::Ref::new("pred_".to_string());
             let value_ref = ir::Ref::new("logi_".to_string());
             let (mut stmts, left_value) = convert_expression(*left, scope);
