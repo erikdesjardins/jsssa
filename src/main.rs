@@ -29,7 +29,7 @@ fn main() {
         r#"
             (function f(x) {
                 while (true);
-                x = y;
+                x = y.bar;
                 z.foo = x;
                 return +[1 || x, { x }, f + 1, ++g];
             });

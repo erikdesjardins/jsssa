@@ -577,6 +577,16 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             stmts.push(ir::Stmt::IfElse(left_ref, box consequent, box alternate));
             (stmts, ir::Expr::ReadBinding(value_ref))
         }
+        MemberExpression(ast::MemberExpression { object, property }) => {
+            let obj_ref = ir::Ref::new("obj_".to_string());
+            let prop_ref = ir::Ref::new("prop_".to_string());
+            let (mut stmts, obj_value) = convert_expr_or_super(*object, scope);
+            stmts.push(ir::Stmt::Expr(obj_ref.clone(), obj_value));
+            let (prop_stmts, prop_value) = convert_expression(*property, scope);
+            stmts.extend(prop_stmts);
+            stmts.push(ir::Stmt::Expr(prop_ref.clone(), prop_value));
+            (stmts, ir::Expr::ReadMember(obj_ref, prop_ref))
+        }
         _ => unimplemented!(),
     }
 }
