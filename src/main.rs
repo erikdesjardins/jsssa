@@ -35,5 +35,5 @@ fn main() {
         "#,
     ).unwrap();
     let ir = ast2ir::convert(ast);
-    println!("{:?}", ir);
+    println!("{:#?}", ir);
 }
