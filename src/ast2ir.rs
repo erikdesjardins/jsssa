@@ -666,6 +666,9 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             statements.extend(last_stmts);
             (statements, last_value)
         }
+        TemplateLiteral(_) | TaggedTemplateExpression(_) => {
+            unimplemented!("templates not yet supported")
+        }
         _ => unimplemented!(),
     }
 }
