@@ -30,7 +30,7 @@ fn main() {
                 while (true);
                 x = y;
                 z.foo = x;
-                return +[1, { x }, f + 1, ++g];
+                return +[1 || x, { x }, f + 1, ++g];
             });
         "#,
     ).unwrap();

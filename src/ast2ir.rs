@@ -552,6 +552,27 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             }
             (stmts, ir::Expr::Read(value_ref))
         }
+        LogicalExpression(ast::LogicalExpression { operator, left, right }) => {
+            let left_ref = ir::Ref::new("pred_".to_string());
+            let value_ref = ir::Ref::new("logi_".to_string());
+            let (mut stmts, left_value) = convert_expression(*left, scope);
+            stmts.push(ir::Stmt::Expr(left_ref.clone(), left_value));
+            stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), left_ref.clone()));
+            let (consequent, alternate) = {
+                let right_ref = ir::Ref::new("cons_".to_string());
+                let (mut right_stmts, right_value) = convert_expression(*right, scope);
+                right_stmts.push(ir::Stmt::Expr(right_ref.clone(), right_value));
+                right_stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), right_ref));
+                let full = ir::Block::with_children(right_stmts);
+                let empty = ir::Block::empty();
+                match operator {
+                    ast::LogicalOperator::Or => (empty, full),
+                    ast::LogicalOperator::And => (full, empty),
+                }
+            };
+            stmts.push(ir::Stmt::IfElse(left_ref, box consequent, box alternate));
+            (stmts, ir::Expr::ReadBinding(value_ref))
+        }
         _ => unimplemented!(),
     }
 }
