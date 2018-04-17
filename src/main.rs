@@ -30,7 +30,7 @@ fn main() {
             (function f(x) {
                 while (true);
                 x = y.bar;
-                z.foo = x;
+                z.foo = x ? true : 'hi';
                 return +[1 || x, { x }, f + 1, ++g];
             });
         "#,

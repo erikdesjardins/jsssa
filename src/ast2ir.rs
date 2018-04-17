@@ -587,6 +587,37 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             stmts.push(ir::Stmt::Expr(prop_ref.clone(), prop_value));
             (stmts, ir::Expr::ReadMember(obj_ref, prop_ref))
         }
+        ConditionalExpression(ast::ConditionalExpression {
+            test,
+            alternate,
+            consequent,
+        }) => {
+            let test_ref = ir::Ref::new("test_".to_string());
+            let undef_ref = ir::Ref::new("undef_".to_string());
+            let value_ref = ir::Ref::new("value_".to_string());
+            let (mut stmts, test_value) = convert_expression(*test, scope);
+            stmts.push(ir::Stmt::Expr(test_ref.clone(), test_value));
+            stmts.push(ir::Stmt::Expr(undef_ref.clone(), ir::Expr::Undefined));
+            stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), undef_ref));
+            stmts.push(ir::Stmt::IfElse(
+                test_ref,
+                {
+                    let alt_ref = ir::Ref::new("alt_".to_string());
+                    let (mut alt_stmts, alt_value) = convert_expression(*alternate, scope);
+                    alt_stmts.push(ir::Stmt::Expr(alt_ref.clone(), alt_value));
+                    alt_stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), alt_ref));
+                    box ir::Block::with_children(alt_stmts)
+                },
+                {
+                    let cons_ref = ir::Ref::new("cons_".to_string());
+                    let (mut cons_stmts, cons_value) = convert_expression(*consequent, scope);
+                    cons_stmts.push(ir::Stmt::Expr(cons_ref.clone(), cons_value));
+                    cons_stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), cons_ref));
+                    box ir::Block::with_children(cons_stmts)
+                },
+            ));
+            (stmts, ir::Expr::ReadBinding(value_ref))
+        }
         _ => unimplemented!(),
     }
 }
