@@ -129,7 +129,7 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
             );
             vec![try]
         },
-        while_stmt@WhileStatement(_) | while_stmt@DoWhileStatement(_) => {
+        while_stmt @ WhileStatement(_) | while_stmt @ DoWhileStatement(_) => {
             let (test, body, prefix) = match while_stmt {
                 WhileStatement(ast::WhileStatement { test, body }) => (test, body, true),
                 DoWhileStatement(ast::DoWhileStatement { body, test }) => (test, body, false),
