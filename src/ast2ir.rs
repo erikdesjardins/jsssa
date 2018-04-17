@@ -669,7 +669,7 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
         TemplateLiteral(_) | TaggedTemplateExpression(_) => {
             unimplemented!("templates not yet supported")
         }
-        _ => unimplemented!(),
+        ClassExpression(_) => unimplemented!("classes not yet supported"),
     }
 }
 
