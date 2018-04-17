@@ -33,7 +33,7 @@ fn main() {
                 z.foo = x ? true : 'hi';
                 return +[1 || x, { x }, f + 1, ++g];
             });
-            f(1);
+            f(1), true;
         "#,
     ).unwrap();
     let ir = ast2ir::convert(ast);

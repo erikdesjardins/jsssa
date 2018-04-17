@@ -651,6 +651,21 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                 .collect();
             (statements, ir::Expr::Call(call_kind, callee_ref, arguments))
         }
+        SequenceExpression(ast::SequenceExpression { expressions }) => {
+            let mut expressions: Vec<_> = expressions
+                .into_iter()
+                .map(|expr| convert_expression(expr, scope))
+                .collect();
+            let last_expression = expressions.pop().expect("empty SequenceExpression");
+            let mut statements = vec![];
+            for (stmts, value) in expressions.into_iter() {
+                statements.extend(stmts);
+                statements.push(ir::Stmt::Expr(ir::Ref::Dead, value));
+            }
+            let (last_stmts, last_value) = last_expression;
+            statements.extend(last_stmts);
+            (statements, last_value)
+        }
         _ => unimplemented!(),
     }
 }
