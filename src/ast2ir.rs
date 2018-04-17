@@ -618,6 +618,39 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             ));
             (stmts, ir::Expr::ReadBinding(value_ref))
         }
+        call_expr @ CallExpression(_) | call_expr @ NewExpression(_) => {
+            use ast::ExprOrSpread::*;
+
+            let callee_ref = ir::Ref::new("fn_".to_string());
+            let (callee, arguments, call_kind) = match call_expr {
+                CallExpression(ast::CallExpression { callee, arguments }) => {
+                    (callee, arguments, ir::CallKind::Call)
+                }
+                NewExpression(ast::NewExpression { callee, arguments }) => {
+                    (callee, arguments, ir::CallKind::New)
+                }
+                _ => unreachable!(),
+            };
+            let (mut statements, callee_value) = convert_expr_or_super(*callee, scope);
+            statements.push(ir::Stmt::Expr(callee_ref.clone(), callee_value));
+            let arguments = arguments
+                .into_iter()
+                .map(|arg| {
+                    let (kind, expr) = match arg {
+                        Expression(e) => (ir::EleKind::Single, e),
+                        SpreadElement(ast::SpreadElement { argument: e }) => {
+                            (ir::EleKind::Spread, e)
+                        }
+                    };
+                    let ref_ = ir::Ref::new("arg_".to_string());
+                    let (stmts, arg_value) = convert_expression(expr, scope);
+                    statements.extend(stmts);
+                    statements.push(ir::Stmt::Expr(ref_.clone(), arg_value));
+                    (kind, ref_)
+                })
+                .collect();
+            (statements, ir::Expr::Call(call_kind, callee_ref, arguments))
+        }
         _ => unimplemented!(),
     }
 }

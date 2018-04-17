@@ -62,7 +62,7 @@ pub enum Expr {
     Unary(UnaryOp, Ref<SSA>),
     Binary(BinaryOp, Ref<SSA>, Ref<SSA>),
     Delete(Ref<SSA>, Ref<SSA>),
-    Call(CallKind, Ref<SSA>, Vec<Ref<SSA>>),
+    Call(CallKind, Ref<SSA>, Vec<(EleKind, Ref<SSA>)>),
     Function(FnKind, Option<String>, Vec<Ref<Mutable>>, Box<Block>),
     CurrentFunction,
     Yield(YieldKind, Ref<SSA>),
@@ -120,7 +120,7 @@ pub enum PropKind {
 
 #[derive(Debug)]
 pub enum CallKind {
-    Fn,
+    Call,
     New,
 }
 
