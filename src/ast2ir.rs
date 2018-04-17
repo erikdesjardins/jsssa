@@ -136,17 +136,12 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
                 _ => unreachable!(),
             };
             let cond_ref = ir::Ref::new("while_".to_string());
-            let inverted_ref = ir::Ref::new("unless_".to_string());
             let (mut test_stmts, test_value) = convert_expression(test, scope);
             test_stmts.push(ir::Stmt::Expr(cond_ref.clone(), test_value));
-            test_stmts.push(ir::Stmt::Expr(
-                inverted_ref.clone(),
-                ir::Expr::Unary(ir::UnaryOp::Not, cond_ref)
-            ));
             test_stmts.push(ir::Stmt::IfElse(
-                inverted_ref,
+                cond_ref,
+                box ir::Block::empty(),
                 box ir::Block::with_children(vec![ir::Stmt::Break]),
-                box ir::Block::empty()
             ));
             let body_stmts = convert_statement(*body, scope);
             let stmts = if prefix {
