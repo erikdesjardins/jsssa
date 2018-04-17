@@ -656,7 +656,9 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                 .into_iter()
                 .map(|expr| convert_expression(expr, scope))
                 .collect();
-            let last_expression = expressions.pop().expect("empty SequenceExpression");
+            let last_expression = expressions
+                .pop()
+                .unwrap_or_else(|| unreachable!("empty SequenceExpression"));
             let mut statements = vec![];
             for (stmts, value) in expressions.into_iter() {
                 statements.extend(stmts);
