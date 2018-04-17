@@ -1,9 +1,10 @@
 #![feature(plugin)]
-#![cfg_attr(feature = "clippy", plugin(clippy))]
-#![cfg_attr(feature = "clippy", deny(warnings))]
-#![cfg_attr(not(feature = "clippy"), allow(unknown_lints))]
 #![feature(box_syntax)]
 #![recursion_limit = "128"]
+#![cfg_attr(feature = "clippy", plugin(clippy))]
+#![cfg_attr(feature = "clippy", deny(warnings))]
+#![cfg_attr(feature = "clippy", allow(unneeded_field_pattern))]
+#![cfg_attr(not(feature = "clippy"), allow(unknown_lints))]
 
 extern crate failure;
 #[macro_use]
