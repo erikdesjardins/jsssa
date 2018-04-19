@@ -36,6 +36,8 @@ fn convert_block(
     }
 }
 
+// todo return a single statement?
+// (i.e. use a block for multi statements? would enforce no scope leaks, if we switch to a separate pass)
 fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt> {
     use ast::Statement::*;
 
@@ -87,12 +89,12 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
             stmts.push(ir::Stmt::IfElse(
                 ref_,
                 {
-                    let children = convert_statement(*consequent, scope);
+                    let children = convert_statement(*consequent, &mut scope.clone());
                     box ir::Block::with_children(children)
                 },
                 match alternate {
                     Some(alternate) => {
-                        let children = convert_statement(*alternate, scope);
+                        let children = convert_statement(*alternate, &mut scope.clone());
                         box ir::Block::with_children(children)
                     },
                     None => box ir::Block::empty()
@@ -143,13 +145,52 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
                 box ir::Block::empty(),
                 box ir::Block::with_children(vec![ir::Stmt::Break]),
             ));
-            let body_stmts = convert_statement(*body, scope);
+            let body_stmts = convert_statement(*body, &mut scope.clone());
             let stmts = if prefix {
                 test_stmts.into_iter().chain(body_stmts)
             } else {
                 body_stmts.into_iter().chain(test_stmts)
             }.collect();
             vec![ir::Stmt::Loop(box ir::Block::with_children(stmts))]
+        }
+        ForStatement(ast::ForStatement { init, test, update, body }) => {
+            use ast::VarDeclOrExpr::*;
+
+            let mut stmts = match init {
+                Some(Expression(init_expr)) => {
+                    let (mut init_stmts, init_value) = convert_expression(init_expr, scope);
+                    init_stmts.push(ir::Stmt::Expr(ir::Ref::Dead, init_value));
+                    init_stmts
+                }
+                Some(VariableDeclaration(var_decl)) => {
+                    convert_variable_declaration(var_decl, scope)
+                }
+                None => vec![],
+            };
+            stmts.push(ir::Stmt::Loop(box ir::Block::with_children({
+                let mut stmts = match test {
+                    Some(test) => {
+                        let cond_ref = ir::Ref::new("for_".to_string());
+                        let (mut test_stmts, test_value) = convert_expression(test, scope);
+                        test_stmts.push(ir::Stmt::Expr(cond_ref.clone(), test_value));
+                        test_stmts.push(ir::Stmt::IfElse(
+                            cond_ref,
+                            box ir::Block::empty(),
+                            box ir::Block::with_children(vec![ir::Stmt::Break]),
+                        ));
+                        test_stmts
+                    }
+                    None => vec![],
+                };
+                stmts.extend(convert_statement(*body, &mut scope.clone()));
+                if let Some(update) = update {
+                    let (update_stmts, update_value) = convert_expression(update, scope);
+                    stmts.extend(update_stmts);
+                    stmts.push(ir::Stmt::Expr(ir::Ref::Dead, update_value));
+                }
+                stmts
+            })));
+            vec![ir::Stmt::Block(box ir::Block::with_children(stmts))]
         }
         _ => unimplemented!(),
     }
@@ -673,6 +714,29 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
         }
         ClassExpression(_) => unimplemented!("classes not yet supported"),
     }
+}
+
+fn convert_variable_declaration(var_decl: ast::VariableDeclaration, scope: &mut ScopeMap) -> Vec<ir::Stmt> {
+    // todo we're definitely gonna need to handle `kind`
+    let ast::VariableDeclaration { kind: _, declarations } = var_decl;
+    let mut stmts = vec![];
+    for declarator in declarations.into_iter() {
+        let ast::VariableDeclarator { id, init } = declarator;
+        let init_ref = ir::Ref::new("init_".to_string());
+        match init {
+            Some(init) => {
+                let (init_stmts, init_value) = convert_expression(init, scope);
+                stmts.extend(init_stmts);
+                stmts.push(ir::Stmt::Expr(init_ref.clone(), init_value));
+            }
+            None => {
+                stmts.push(ir::Stmt::Expr(init_ref.clone(), ir::Expr::Undefined));
+            }
+        }
+        let var_ref = convert_pattern(id, scope);
+        stmts.push(ir::Stmt::WriteBinding(var_ref, init_ref));
+    }
+    stmts
 }
 
 fn convert_pattern(pat: ast::Pattern, scope: &mut ScopeMap) -> ir::Ref<ir::Mutable> {
