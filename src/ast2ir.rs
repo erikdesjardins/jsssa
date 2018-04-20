@@ -74,14 +74,18 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
         },
         LabeledStatement(_) =>
             unimplemented!("labels not yet supported"),
-        BreakStatement(ast::BreakStatement { label: None }) =>
-            vec![ir::Stmt::Break],
-        BreakStatement(ast::BreakStatement { label: Some(_) }) =>
-            unimplemented!("labels not yet supported"),
-        ContinueStatement(ast::ContinueStatement { label: None }) =>
-            vec![ir::Stmt::Continue],
-        ContinueStatement(ast::ContinueStatement { label: Some(_) }) =>
-            unimplemented!("labels not yet supported"),
+        BreakStatement(ast::BreakStatement { label }) => {
+            match label {
+                Some(_) => unimplemented!("labels not yet supported"),
+                None => vec![ir::Stmt::Break],
+            }
+        }
+        ContinueStatement(ast::ContinueStatement { label }) => {
+            match label {
+                Some(_) => unimplemented!("labels not yet supported"),
+                None => vec![ir::Stmt::Continue],
+            }
+        }
         IfStatement(ast::IfStatement { test, consequent, alternate }) => {
             let ref_ = ir::Ref::new("if_".to_string());
             let (mut stmts, test_value) = convert_expression(test, scope);
