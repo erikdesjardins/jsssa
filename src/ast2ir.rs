@@ -36,8 +36,6 @@ fn convert_block(
     }
 }
 
-// todo return a single statement?
-// (i.e. use a block for multi statements? would enforce no scope leaks, if we switch to a separate pass)
 fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt> {
     use ast::Statement::*;
 
