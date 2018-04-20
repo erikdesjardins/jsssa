@@ -262,7 +262,6 @@ make_ast! {
         left: VarDeclOrExpr,
         right: Expression,
         body: Box<Statement>,
-        await: bool,
     }
 
     #[serde(untagged)]

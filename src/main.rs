@@ -10,6 +10,8 @@ extern crate failure;
 #[macro_use]
 extern crate failure_derive;
 #[macro_use]
+extern crate if_chain;
+#[macro_use]
 extern crate mozjs;
 extern crate serde;
 #[macro_use]

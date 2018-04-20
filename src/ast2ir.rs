@@ -196,6 +196,38 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
             })));
             vec![ir::Stmt::Block(box ir::Block::with_children(stmts))]
         }
+        for_stmt @ ForInStatement(_) | for_stmt @ ForOfStatement(_) => {
+            use ast::VarDeclOrExpr::*;
+
+            let (kind, left, right, body) = match for_stmt {
+                ForInStatement(ast::ForInStatement { left, right, body }) => (ir::ForKind::In, left, right, body),
+                ForOfStatement(ast::ForOfStatement { left, right, body }) => (ir::ForKind::Of, left, right, body),
+                _ => unreachable!(),
+            };
+            let right_ref = ir::Ref::new("right_".to_string());
+            let (mut stmts, right_value) = convert_expression(right, scope);
+            stmts.push(ir::Stmt::Expr(right_ref.clone(), right_value));
+            let mut body_scope = scope.clone();
+            let ele_binding = if_chain! {
+                // todo we're definitely gonna need to use `kind`
+                if let VariableDeclaration(ast::VariableDeclaration { kind: _, declarations }) = left;
+                if declarations.len() == 1;
+                if let Some(ast::VariableDeclarator { id, init: None }) = declarations.into_iter().next();
+                then {
+                    convert_pattern(id, &mut body_scope)
+                } else {
+                    unimplemented!("for in/of statements with complex initializers not supported");
+                }
+            };
+            let body_stmts = convert_statement(*body, &mut body_scope);
+            stmts.push(ir::Stmt::For(
+                kind,
+                ele_binding,
+                right_ref,
+                box ir::Block::with_children(body_stmts),
+            ));
+            stmts
+        }
         _ => unimplemented!(),
     }
 }

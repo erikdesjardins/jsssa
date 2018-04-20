@@ -35,6 +35,7 @@ pub enum Stmt {
     Debugger,
     Block(Box<Block>),
     Loop(Box<Block>),
+    For(ForKind, Ref<Mutable>, Ref<SSA>, Box<Block>),
     IfElse(Ref<SSA>, Box<Block>, Box<Block>),
     Try(
         Box<Block>,
@@ -103,6 +104,12 @@ pub enum BinaryOp {
     BitAnd,
     In,
     Instanceof,
+}
+
+#[derive(Debug)]
+pub enum ForKind {
+    In,
+    Of,
 }
 
 #[derive(Debug)]
