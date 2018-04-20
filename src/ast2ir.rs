@@ -226,7 +226,42 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
             ));
             stmts
         }
-        _ => unimplemented!(),
+        FunctionDeclaration(ast::FunctionDeclaration { id, params, body, generator, async }) => {
+            let ast::Identifier { name } = id;
+            let mut fn_scope = scope.clone();
+            let refs = params
+                .into_iter()
+                .map(|param| convert_pattern(param, &mut fn_scope))
+                .collect();
+            let recursive_ref = ir::Ref::new(name.clone());
+            fn_scope.insert(name.clone(), recursive_ref.clone());
+            let ast::BlockStatement { body, directives } = body;
+            let mut block = convert_block(body, directives, &fn_scope);
+            let desugar_ref = ir::Ref::new("curfn_".to_string());
+            // todo this double writing (and below for FnExpr) may be unnecessary with improved binding support,
+            // since it can be brought into scope
+            block.children.insert(
+                0,
+                ir::Stmt::Expr(desugar_ref.clone(), ir::Expr::CurrentFunction),
+            );
+            block
+                .children
+                .insert(1, ir::Stmt::WriteBinding(recursive_ref, desugar_ref));
+            let fn_ref = ir::Ref::new("fn_".to_string());
+            let fn_binding = ir::Ref::new(name.clone());
+            vec![
+                ir::Stmt::Expr(fn_ref.clone(), ir::Expr::Function(
+                    ir::FnKind::Func { async, gen: generator },
+                    Some(name),
+                    refs,
+                    box block,
+                )),
+                ir::Stmt::WriteBinding(fn_binding, fn_ref),
+            ]
+        }
+        VariableDeclaration(var_decl) =>
+            convert_variable_declaration(var_decl, scope),
+        ClassDeclaration(_) => unimplemented!("classes not yet supported"),
     }
 }
 
