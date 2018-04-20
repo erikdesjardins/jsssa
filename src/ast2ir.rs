@@ -720,9 +720,15 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
     }
 }
 
-fn convert_variable_declaration(var_decl: ast::VariableDeclaration, scope: &mut ScopeMap) -> Vec<ir::Stmt> {
+fn convert_variable_declaration(
+    var_decl: ast::VariableDeclaration,
+    scope: &mut ScopeMap,
+) -> Vec<ir::Stmt> {
     // todo we're definitely gonna need to handle `kind`
-    let ast::VariableDeclaration { kind: _, declarations } = var_decl;
+    let ast::VariableDeclaration {
+        kind: _,
+        declarations,
+    } = var_decl;
     let mut stmts = vec![];
     for declarator in declarations.into_iter() {
         let ast::VariableDeclarator { id, init } = declarator;
