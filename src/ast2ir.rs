@@ -510,8 +510,6 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             left,
             right,
         }) => {
-            let left_ref = ir::Ref::new("left_".to_string());
-            let right_ref = ir::Ref::new("right_".to_string());
             let op = match operator {
                 ast::BinaryOperator::Eq => ir::BinaryOp::Eq,
                 ast::BinaryOperator::NotEq => ir::BinaryOp::NotEq,
@@ -535,8 +533,10 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                 ast::BinaryOperator::In => ir::BinaryOp::In,
                 ast::BinaryOperator::Instanceof => ir::BinaryOp::Instanceof,
             };
+            let left_ref = ir::Ref::new("left_".to_string());
             let (mut stmts, left_value) = convert_expression(*left, scope);
             stmts.push(ir::Stmt::Expr(left_ref.clone(), left_value));
+            let right_ref = ir::Ref::new("right_".to_string());
             let (right_stmts, right_value) = convert_expression(*right, scope);
             stmts.extend(right_stmts);
             stmts.push(ir::Stmt::Expr(right_ref.clone(), right_value));
@@ -600,8 +600,6 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                 | op @ ast::AssignmentOperator::BitOrEq
                 | op @ ast::AssignmentOperator::BitXorEq
                 | op @ ast::AssignmentOperator::BitAndEq => {
-                    let left_ref = ir::Ref::new("left_".to_string());
-                    let right_ref = ir::Ref::new("right_".to_string());
                     let op = match op {
                         ast::AssignmentOperator::Eq => unreachable!(),
                         ast::AssignmentOperator::AddEq => ir::BinaryOp::Add,
@@ -616,7 +614,9 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                         ast::AssignmentOperator::BitXorEq => ir::BinaryOp::BitXor,
                         ast::AssignmentOperator::BitAndEq => ir::BinaryOp::BitAnd,
                     };
+                    let left_ref = ir::Ref::new("left_".to_string());
                     stmts.push(ir::Stmt::Expr(left_ref.clone(), read_expr));
+                    let right_ref = ir::Ref::new("right_".to_string());
                     let (right_stmts, right_val) = convert_expression(*right, scope);
                     stmts.extend(right_stmts);
                     stmts.push(ir::Stmt::Expr(right_ref.clone(), right_val));
@@ -656,9 +656,9 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
         }
         MemberExpression(ast::MemberExpression { object, property }) => {
             let obj_ref = ir::Ref::new("obj_".to_string());
-            let prop_ref = ir::Ref::new("prop_".to_string());
             let (mut stmts, obj_value) = convert_expr_or_super(*object, scope);
             stmts.push(ir::Stmt::Expr(obj_ref.clone(), obj_value));
+            let prop_ref = ir::Ref::new("prop_".to_string());
             let (prop_stmts, prop_value) = convert_expression(*property, scope);
             stmts.extend(prop_stmts);
             stmts.push(ir::Stmt::Expr(prop_ref.clone(), prop_value));
@@ -698,7 +698,6 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
         call_expr @ CallExpression(_) | call_expr @ NewExpression(_) => {
             use ast::ExprOrSpread::*;
 
-            let callee_ref = ir::Ref::new("fn_".to_string());
             let (callee, arguments, call_kind) = match call_expr {
                 CallExpression(ast::CallExpression { callee, arguments }) => {
                     (callee, arguments, ir::CallKind::Call)
@@ -708,6 +707,7 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                 }
                 _ => unreachable!(),
             };
+            let callee_ref = ir::Ref::new("fn_".to_string());
             let (mut statements, callee_value) = convert_expr_or_super(*callee, scope);
             statements.push(ir::Stmt::Expr(callee_ref.clone(), callee_value));
             let arguments = arguments
@@ -719,11 +719,11 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                             (ir::EleKind::Spread, e)
                         }
                     };
-                    let ref_ = ir::Ref::new("arg_".to_string());
+                    let arg_ref = ir::Ref::new("arg_".to_string());
                     let (stmts, arg_value) = convert_expression(expr, scope);
                     statements.extend(stmts);
-                    statements.push(ir::Stmt::Expr(ref_.clone(), arg_value));
-                    (kind, ref_)
+                    statements.push(ir::Stmt::Expr(arg_ref.clone(), arg_value));
+                    (kind, arg_ref)
                 })
                 .collect();
             (statements, ir::Expr::Call(call_kind, callee_ref, arguments))
