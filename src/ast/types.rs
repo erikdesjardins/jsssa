@@ -62,8 +62,8 @@ macro_rules! make_ast {
 
         impl Serialize for $name {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-                match *self {
-                    $($name::$variant_type(ref field) => field.serialize(serializer),)*
+                match self {
+                    $($name::$variant_type(field) => field.serialize(serializer),)*
                 }
             }
         }

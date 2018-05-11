@@ -437,7 +437,7 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                 .into_iter()
                 .map(|param| convert_pattern(param, &mut fn_scope))
                 .collect();
-            let recursive_ref = if let Some(ref name) = &name {
+            let recursive_ref = if let Some(name) = &name {
                 let recursive_ref = ir::Ref::new(name.clone());
                 fn_scope.insert(name.clone(), recursive_ref.clone());
                 Some(recursive_ref)
