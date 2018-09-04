@@ -1,5 +1,5 @@
 language: rust
-rust: nightly
+rust: stable
 branches:
   only:
     - master
@@ -8,12 +8,14 @@ cache:
   cargo: true
   timeout: 1000
 before_script:
-  - rustup component add rustfmt-preview
+- rustup toolchain add nightly
+- rustup component add rustfmt-preview
+- rustup component add clippy-preview --toolchain=nightly
 script:
-  - cargo fmt -- --write-mode=diff
-  - cargo build --features clippy
-  - cargo test
-  - cargo build --release
+  - cargo fmt --all -- --check
+  - RUSTFLAGS="-D warnings" cargo +nightly clippy
+  - cargo +nightly test
+  - cargo +nightly build --release
   - strip target/release/jsssa
   - ls -lh target/release
 deploy:
