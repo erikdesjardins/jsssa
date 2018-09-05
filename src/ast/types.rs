@@ -143,7 +143,7 @@ make_ast! {
         value: String,
     }
 
-    #[allow(large_enum_variant)]
+    #[allow(clippy::large_enum_variant)]
     #[serde(tag = "type")]
     union Statement {
         ExpressionStatement,
