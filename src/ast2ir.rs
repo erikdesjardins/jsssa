@@ -26,7 +26,8 @@ fn convert_block(
 ) -> ir::Block {
     let mut scope = parent_scopes.clone();
 
-    let children = body.into_iter()
+    let children = body
+        .into_iter()
         .flat_map(|stmt| convert_statement(stmt, &mut scope))
         .collect();
 

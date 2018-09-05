@@ -2,8 +2,10 @@ use std::ptr;
 
 use failure::{Error, ResultExt};
 use mozjs::conversions::{FromJSValConvertible, ToJSValConvertible};
-use mozjs::jsapi::{CompartmentOptions, HandleValueArray, JSAutoCompartment, JS_NewGlobalObject,
-                   OnNewGlobalHookOption};
+use mozjs::jsapi::{
+    CompartmentOptions, HandleValueArray, JSAutoCompartment, JS_NewGlobalObject,
+    OnNewGlobalHookOption,
+};
 use mozjs::jsval::UndefinedValue;
 use mozjs::rust::wrappers::{JS_CallFunctionValue, JS_ErrorFromException, JS_GetPendingException};
 use mozjs::rust::{Runtime, SIMPLE_GLOBAL_CLASS};
