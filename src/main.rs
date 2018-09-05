@@ -1,6 +1,6 @@
 #![feature(box_syntax)]
+#![feature(tool_lints)]
 #![recursion_limit = "128"]
-#![cfg_attr(feature = "cargo-clippy", feature(tool_lints))]
 #![cfg_attr(not(feature = "cargo-clippy"), allow(unknown_lints))]
 #![allow(clippy::unneeded_field_pattern)]
 
