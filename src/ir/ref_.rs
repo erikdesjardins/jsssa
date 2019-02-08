@@ -30,17 +30,10 @@ impl<T: RefType> Clone for Ref<T> {
 
 impl<T: RefType> Debug for Ref<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        let mut f = f.debug_tuple("Ref");
         match self {
-            Ref::Dead => {
-                f.field(&"Dead");
-            }
-            Ref::Live(LiveRef(inner)) => {
-                f.field(&inner.id);
-                f.field(&inner.name_hint);
-            }
+            Ref::Dead => write!(f, "Ref(<dead>)"),
+            Ref::Live(LiveRef(inner)) => write!(f, "Ref({} '{}')", inner.id, inner.name_hint),
         }
-        f.finish()
     }
 }
 
