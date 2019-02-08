@@ -3,6 +3,8 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use swc_atoms::JsWord;
+
 // references can either be SSA or mutable (needed to model closures)
 pub trait RefType {}
 impl RefType for SSA {}
@@ -43,8 +45,8 @@ impl<T: RefType> Debug for Ref<T> {
 }
 
 impl<T: RefType> Ref<T> {
-    pub fn new(name_hint: String) -> Self {
-        Ref::Live(LiveRef::new(name_hint))
+    pub fn new(name_hint: impl Into<JsWord>) -> Self {
+        Ref::Live(LiveRef::new(name_hint.into()))
     }
 }
 
@@ -52,7 +54,7 @@ pub struct LiveRef<T: RefType>(Rc<LiveRefInner<T>>);
 
 struct LiveRefInner<T: RefType> {
     id: usize,
-    name_hint: String,
+    name_hint: JsWord,
     _t: PhantomData<T>,
 }
 
@@ -64,7 +66,7 @@ impl<T: RefType> PartialEq for LiveRef<T> {
 }
 
 impl<T: RefType> LiveRef<T> {
-    fn new(name_hint: String) -> Self {
+    fn new(name_hint: JsWord) -> Self {
         static ID_COUNTER: AtomicUsize = AtomicUsize::new(1);
 
         LiveRef(Rc::new(LiveRefInner {

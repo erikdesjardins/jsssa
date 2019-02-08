@@ -1,24 +1,19 @@
-use ir::*;
+use swc_atoms::JsWord;
+
+use crate::ir::{Mutable, Ref, SSA};
 
 #[derive(Debug)]
 pub struct Block {
-    pub directives: Vec<String>,
     pub children: Vec<Stmt>,
 }
 
 impl Block {
     pub fn empty() -> Self {
-        Self {
-            directives: vec![],
-            children: vec![],
-        }
+        Self { children: vec![] }
     }
 
     pub fn with_children(children: Vec<Stmt>) -> Self {
-        Self {
-            directives: vec![],
-            children,
-        }
+        Self { children }
     }
 }
 
@@ -26,7 +21,7 @@ impl Block {
 pub enum Stmt {
     Expr(Ref<SSA>, Expr),
     WriteBinding(Ref<Mutable>, Ref<SSA>),
-    WriteGlobal(String, Ref<SSA>),
+    WriteGlobal(JsWord, Ref<SSA>),
     WriteMember(Ref<SSA>, Ref<SSA>, Ref<SSA>),
     Return(Ref<SSA>),
     Throw(Ref<SSA>),
@@ -48,23 +43,23 @@ pub enum Stmt {
 pub enum Expr {
     Bool(bool),
     Number(f64),
-    String(String),
+    String(JsWord),
     Null,
     Undefined,
     This,
     Super,
     Read(Ref<SSA>),
     ReadBinding(Ref<Mutable>),
-    ReadGlobal(String),
+    ReadGlobal(JsWord),
     ReadMember(Ref<SSA>, Ref<SSA>),
     Array(Vec<Option<(EleKind, Ref<SSA>)>>),
     Object(Vec<(PropKind, Ref<SSA>, Ref<SSA>)>),
-    RegExp(String, String),
+    RegExp(JsWord, Option<JsWord>),
     Unary(UnaryOp, Ref<SSA>),
     Binary(BinaryOp, Ref<SSA>, Ref<SSA>),
     Delete(Ref<SSA>, Ref<SSA>),
     Call(CallKind, Ref<SSA>, Vec<(EleKind, Ref<SSA>)>),
-    Function(FnKind, Option<String>, Vec<Ref<Mutable>>, Box<Block>),
+    Function(FnKind, Option<JsWord>, Vec<Ref<Mutable>>, Box<Block>),
     CurrentFunction,
     Yield(YieldKind, Ref<SSA>),
     Await(Ref<SSA>),
@@ -78,12 +73,11 @@ pub enum UnaryOp {
     Tilde,
     Typeof,
     Void,
-    Delete,
 }
 
 #[derive(Debug)]
 pub enum BinaryOp {
-    Eq,
+    EqEq,
     NotEq,
     StrictEq,
     NotStrictEq,
@@ -102,6 +96,7 @@ pub enum BinaryOp {
     BitOr,
     BitXor,
     BitAnd,
+    Exp,
     In,
     Instanceof,
 }
@@ -133,8 +128,8 @@ pub enum CallKind {
 
 #[derive(Debug)]
 pub enum FnKind {
-    Func { async: bool, gen: bool },
-    Arrow { async: bool },
+    Func { is_async: bool, is_generator: bool },
+    Arrow { is_async: bool },
 }
 
 #[derive(Debug)]

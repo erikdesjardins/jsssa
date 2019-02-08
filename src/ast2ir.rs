@@ -1,29 +1,18 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
-use ast;
-use ir;
-use util::*;
+use if_chain::if_chain;
+use swc_atoms::JsWord;
+use swc_ecma_ast as ast;
 
-type ScopeMap = Map<String, ir::Ref<ir::Mutable>>;
+use crate::ir;
 
-pub fn convert(ast: ast::File) -> ir::Block {
-    let ast::File {
-        program:
-            ast::Program {
-                body,
-                directives,
-                source_type: _,
-            },
-    } = ast;
+type ScopeMap = BTreeMap<JsWord, ir::Ref<ir::Mutable>>;
 
-    convert_block(body, directives, &HashMap::default())
+pub fn convert(ast: Vec<ast::Stmt>) -> ir::Block {
+    convert_block(ast, &BTreeMap::default())
 }
 
-fn convert_block(
-    body: Vec<ast::Statement>,
-    directives: Vec<ast::Directive>,
-    parent_scopes: &ScopeMap,
-) -> ir::Block {
+fn convert_block(body: Vec<ast::Stmt>, parent_scopes: &ScopeMap) -> ir::Block {
     let mut scope = parent_scopes.clone();
 
     let children = body
@@ -31,117 +20,133 @@ fn convert_block(
         .flat_map(|stmt| convert_statement(stmt, &mut scope))
         .collect();
 
-    ir::Block {
-        directives: directives.into_iter().map(|d| d.value.value).collect(),
-        children,
-    }
+    ir::Block { children }
 }
 
-fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt> {
-    use ast::Statement::*;
-
+fn convert_statement(stmt: ast::Stmt, scope: &mut ScopeMap) -> Vec<ir::Stmt> {
     match stmt {
-        ExpressionStatement(ast::ExpressionStatement { expression }) => {
-            let (mut stmts, last_expr) = convert_expression(expression, scope);
+        ast::Stmt::Expr(expr) => {
+            let (mut stmts, last_expr) = convert_expression(*expr, scope);
             stmts.push(ir::Stmt::Expr(ir::Ref::Dead, last_expr));
             stmts
-        },
-        BlockStatement(ast::BlockStatement { body, directives }) =>
-            vec![ir::Stmt::Block(box convert_block(body, directives, scope))],
-        EmptyStatement(ast::EmptyStatement {}) =>
-            vec![],
-        DebuggerStatement(ast::DebuggerStatement {}) =>
-            vec![ir::Stmt::Debugger],
-        WithStatement(_) =>
-            unimplemented!("with() statement not supported"),
-        ReturnStatement(ast::ReturnStatement { argument }) => {
-            let ref_ = ir::Ref::new("return_".to_string());
-            match argument {
-                Some(argument) => {
-                    let (mut stmts, return_value) = convert_expression(argument, scope);
+        }
+        ast::Stmt::Block(ast::BlockStmt { stmts, span: _ }) => {
+            vec![ir::Stmt::Block(box convert_block(stmts, scope))]
+        }
+        ast::Stmt::Empty(ast::EmptyStmt { span: _ }) => vec![],
+        ast::Stmt::Debugger(ast::DebuggerStmt { span: _ }) => vec![ir::Stmt::Debugger],
+        ast::Stmt::With(_) => unimplemented!("with() statement not supported"),
+        ast::Stmt::Return(ast::ReturnStmt { arg, span: _ }) => {
+            let ref_ = ir::Ref::new("return_");
+            match arg {
+                Some(arg) => {
+                    let (mut stmts, return_value) = convert_expression(*arg, scope);
                     stmts.push(ir::Stmt::Expr(ref_.clone(), return_value));
                     stmts.push(ir::Stmt::Return(ref_));
                     stmts
-                },
-                None => {
-                    vec![
-                        ir::Stmt::Expr(ref_.clone(), ir::Expr::Undefined),
-                        ir::Stmt::Return(ref_),
-                    ]
                 }
+                None => vec![
+                    ir::Stmt::Expr(ref_.clone(), ir::Expr::Undefined),
+                    ir::Stmt::Return(ref_),
+                ],
             }
+        }
+        ast::Stmt::Labeled(_) => unimplemented!("labels not yet supported"),
+        ast::Stmt::Break(ast::BreakStmt { label, span: _ }) => match label {
+            Some(_) => unimplemented!("labels not yet supported"),
+            None => vec![ir::Stmt::Break],
         },
-        LabeledStatement(_) =>
-            unimplemented!("labels not yet supported"),
-        BreakStatement(ast::BreakStatement { label }) => {
-            match label {
-                Some(_) => unimplemented!("labels not yet supported"),
-                None => vec![ir::Stmt::Break],
-            }
-        }
-        ContinueStatement(ast::ContinueStatement { label }) => {
-            match label {
-                Some(_) => unimplemented!("labels not yet supported"),
-                None => vec![ir::Stmt::Continue],
-            }
-        }
-        IfStatement(ast::IfStatement { test, consequent, alternate }) => {
-            let ref_ = ir::Ref::new("if_".to_string());
-            let (mut stmts, test_value) = convert_expression(test, scope);
+        ast::Stmt::Continue(ast::ContinueStmt { label, span: _ }) => match label {
+            Some(_) => unimplemented!("labels not yet supported"),
+            None => vec![ir::Stmt::Continue],
+        },
+        ast::Stmt::If(ast::IfStmt {
+            test,
+            cons,
+            alt,
+            span: _,
+        }) => {
+            let ref_ = ir::Ref::new("if_");
+            let (mut stmts, test_value) = convert_expression(*test, scope);
             stmts.push(ir::Stmt::Expr(ref_.clone(), test_value));
             stmts.push(ir::Stmt::IfElse(
                 ref_,
                 {
-                    let children = convert_statement(*consequent, &mut scope.clone());
+                    let children = convert_statement(*cons, &mut scope.clone());
                     box ir::Block::with_children(children)
                 },
-                match alternate {
+                match alt {
                     Some(alternate) => {
                         let children = convert_statement(*alternate, &mut scope.clone());
                         box ir::Block::with_children(children)
-                    },
-                    None => box ir::Block::empty()
+                    }
+                    None => box ir::Block::empty(),
                 },
             ));
             stmts
-        },
-        SwitchStatement(_) =>
-            // remember, switch cases aren't evaluated (!) until they're checked for equality
-            unimplemented!("switch statements not yet supported"),
-        ThrowStatement(ast::ThrowStatement { argument }) => {
-            let ref_ = ir::Ref::new("throw_".to_string());
-            let (mut stmts, throw_value) = convert_expression(argument, scope);
+        }
+        ast::Stmt::Switch(_) =>
+        // remember, switch cases aren't evaluated (!) until they're checked for equality
+        {
+            unimplemented!("switch statements not yet supported")
+        }
+        ast::Stmt::Throw(ast::ThrowStmt { arg, span: _ }) => {
+            let ref_ = ir::Ref::new("throw_");
+            let (mut stmts, throw_value) = convert_expression(*arg, scope);
             stmts.push(ir::Stmt::Expr(ref_.clone(), throw_value));
             stmts.push(ir::Stmt::Throw(ref_));
             stmts
-        },
-        TryStatement(ast::TryStatement { block, handler, finalizer }) => {
-            let try = ir::Stmt::Try(
+        }
+        ast::Stmt::Try(ast::TryStmt {
+            block,
+            handler,
+            finalizer,
+            span: _,
+        }) => {
+            let try_ = ir::Stmt::Try(
                 {
-                    let ast::BlockStatement { body, directives } = block;
-                    box convert_block(body, directives, scope)
+                    let ast::BlockStmt { stmts, span: _ } = block;
+                    box convert_block(stmts, scope)
                 },
-                handler.map(|ast::CatchClause { param, body }| {
-                    let ast::BlockStatement { body, directives } = body;
-                    let mut catch_scope = scope.clone();
-                    let ref_ = convert_pattern(param, &mut catch_scope);
-                    (ref_, box convert_block(body, directives, &catch_scope))
-                }),
+                handler.map(
+                    |ast::CatchClause {
+                         param,
+                         body,
+                         span: _,
+                     }| {
+                        let ast::BlockStmt { stmts, span: _ } = body;
+                        let mut catch_scope = scope.clone();
+                        let param = match param {
+                            Some(param) => param,
+                            None => unimplemented!("omitted catch binding not yet supported"),
+                        };
+                        let ref_ = convert_pattern(param, &mut catch_scope);
+                        (ref_, box convert_block(stmts, &catch_scope))
+                    },
+                ),
                 finalizer.map(|finalizer| {
-                    let ast::BlockStatement { body, directives } = finalizer;
-                    box convert_block(body, directives, scope)
+                    let ast::BlockStmt { stmts, span: _ } = finalizer;
+                    box convert_block(stmts, scope)
                 }),
             );
-            vec![try]
-        },
-        while_stmt @ WhileStatement(_) | while_stmt @ DoWhileStatement(_) => {
+            vec![try_]
+        }
+        while_stmt @ ast::Stmt::While(_) | while_stmt @ ast::Stmt::DoWhile(_) => {
             let (test, body, prefix) = match while_stmt {
-                WhileStatement(ast::WhileStatement { test, body }) => (test, body, true),
-                DoWhileStatement(ast::DoWhileStatement { body, test }) => (test, body, false),
+                ast::Stmt::While(ast::WhileStmt {
+                    test,
+                    body,
+                    span: _,
+                }) => (test, body, true),
+                ast::Stmt::DoWhile(ast::DoWhileStmt {
+                    body,
+                    test,
+                    span: _,
+                }) => (test, body, false),
                 _ => unreachable!(),
             };
-            let cond_ref = ir::Ref::new("while_".to_string());
-            let (mut test_stmts, test_value) = convert_expression(test, scope);
+            let cond_ref = ir::Ref::new("while_");
+            let (mut test_stmts, test_value) = convert_expression(*test, scope);
             test_stmts.push(ir::Stmt::Expr(cond_ref.clone(), test_value));
             test_stmts.push(ir::Stmt::IfElse(
                 cond_ref,
@@ -153,19 +158,24 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
                 test_stmts.into_iter().chain(body_stmts)
             } else {
                 body_stmts.into_iter().chain(test_stmts)
-            }.collect();
+            }
+            .collect();
             vec![ir::Stmt::Loop(box ir::Block::with_children(stmts))]
         }
-        ForStatement(ast::ForStatement { init, test, update, body }) => {
-            use ast::VarDeclOrExpr::*;
-
+        ast::Stmt::For(ast::ForStmt {
+            init,
+            test,
+            update,
+            body,
+            span: _,
+        }) => {
             let mut stmts = match init {
-                Some(Expression(init_expr)) => {
-                    let (mut init_stmts, init_value) = convert_expression(init_expr, scope);
+                Some(ast::VarDeclOrExpr::Expr(init_expr)) => {
+                    let (mut init_stmts, init_value) = convert_expression(*init_expr, scope);
                     init_stmts.push(ir::Stmt::Expr(ir::Ref::Dead, init_value));
                     init_stmts
                 }
-                Some(VariableDeclaration(var_decl)) => {
+                Some(ast::VarDeclOrExpr::VarDecl(var_decl)) => {
                     convert_variable_declaration(var_decl, scope)
                 }
                 None => vec![],
@@ -173,8 +183,8 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
             stmts.push(ir::Stmt::Loop(box ir::Block::with_children({
                 let mut stmts = match test {
                     Some(test) => {
-                        let cond_ref = ir::Ref::new("for_".to_string());
-                        let (mut test_stmts, test_value) = convert_expression(test, scope);
+                        let cond_ref = ir::Ref::new("for_");
+                        let (mut test_stmts, test_value) = convert_expression(*test, scope);
                         test_stmts.push(ir::Stmt::Expr(cond_ref.clone(), test_value));
                         test_stmts.push(ir::Stmt::IfElse(
                             cond_ref,
@@ -187,7 +197,7 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
                 };
                 stmts.extend(convert_statement(*body, &mut scope.clone()));
                 if let Some(update) = update {
-                    let (update_stmts, update_value) = convert_expression(update, scope);
+                    let (update_stmts, update_value) = convert_expression(*update, scope);
                     stmts.extend(update_stmts);
                     stmts.push(ir::Stmt::Expr(ir::Ref::Dead, update_value));
                 }
@@ -195,25 +205,37 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
             })));
             vec![ir::Stmt::Block(box ir::Block::with_children(stmts))]
         }
-        for_stmt @ ForInStatement(_) | for_stmt @ ForOfStatement(_) => {
-            use ast::VarDeclOrExpr::*;
-
+        for_stmt @ ast::Stmt::ForIn(_) | for_stmt @ ast::Stmt::ForOf(_) => {
             let (kind, left, right, body) = match for_stmt {
-                ForInStatement(ast::ForInStatement { left, right, body }) => (ir::ForKind::In, left, right, body),
-                ForOfStatement(ast::ForOfStatement { left, right, body }) => (ir::ForKind::Of, left, right, body),
+                ast::Stmt::ForIn(ast::ForInStmt {
+                    left,
+                    right,
+                    body,
+                    span: _,
+                }) => (ir::ForKind::In, left, right, body),
+                ast::Stmt::ForOf(ast::ForOfStmt {
+                    left,
+                    right,
+                    body,
+                    await_token,
+                    span: _,
+                }) => {
+                    assert!(await_token.is_none(), "for-await-of not supported");
+                    (ir::ForKind::Of, left, right, body)
+                }
                 _ => unreachable!(),
             };
-            let right_ref = ir::Ref::new("right_".to_string());
-            let (mut stmts, right_value) = convert_expression(right, scope);
+            let right_ref = ir::Ref::new("right_");
+            let (mut stmts, right_value) = convert_expression(*right, scope);
             stmts.push(ir::Stmt::Expr(right_ref.clone(), right_value));
             let mut body_scope = scope.clone();
             let ele_binding = if_chain! {
                 // todo we're definitely gonna need to use `kind`
-                if let VariableDeclaration(ast::VariableDeclaration { kind: _, declarations }) = left;
-                if declarations.len() == 1;
-                if let Some(ast::VariableDeclarator { id, init: None }) = declarations.into_iter().next();
+                if let ast::VarDeclOrPat::VarDecl(ast::VarDecl { kind: _, decls, span: _, declare: _ }) = left;
+                if decls.len() == 1;
+                if let Some(ast::VarDeclarator { name, init: None, span: _, definite: _ }) = decls.into_iter().next();
                 then {
-                    convert_pattern(id, &mut body_scope)
+                    convert_pattern(name, &mut body_scope)
                 } else {
                     unimplemented!("for in/of statements with complex initializers not supported");
                 }
@@ -227,95 +249,147 @@ fn convert_statement(stmt: ast::Statement, scope: &mut ScopeMap) -> Vec<ir::Stmt
             ));
             stmts
         }
-        FunctionDeclaration(ast::FunctionDeclaration { id, params, body, generator, async }) => {
-            let ast::Identifier { name } = id;
-            let mut fn_scope = scope.clone();
-            let refs = params
-                .into_iter()
-                .map(|param| convert_pattern(param, &mut fn_scope))
-                .collect();
-            let recursive_ref = ir::Ref::new(name.clone());
-            fn_scope.insert(name.clone(), recursive_ref.clone());
-            let ast::BlockStatement { body, directives } = body;
-            let mut block = convert_block(body, directives, &fn_scope);
-            let desugar_ref = ir::Ref::new("curfn_".to_string());
-            // todo this double writing (and below for FnExpr) may be unnecessary with improved binding support,
-            // since it can be brought into scope
-            block.children.insert(
-                0,
-                ir::Stmt::Expr(desugar_ref.clone(), ir::Expr::CurrentFunction),
-            );
-            block
-                .children
-                .insert(1, ir::Stmt::WriteBinding(recursive_ref, desugar_ref));
-            let fn_ref = ir::Ref::new("fn_".to_string());
-            let fn_binding = ir::Ref::new(name.clone());
-            vec![
-                ir::Stmt::Expr(fn_ref.clone(), ir::Expr::Function(
-                    ir::FnKind::Func { async, gen: generator },
-                    Some(name),
-                    refs,
-                    box block,
-                )),
-                ir::Stmt::WriteBinding(fn_binding, fn_ref),
-            ]
-        }
-        VariableDeclaration(var_decl) =>
-            convert_variable_declaration(var_decl, scope),
-        ClassDeclaration(_) => unimplemented!("classes not yet supported"),
+        ast::Stmt::Decl(decl) => match decl {
+            ast::Decl::Fn(ast::FnDecl {
+                ident,
+                function:
+                    ast::Function {
+                        params,
+                        decorators: _,
+                        body,
+                        is_generator,
+                        is_async,
+                        span: _,
+                        type_params: _,
+                        return_type: _,
+                    },
+                declare: _,
+            }) => {
+                let ast::Ident {
+                    sym,
+                    span: _,
+                    type_ann: _,
+                    optional: _,
+                } = ident;
+                let mut fn_scope = scope.clone();
+                let refs = params
+                    .into_iter()
+                    .map(|param| convert_pattern(param, &mut fn_scope))
+                    .collect();
+                let recursive_ref = ir::Ref::new(sym.clone());
+                fn_scope.insert(sym.clone(), recursive_ref.clone());
+                let body = match body {
+                    Some(ast::BlockStmt { stmts, span: _ }) => stmts,
+                    None => unreachable!("bodyless function type declaration"),
+                };
+                let mut block = convert_block(body, &fn_scope);
+                let desugar_ref = ir::Ref::new("curfn_");
+                // todo this double writing (and below for FnExpr) may be unnecessary with improved binding support,
+                // since it can be brought into scope
+                block.children.insert(
+                    0,
+                    ir::Stmt::Expr(desugar_ref.clone(), ir::Expr::CurrentFunction),
+                );
+                block
+                    .children
+                    .insert(1, ir::Stmt::WriteBinding(recursive_ref, desugar_ref));
+                let fn_ref = ir::Ref::new("fn_");
+                let fn_binding = ir::Ref::new(sym.clone());
+                vec![
+                    ir::Stmt::Expr(
+                        fn_ref.clone(),
+                        ir::Expr::Function(
+                            ir::FnKind::Func {
+                                is_async,
+                                is_generator,
+                            },
+                            Some(sym),
+                            refs,
+                            box block,
+                        ),
+                    ),
+                    ir::Stmt::WriteBinding(fn_binding, fn_ref),
+                ]
+            }
+            ast::Decl::Var(var_decl) => convert_variable_declaration(var_decl, scope),
+            ast::Decl::Class(_) => unimplemented!("classes not yet supported"),
+            ast::Decl::TsInterface(_)
+            | ast::Decl::TsTypeAlias(_)
+            | ast::Decl::TsEnum(_)
+            | ast::Decl::TsModule(_) => unreachable!(),
+        },
     }
 }
 
-fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>, ir::Expr) {
-    use ast::Expression::*;
-
+fn convert_expression(expr: ast::Expr, scope: &ScopeMap) -> (Vec<ir::Stmt>, ir::Expr) {
     match expr {
-        Identifier(ast::Identifier { name }) => {
-            let expr = match scope.get(&name) {
+        ast::Expr::Ident(ast::Ident {
+            sym,
+            span: _,
+            type_ann: _,
+            optional: _,
+        }) => {
+            let expr = match scope.get(&sym) {
                 Some(ref_) => ir::Expr::ReadBinding(ref_.clone()),
-                None => ir::Expr::ReadGlobal(name),
+                None => ir::Expr::ReadGlobal(sym),
             };
             (vec![], expr)
         }
-        RegExpLiteral(ast::RegExpLiteral { pattern, flags }) => {
-            (vec![], ir::Expr::RegExp(pattern, flags))
-        }
-        NullLiteral(ast::NullLiteral {}) => (vec![], ir::Expr::Null),
-        StringLiteral(ast::StringLiteral { value }) => (vec![], ir::Expr::String(value)),
-        BooleanLiteral(ast::BooleanLiteral { value }) => (vec![], ir::Expr::Bool(value)),
-        NumericLiteral(ast::NumericLiteral { value }) => (vec![], ir::Expr::Number(value)),
-        ThisExpression(ast::ThisExpression {}) => (vec![], ir::Expr::This),
-        ArrowFunctionExpression(ast::ArrowFunctionExpression {
+        ast::Expr::Lit(lit) => match lit {
+            ast::Lit::Regex(ast::Regex {
+                exp,
+                flags,
+                span: _,
+            }) => (vec![], ir::Expr::RegExp(exp.value, flags.map(|s| s.value))),
+            ast::Lit::Null(ast::Null { span: _ }) => (vec![], ir::Expr::Null),
+            ast::Lit::Str(ast::Str {
+                value,
+                span: _,
+                has_escape: _,
+            }) => (vec![], ir::Expr::String(value)),
+            ast::Lit::Bool(ast::Bool { value, span: _ }) => (vec![], ir::Expr::Bool(value)),
+            ast::Lit::Num(ast::Number { value, span: _ }) => (vec![], ir::Expr::Number(value)),
+            ast::Lit::JSXText(_) => unreachable!(),
+        },
+        ast::Expr::This(ast::ThisExpr { span: _ }) => (vec![], ir::Expr::This),
+        ast::Expr::Arrow(ast::ArrowExpr {
             params,
             body,
-            async,
+            is_async,
+            is_generator,
+            span: _,
+            type_params: _,
+            return_type: _,
         }) => {
-            use ast::BlockStmtOrExpr::*;
-
             let mut fn_scope = scope.clone();
             let refs = params
                 .into_iter()
                 .map(|param| convert_pattern(param, &mut fn_scope))
                 .collect();
-            let body = match *body {
-                BlockStatement(block) => {
-                    let ast::BlockStatement { body, directives } = block;
-                    convert_block(body, directives, &fn_scope)
+            let body = match body {
+                ast::BlockStmtOrExpr::BlockStmt(block) => {
+                    let ast::BlockStmt { stmts, span: _ } = block;
+                    convert_block(stmts, &fn_scope)
                 }
-                Expression(expr) => {
-                    let ref_ = ir::Ref::new("arrow_".to_string());
-                    let (mut stmts, return_value) = convert_expression(expr, &fn_scope);
+                ast::BlockStmtOrExpr::Expr(expr) => {
+                    let ref_ = ir::Ref::new("arrow_");
+                    let (mut stmts, return_value) = convert_expression(*expr, &fn_scope);
                     stmts.push(ir::Stmt::Expr(ref_.clone(), return_value));
                     stmts.push(ir::Stmt::Return(ref_));
                     ir::Block::with_children(stmts)
                 }
             };
-            let func = ir::Expr::Function(ir::FnKind::Arrow { async }, None, refs, box body);
+            assert!(!is_generator, "generator arrow function");
+            let func = ir::Expr::Function(ir::FnKind::Arrow { is_async }, None, refs, box body);
             (vec![], func)
         }
-        YieldExpression(ast::YieldExpression { argument, delegate }) => {
-            let ref_ = ir::Ref::new("yield_".to_string());
-            let (mut stmts, yield_value) = match argument {
+        ast::Expr::Yield(ast::YieldExpr {
+            arg,
+            delegate,
+            span: _,
+        }) => {
+            let ref_ = ir::Ref::new("yield_");
+            let (mut stmts, yield_value) = match arg {
                 Some(argument) => convert_expression(*argument, scope),
                 None => (vec![], ir::Expr::Undefined),
             };
@@ -327,28 +401,24 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             };
             (stmts, ir::Expr::Yield(kind, ref_))
         }
-        AwaitExpression(ast::AwaitExpression { argument }) => {
-            let ref_ = ir::Ref::new("await_".to_string());
-            let (mut stmts, await_value) = convert_expression(*argument, scope);
+        ast::Expr::Await(ast::AwaitExpr { arg, span: _ }) => {
+            let ref_ = ir::Ref::new("await_");
+            let (mut stmts, await_value) = convert_expression(*arg, scope);
             stmts.push(ir::Stmt::Expr(ref_.clone(), await_value));
             (stmts, ir::Expr::Await(ref_))
         }
-        ArrayExpression(ast::ArrayExpression { elements }) => {
-            use ast::ExprOrSpread::*;
-
+        ast::Expr::Array(ast::ArrayLit { elems, span: _ }) => {
             let mut statements = vec![];
-            let elements = elements
+            let elements = elems
                 .into_iter()
                 .map(|ele| {
-                    ele.map(|e| {
-                        let (kind, expr) = match e {
-                            Expression(e) => (ir::EleKind::Single, e),
-                            SpreadElement(ast::SpreadElement { argument: e }) => {
-                                (ir::EleKind::Spread, e)
-                            }
+                    ele.map(|ast::ExprOrSpread { spread, expr }| {
+                        let kind = match spread {
+                            None => ir::EleKind::Single,
+                            Some(_) => ir::EleKind::Spread,
                         };
-                        let ref_ = ir::Ref::new("ele_".to_string());
-                        let (stmts, ele_value) = convert_expression(expr, scope);
+                        let ref_ = ir::Ref::new("ele_");
+                        let (stmts, ele_value) = convert_expression(*expr, scope);
                         statements.extend(stmts);
                         statements.push(ir::Stmt::Expr(ref_.clone(), ele_value));
                         (kind, ref_)
@@ -357,98 +427,175 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                 .collect();
             (statements, ir::Expr::Array(elements))
         }
-        ObjectExpression(ast::ObjectExpression { properties }) => {
-            use ast::PropOrMethodOrSpread::*;
-
+        ast::Expr::Object(ast::ObjectLit { props, span: _ }) => {
             let mut statements = vec![];
-            let properties = properties
+            let properties = props
                 .into_iter()
                 .map(|prop| match prop {
-                    ObjectProperty(ast::ObjectProperty {
-                        key,
-                        shorthand: _,
-                        value,
-                    }) => {
-                        let ref_key = ir::Ref::new("key_".to_string());
-                        let (stmts, key_value) = convert_expression(key, scope);
-                        statements.extend(stmts);
-                        statements.push(ir::Stmt::Expr(ref_key.clone(), key_value));
-                        let ref_value = ir::Ref::new("value_".to_string());
-                        let (stmts, value_value) = convert_expression(value, scope);
-                        statements.extend(stmts);
-                        statements.push(ir::Stmt::Expr(ref_value.clone(), value_value));
-                        (ir::PropKind::Simple, ref_key, ref_value)
-                    }
-                    ObjectMethod(ast::ObjectMethod {
-                        kind,
-                        key,
-                        params,
-                        body: block,
-                        generator,
-                        async,
-                    }) => {
-                        use ast::ObjectMethodKind::*;
+                    ast::PropOrSpread::Prop(prop) => match *prop {
+                        prop @ ast::Prop::Shorthand(_) | prop @ ast::Prop::KeyValue(_) => {
+                            let (key, value) = match prop {
+                                ast::Prop::Shorthand(ident) => {
+                                    let ast::Ident {
+                                        sym,
+                                        span,
+                                        type_ann: _,
+                                        optional: _,
+                                    } = ident.clone();
+                                    let key = ast::Expr::Lit(ast::Lit::Str(ast::Str {
+                                        span: span.clone(),
+                                        value: sym.clone(),
+                                        has_escape: false,
+                                    }));
+                                    (key, ast::Expr::Ident(ident))
+                                }
+                                ast::Prop::KeyValue(ast::KeyValueProp { key, value }) => {
+                                    (propname_to_expr(key), *value)
+                                }
+                                _ => unreachable!(),
+                            };
+                            let ref_key = ir::Ref::new("key_");
+                            let (stmts, key_value) = convert_expression(key, scope);
+                            statements.extend(stmts);
+                            statements.push(ir::Stmt::Expr(ref_key.clone(), key_value));
+                            let ref_value = ir::Ref::new("value_");
+                            let (stmts, value_value) = convert_expression(value, scope);
+                            statements.extend(stmts);
+                            statements.push(ir::Stmt::Expr(ref_value.clone(), value_value));
+                            (ir::PropKind::Simple, ref_key, ref_value)
+                        }
+                        prop @ ast::Prop::Getter(_)
+                        | prop @ ast::Prop::Setter(_)
+                        | prop @ ast::Prop::Method(_) => {
+                            let (kind, name, function) = match prop {
+                                ast::Prop::Getter(ast::GetterProp { key, body, span }) => (
+                                    ir::PropKind::Get,
+                                    key,
+                                    ast::Function {
+                                        params: vec![],
+                                        decorators: vec![],
+                                        span,
+                                        body,
+                                        is_generator: false,
+                                        is_async: false,
+                                        type_params: None,
+                                        return_type: None,
+                                    },
+                                ),
+                                ast::Prop::Setter(ast::SetterProp {
+                                    key,
+                                    param,
+                                    body,
+                                    span,
+                                }) => (
+                                    ir::PropKind::Set,
+                                    key,
+                                    ast::Function {
+                                        params: vec![param],
+                                        decorators: vec![],
+                                        span,
+                                        body,
+                                        is_generator: false,
+                                        is_async: false,
+                                        type_params: None,
+                                        return_type: None,
+                                    },
+                                ),
+                                ast::Prop::Method(ast::MethodProp { key, function }) => {
+                                    (ir::PropKind::Simple, key, function)
+                                }
+                                _ => unreachable!(),
+                            };
+                            let key = propname_to_expr(name);
+                            let ast::Function {
+                                params,
+                                decorators: _,
+                                body: block,
+                                is_generator,
+                                is_async,
+                                span: _,
+                                type_params: _,
+                                return_type: _,
+                            } = function;
 
-                        let kind = match kind {
-                            Get => ir::PropKind::Get,
-                            Set => ir::PropKind::Set,
-                            Method => ir::PropKind::Simple,
-                        };
-                        let ref_key = ir::Ref::new("key_".to_string());
-                        let (stmts, key_value) = convert_expression(key, scope);
-                        statements.extend(stmts);
-                        statements.push(ir::Stmt::Expr(ref_key.clone(), key_value));
+                            let ref_key = ir::Ref::new("key_");
+                            let (stmts, key_value) = convert_expression(key, scope);
+                            statements.extend(stmts);
+                            statements.push(ir::Stmt::Expr(ref_key.clone(), key_value));
 
-                        let mut fn_scope = scope.clone();
-                        let param_refs = params
-                            .into_iter()
-                            .map(|param| convert_pattern(param, &mut fn_scope))
-                            .collect();
-                        let ast::BlockStatement { body, directives } = block;
-                        let body = convert_block(body, directives, &fn_scope);
-                        let fn_value = ir::Expr::Function(
-                            ir::FnKind::Func {
-                                async,
-                                gen: generator,
-                            },
-                            None,
-                            param_refs,
-                            box body,
-                        );
-                        let ref_value = ir::Ref::new("value_".to_string());
-                        statements.push(ir::Stmt::Expr(ref_value.clone(), fn_value));
+                            let mut fn_scope = scope.clone();
+                            let param_refs = params
+                                .into_iter()
+                                .map(|param| convert_pattern(param, &mut fn_scope))
+                                .collect();
+                            let body = match block {
+                                Some(ast::BlockStmt { stmts, span: _ }) => stmts,
+                                None => unreachable!("object method/accessor without body"),
+                            };
+                            let body = convert_block(body, &fn_scope);
+                            let fn_value = ir::Expr::Function(
+                                ir::FnKind::Func {
+                                    is_async,
+                                    is_generator,
+                                },
+                                None,
+                                param_refs,
+                                box body,
+                            );
+                            let ref_value = ir::Ref::new("value_");
+                            statements.push(ir::Stmt::Expr(ref_value.clone(), fn_value));
 
-                        (kind, ref_key, ref_value)
-                    }
-                    SpreadElement(_) => unimplemented!("object spread not implemented"),
+                            (kind, ref_key, ref_value)
+                        }
+                        ast::Prop::Assign(_) => unreachable!("assignment prop in object literal"),
+                    },
+                    ast::PropOrSpread::Spread(_) => unimplemented!("object spread not implemented"),
                 })
                 .collect();
             (statements, ir::Expr::Object(properties))
         }
-        FunctionExpression(ast::FunctionExpression {
-            id,
-            params,
-            body,
-            generator,
-            async,
+        ast::Expr::Fn(ast::FnExpr {
+            ident,
+            function:
+                ast::Function {
+                    params,
+                    decorators: _,
+                    body,
+                    is_generator,
+                    is_async,
+                    span: _,
+                    type_params: _,
+                    return_type: _,
+                },
         }) => {
-            let name = id.map(|id| id.name);
+            let sym = ident.map(
+                |ast::Ident {
+                     sym,
+                     span: _,
+                     type_ann: _,
+                     optional: _,
+                 }| sym,
+            );
             let mut fn_scope = scope.clone();
             let refs = params
                 .into_iter()
                 .map(|param| convert_pattern(param, &mut fn_scope))
                 .collect();
-            let recursive_ref = if let Some(name) = &name {
-                let recursive_ref = ir::Ref::new(name.clone());
-                fn_scope.insert(name.clone(), recursive_ref.clone());
-                Some(recursive_ref)
-            } else {
-                None
+            let recursive_ref = match &sym {
+                Some(sym) => {
+                    let recursive_ref = ir::Ref::new(sym.clone());
+                    fn_scope.insert(sym.clone(), recursive_ref.clone());
+                    Some(recursive_ref)
+                }
+                None => None,
             };
-            let ast::BlockStatement { body, directives } = body;
-            let mut block = convert_block(body, directives, &fn_scope);
+            let body = match body {
+                Some(ast::BlockStmt { stmts, span: _ }) => stmts,
+                None => unreachable!("bodyless function type declaration"),
+            };
+            let mut block = convert_block(body, &fn_scope);
             if let Some(recursive_ref) = recursive_ref {
-                let desugar_ref = ir::Ref::new("curfn_".to_string());
+                let desugar_ref = ir::Ref::new("curfn_");
                 block.children.insert(
                     0,
                     ir::Stmt::Expr(desugar_ref.clone(), ir::Expr::CurrentFunction),
@@ -460,36 +607,38 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
 
             let func = ir::Expr::Function(
                 ir::FnKind::Func {
-                    async,
-                    gen: generator,
+                    is_async,
+                    is_generator,
                 },
-                name,
+                sym,
                 refs,
                 box block,
             );
             (vec![], func)
         }
-        UnaryExpression(ast::UnaryExpression {
-            operator,
-            prefix: _,
-            argument,
-        }) => {
-            let op = match operator {
-                ast::UnaryOperator::Plus => ir::UnaryOp::Plus,
-                ast::UnaryOperator::Minus => ir::UnaryOp::Minus,
-                ast::UnaryOperator::Not => ir::UnaryOp::Not,
-                ast::UnaryOperator::Tilde => ir::UnaryOp::Tilde,
-                ast::UnaryOperator::Typeof => ir::UnaryOp::Typeof,
-                ast::UnaryOperator::Void => ir::UnaryOp::Void,
+        ast::Expr::Unary(ast::UnaryExpr { op, arg, span: _ }) => {
+            let op = match op {
+                ast::UnaryOp::Plus => ir::UnaryOp::Plus,
+                ast::UnaryOp::Minus => ir::UnaryOp::Minus,
+                ast::UnaryOp::Bang => ir::UnaryOp::Not,
+                ast::UnaryOp::Tilde => ir::UnaryOp::Tilde,
+                ast::UnaryOp::TypeOf => ir::UnaryOp::Typeof,
+                ast::UnaryOp::Void => ir::UnaryOp::Void,
                 // need to preserve member access
-                ast::UnaryOperator::Delete => match *argument {
-                    MemberExpression(expr) => {
-                        let ast::MemberExpression { object, property } = expr;
-                        let obj_ref = ir::Ref::new("obj_".to_string());
-                        let (mut stmts, obj_value) = convert_expr_or_super(*object, scope);
+                ast::UnaryOp::Delete => match *arg {
+                    ast::Expr::Member(expr) => {
+                        let ast::MemberExpr {
+                            obj,
+                            prop,
+                            // todo we need to use this to avoid `foo.prop` becoming `foo[prop]`
+                            computed: _,
+                            span: _,
+                        } = expr;
+                        let obj_ref = ir::Ref::new("obj_");
+                        let (mut stmts, obj_value) = convert_expr_or_super(obj, scope);
                         stmts.push(ir::Stmt::Expr(obj_ref.clone(), obj_value));
-                        let prop_ref = ir::Ref::new("prop_".to_string());
-                        let (prop_stmts, prop_value) = convert_expression(*property, scope);
+                        let prop_ref = ir::Ref::new("prop_");
+                        let (prop_stmts, prop_value) = convert_expression(*prop, scope);
                         stmts.extend(prop_stmts);
                         stmts.push(ir::Stmt::Expr(prop_ref.clone(), prop_value));
                         return (stmts, ir::Expr::Delete(obj_ref, prop_ref));
@@ -497,35 +646,41 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                     _ => unimplemented!("deletion of non-MemberExpression not supported"),
                 },
             };
-            let ref_ = ir::Ref::new("unary_".to_string());
-            let (mut stmts, expr_value) = convert_expression(*argument, scope);
+            let ref_ = ir::Ref::new("unary_");
+            let (mut stmts, expr_value) = convert_expression(*arg, scope);
             stmts.push(ir::Stmt::Expr(ref_.clone(), expr_value));
             (stmts, ir::Expr::Unary(op, ref_))
         }
-        UpdateExpression(ast::UpdateExpression {
-            operator,
-            argument,
+        ast::Expr::Update(ast::UpdateExpr {
+            op,
+            arg,
             prefix,
+            span: _,
         }) => {
-            let one_ref = ir::Ref::new("one_".to_string());
-            let read_ref = ir::Ref::new("read_".to_string());
-            let write_ref = ir::Ref::new("write_".to_string());
-            let (read, write) = match *argument {
-                Identifier(ast::Identifier { name }) => match scope.get(&name) {
+            let one_ref = ir::Ref::new("one_");
+            let read_ref = ir::Ref::new("read_");
+            let write_ref = ir::Ref::new("write_");
+            let (read, write) = match *arg {
+                ast::Expr::Ident(ast::Ident {
+                    sym,
+                    span: _,
+                    type_ann: _,
+                    optional: _,
+                }) => match scope.get(&sym) {
                     Some(ref_) => (
                         ir::Expr::ReadBinding(ref_.clone()),
                         ir::Stmt::WriteBinding(ref_.clone(), write_ref.clone()),
                     ),
                     None => (
-                        ir::Expr::ReadGlobal(name.clone()),
-                        ir::Stmt::WriteGlobal(name, write_ref.clone()),
+                        ir::Expr::ReadGlobal(sym.clone()),
+                        ir::Stmt::WriteGlobal(sym, write_ref.clone()),
                     ),
                 },
-                arg => panic!("unexpected UpdateExpression argument: {:?}", arg),
+                arg => unimplemented!("unexpected UpdateExpression argument: {:?}", arg),
             };
-            let op = match operator {
-                ast::UpdateOperator::Incr => ir::BinaryOp::Add,
-                ast::UpdateOperator::Decr => ir::BinaryOp::Sub,
+            let op = match op {
+                ast::UpdateOp::PlusPlus => ir::BinaryOp::Add,
+                ast::UpdateOp::MinusMinus => ir::BinaryOp::Sub,
             };
             let stmts = vec![
                 ir::Stmt::Expr(read_ref.clone(), read),
@@ -539,52 +694,88 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             let value = if prefix { write_ref } else { read_ref };
             (stmts, ir::Expr::Read(value))
         }
-        BinaryExpression(ast::BinaryExpression {
-            operator,
+        ast::Expr::Bin(ast::BinExpr {
+            op,
             left,
             right,
+            span: _,
         }) => {
-            let op = match operator {
-                ast::BinaryOperator::Eq => ir::BinaryOp::Eq,
-                ast::BinaryOperator::NotEq => ir::BinaryOp::NotEq,
-                ast::BinaryOperator::StrictEq => ir::BinaryOp::StrictEq,
-                ast::BinaryOperator::NotStrictEq => ir::BinaryOp::NotStrictEq,
-                ast::BinaryOperator::Lt => ir::BinaryOp::Lt,
-                ast::BinaryOperator::Lte => ir::BinaryOp::Lte,
-                ast::BinaryOperator::Gt => ir::BinaryOp::Gt,
-                ast::BinaryOperator::Gte => ir::BinaryOp::Gte,
-                ast::BinaryOperator::ShiftLeft => ir::BinaryOp::ShiftLeft,
-                ast::BinaryOperator::ShiftRight => ir::BinaryOp::ShiftRight,
-                ast::BinaryOperator::ShiftRightZero => ir::BinaryOp::ShiftRightZero,
-                ast::BinaryOperator::Add => ir::BinaryOp::Add,
-                ast::BinaryOperator::Sub => ir::BinaryOp::Sub,
-                ast::BinaryOperator::Mul => ir::BinaryOp::Mul,
-                ast::BinaryOperator::Div => ir::BinaryOp::Div,
-                ast::BinaryOperator::Mod => ir::BinaryOp::Mod,
-                ast::BinaryOperator::BitOr => ir::BinaryOp::BitOr,
-                ast::BinaryOperator::BitXor => ir::BinaryOp::BitXor,
-                ast::BinaryOperator::BitAnd => ir::BinaryOp::BitAnd,
-                ast::BinaryOperator::In => ir::BinaryOp::In,
-                ast::BinaryOperator::Instanceof => ir::BinaryOp::Instanceof,
-            };
-            let left_ref = ir::Ref::new("left_".to_string());
-            let (mut stmts, left_value) = convert_expression(*left, scope);
-            stmts.push(ir::Stmt::Expr(left_ref.clone(), left_value));
-            let right_ref = ir::Ref::new("right_".to_string());
-            let (right_stmts, right_value) = convert_expression(*right, scope);
-            stmts.extend(right_stmts);
-            stmts.push(ir::Stmt::Expr(right_ref.clone(), right_value));
-            (stmts, ir::Expr::Binary(op, left_ref, right_ref))
+            match op {
+                // technically should be LogicalOp
+                op @ ast::BinaryOp::LogicalOr | op @ ast::BinaryOp::LogicalAnd => {
+                    let left_ref = ir::Ref::new("pred_");
+                    let value_ref = ir::Ref::new("logi_");
+                    let (mut stmts, left_value) = convert_expression(*left, scope);
+                    stmts.push(ir::Stmt::Expr(left_ref.clone(), left_value));
+                    stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), left_ref.clone()));
+                    let (consequent, alternate) = {
+                        let right_ref = ir::Ref::new("cons_");
+                        let (mut right_stmts, right_value) = convert_expression(*right, scope);
+                        right_stmts.push(ir::Stmt::Expr(right_ref.clone(), right_value));
+                        right_stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), right_ref));
+                        let full = ir::Block::with_children(right_stmts);
+                        let empty = ir::Block::empty();
+                        match op {
+                            ast::BinaryOp::LogicalOr => (empty, full),
+                            ast::BinaryOp::LogicalAnd => (full, empty),
+                            _ => unreachable!(),
+                        }
+                    };
+                    stmts.push(ir::Stmt::IfElse(left_ref, box consequent, box alternate));
+                    (stmts, ir::Expr::ReadBinding(value_ref))
+                }
+                op => {
+                    let op = match op {
+                        ast::BinaryOp::EqEq => ir::BinaryOp::EqEq,
+                        ast::BinaryOp::NotEq => ir::BinaryOp::NotEq,
+                        ast::BinaryOp::EqEqEq => ir::BinaryOp::StrictEq,
+                        ast::BinaryOp::NotEqEq => ir::BinaryOp::NotStrictEq,
+                        ast::BinaryOp::Lt => ir::BinaryOp::Lt,
+                        ast::BinaryOp::LtEq => ir::BinaryOp::Lte,
+                        ast::BinaryOp::Gt => ir::BinaryOp::Gt,
+                        ast::BinaryOp::GtEq => ir::BinaryOp::Gte,
+                        ast::BinaryOp::LShift => ir::BinaryOp::ShiftLeft,
+                        ast::BinaryOp::RShift => ir::BinaryOp::ShiftRight,
+                        ast::BinaryOp::ZeroFillRShift => ir::BinaryOp::ShiftRightZero,
+                        ast::BinaryOp::Add => ir::BinaryOp::Add,
+                        ast::BinaryOp::Sub => ir::BinaryOp::Sub,
+                        ast::BinaryOp::Mul => ir::BinaryOp::Mul,
+                        ast::BinaryOp::Div => ir::BinaryOp::Div,
+                        ast::BinaryOp::Mod => ir::BinaryOp::Mod,
+                        ast::BinaryOp::BitOr => ir::BinaryOp::BitOr,
+                        ast::BinaryOp::BitXor => ir::BinaryOp::BitXor,
+                        ast::BinaryOp::BitAnd => ir::BinaryOp::BitAnd,
+                        ast::BinaryOp::Exp => ir::BinaryOp::Exp,
+                        ast::BinaryOp::In => ir::BinaryOp::In,
+                        ast::BinaryOp::InstanceOf => ir::BinaryOp::Instanceof,
+                        ast::BinaryOp::LogicalOr | ast::BinaryOp::LogicalAnd => unreachable!(),
+                    };
+                    let left_ref = ir::Ref::new("left_");
+                    let (mut stmts, left_value) = convert_expression(*left, scope);
+                    stmts.push(ir::Stmt::Expr(left_ref.clone(), left_value));
+                    let right_ref = ir::Ref::new("right_");
+                    let (right_stmts, right_value) = convert_expression(*right, scope);
+                    stmts.extend(right_stmts);
+                    stmts.push(ir::Stmt::Expr(right_ref.clone(), right_value));
+                    (stmts, ir::Expr::Binary(op, left_ref, right_ref))
+                }
+            }
         }
-        AssignmentExpression(ast::AssignmentExpression {
-            operator,
+        ast::Expr::Assign(ast::AssignExpr {
+            op,
             left,
             right,
+            span: _,
         }) => {
-            let value_ref = ir::Ref::new("val_".to_string());
-            let (mut stmts, read_expr, write_stmt) = match *left {
-                ast::PatOrExpr::Pattern(pat) => match pat {
-                    ast::Pattern::Identifier(ast::Identifier { name }) => match scope.get(&name) {
+            let value_ref = ir::Ref::new("val_");
+            let (mut stmts, read_expr, write_stmt) = match left {
+                ast::PatOrExpr::Pat(pat) => match *pat {
+                    ast::Pat::Ident(ast::Ident {
+                        sym,
+                        span: _,
+                        type_ann: _,
+                        optional: _,
+                    }) => match scope.get(&sym) {
                         Some(binding) => (
                             vec![],
                             ir::Expr::ReadBinding(binding.clone()),
@@ -592,65 +783,80 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                         ),
                         None => (
                             vec![],
-                            ir::Expr::ReadGlobal(name.clone()),
-                            ir::Stmt::WriteGlobal(name.clone(), value_ref.clone()),
+                            ir::Expr::ReadGlobal(sym.clone()),
+                            ir::Stmt::WriteGlobal(sym.clone(), value_ref.clone()),
                         ),
                     },
-                    ast::Pattern::MemberExpression(ast::MemberExpression { object, property }) => {
-                        let obj_ref = ir::Ref::new("obj_".to_string());
-                        let prop_ref = ir::Ref::new("prop_".to_string());
-                        let (mut stmts, obj_value) = convert_expr_or_super(*object, scope);
-                        stmts.push(ir::Stmt::Expr(obj_ref.clone(), obj_value));
-                        let (prop_stmts, prop_value) = convert_expression(*property, scope);
-                        stmts.extend(prop_stmts);
-                        stmts.push(ir::Stmt::Expr(prop_ref.clone(), prop_value));
-                        (
-                            stmts,
-                            ir::Expr::ReadMember(obj_ref.clone(), prop_ref.clone()),
-                            ir::Stmt::WriteMember(obj_ref, prop_ref, value_ref.clone()),
-                        )
+                    ast::Pat::Expr(expr) => match *expr {
+                        ast::Expr::Member(ast::MemberExpr {
+                            obj,
+                            prop,
+                            // todo we need to use this to avoid `foo.prop` becoming `foo[prop]`
+                            computed: _,
+                            span: _,
+                        }) => {
+                            let obj_ref = ir::Ref::new("obj_");
+                            let prop_ref = ir::Ref::new("prop_");
+                            let (mut stmts, obj_value) = convert_expr_or_super(obj, scope);
+                            stmts.push(ir::Stmt::Expr(obj_ref.clone(), obj_value));
+                            let (prop_stmts, prop_value) = convert_expression(*prop, scope);
+                            stmts.extend(prop_stmts);
+                            stmts.push(ir::Stmt::Expr(prop_ref.clone(), prop_value));
+                            (
+                                stmts,
+                                ir::Expr::ReadMember(obj_ref.clone(), prop_ref.clone()),
+                                ir::Stmt::WriteMember(obj_ref, prop_ref, value_ref.clone()),
+                            )
+                        }
+                        _ => {
+                            unimplemented!("assigning to non member-expression expression pattern")
+                        }
+                    },
+                    pat => {
+                        unimplemented!("assigning to complex patterns not yet supported: {:?}", pat)
                     }
-                    _ => unimplemented!("assigning to complex patterns not yet supported"),
                 },
-                ast::PatOrExpr::Expression(_) => {
-                    unimplemented!("assigning to Expression (impossible?)")
+                ast::PatOrExpr::Expr(_) => {
+                    unreachable!("assigning to expression");
                 }
             };
-            match operator {
-                ast::AssignmentOperator::Eq => {
+            match op {
+                ast::AssignOp::Assign => {
                     let (right_stmts, right_val) = convert_expression(*right, scope);
                     stmts.extend(right_stmts);
                     stmts.push(ir::Stmt::Expr(value_ref.clone(), right_val));
                     stmts.push(write_stmt);
                 }
-                op @ ast::AssignmentOperator::AddEq
-                | op @ ast::AssignmentOperator::SubEq
-                | op @ ast::AssignmentOperator::MulEq
-                | op @ ast::AssignmentOperator::DivEq
-                | op @ ast::AssignmentOperator::ModEq
-                | op @ ast::AssignmentOperator::ShiftLeftEq
-                | op @ ast::AssignmentOperator::ShiftRightEq
-                | op @ ast::AssignmentOperator::ShiftRightZeroEq
-                | op @ ast::AssignmentOperator::BitOrEq
-                | op @ ast::AssignmentOperator::BitXorEq
-                | op @ ast::AssignmentOperator::BitAndEq => {
+                op @ ast::AssignOp::AddAssign
+                | op @ ast::AssignOp::SubAssign
+                | op @ ast::AssignOp::MulAssign
+                | op @ ast::AssignOp::DivAssign
+                | op @ ast::AssignOp::ModAssign
+                | op @ ast::AssignOp::LShiftAssign
+                | op @ ast::AssignOp::RShiftAssign
+                | op @ ast::AssignOp::ZeroFillRShiftAssign
+                | op @ ast::AssignOp::BitOrAssign
+                | op @ ast::AssignOp::BitXorAssign
+                | op @ ast::AssignOp::BitAndAssign
+                | op @ ast::AssignOp::ExpAssign => {
                     let op = match op {
-                        ast::AssignmentOperator::Eq => unreachable!(),
-                        ast::AssignmentOperator::AddEq => ir::BinaryOp::Add,
-                        ast::AssignmentOperator::SubEq => ir::BinaryOp::Sub,
-                        ast::AssignmentOperator::MulEq => ir::BinaryOp::Mul,
-                        ast::AssignmentOperator::DivEq => ir::BinaryOp::Div,
-                        ast::AssignmentOperator::ModEq => ir::BinaryOp::Mod,
-                        ast::AssignmentOperator::ShiftLeftEq => ir::BinaryOp::ShiftLeft,
-                        ast::AssignmentOperator::ShiftRightEq => ir::BinaryOp::ShiftRight,
-                        ast::AssignmentOperator::ShiftRightZeroEq => ir::BinaryOp::ShiftRightZero,
-                        ast::AssignmentOperator::BitOrEq => ir::BinaryOp::BitOr,
-                        ast::AssignmentOperator::BitXorEq => ir::BinaryOp::BitXor,
-                        ast::AssignmentOperator::BitAndEq => ir::BinaryOp::BitAnd,
+                        ast::AssignOp::Assign => unreachable!(),
+                        ast::AssignOp::AddAssign => ir::BinaryOp::Add,
+                        ast::AssignOp::SubAssign => ir::BinaryOp::Sub,
+                        ast::AssignOp::MulAssign => ir::BinaryOp::Mul,
+                        ast::AssignOp::DivAssign => ir::BinaryOp::Div,
+                        ast::AssignOp::ModAssign => ir::BinaryOp::Mod,
+                        ast::AssignOp::LShiftAssign => ir::BinaryOp::ShiftLeft,
+                        ast::AssignOp::RShiftAssign => ir::BinaryOp::ShiftRight,
+                        ast::AssignOp::ZeroFillRShiftAssign => ir::BinaryOp::ShiftRightZero,
+                        ast::AssignOp::BitOrAssign => ir::BinaryOp::BitOr,
+                        ast::AssignOp::BitXorAssign => ir::BinaryOp::BitXor,
+                        ast::AssignOp::BitAndAssign => ir::BinaryOp::BitAnd,
+                        ast::AssignOp::ExpAssign => ir::BinaryOp::Exp,
                     };
-                    let left_ref = ir::Ref::new("left_".to_string());
+                    let left_ref = ir::Ref::new("left_");
                     stmts.push(ir::Stmt::Expr(left_ref.clone(), read_expr));
-                    let right_ref = ir::Ref::new("right_".to_string());
+                    let right_ref = ir::Ref::new("right_");
                     let (right_stmts, right_val) = convert_expression(*right, scope);
                     stmts.extend(right_stmts);
                     stmts.push(ir::Stmt::Expr(right_ref.clone(), right_val));
@@ -663,49 +869,31 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             }
             (stmts, ir::Expr::Read(value_ref))
         }
-        LogicalExpression(ast::LogicalExpression {
-            operator,
-            left,
-            right,
+        ast::Expr::Member(ast::MemberExpr {
+            obj,
+            prop,
+            // todo we need to use this to avoid `foo.prop` becoming `foo[prop]`
+            computed: _,
+            span: _,
         }) => {
-            let left_ref = ir::Ref::new("pred_".to_string());
-            let value_ref = ir::Ref::new("logi_".to_string());
-            let (mut stmts, left_value) = convert_expression(*left, scope);
-            stmts.push(ir::Stmt::Expr(left_ref.clone(), left_value));
-            stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), left_ref.clone()));
-            let (consequent, alternate) = {
-                let right_ref = ir::Ref::new("cons_".to_string());
-                let (mut right_stmts, right_value) = convert_expression(*right, scope);
-                right_stmts.push(ir::Stmt::Expr(right_ref.clone(), right_value));
-                right_stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), right_ref));
-                let full = ir::Block::with_children(right_stmts);
-                let empty = ir::Block::empty();
-                match operator {
-                    ast::LogicalOperator::Or => (empty, full),
-                    ast::LogicalOperator::And => (full, empty),
-                }
-            };
-            stmts.push(ir::Stmt::IfElse(left_ref, box consequent, box alternate));
-            (stmts, ir::Expr::ReadBinding(value_ref))
-        }
-        MemberExpression(ast::MemberExpression { object, property }) => {
-            let obj_ref = ir::Ref::new("obj_".to_string());
-            let (mut stmts, obj_value) = convert_expr_or_super(*object, scope);
+            let obj_ref = ir::Ref::new("obj_");
+            let (mut stmts, obj_value) = convert_expr_or_super(obj, scope);
             stmts.push(ir::Stmt::Expr(obj_ref.clone(), obj_value));
-            let prop_ref = ir::Ref::new("prop_".to_string());
-            let (prop_stmts, prop_value) = convert_expression(*property, scope);
+            let prop_ref = ir::Ref::new("prop_");
+            let (prop_stmts, prop_value) = convert_expression(*prop, scope);
             stmts.extend(prop_stmts);
             stmts.push(ir::Stmt::Expr(prop_ref.clone(), prop_value));
             (stmts, ir::Expr::ReadMember(obj_ref, prop_ref))
         }
-        ConditionalExpression(ast::ConditionalExpression {
+        ast::Expr::Cond(ast::CondExpr {
             test,
-            alternate,
-            consequent,
+            cons,
+            alt,
+            span: _,
         }) => {
-            let test_ref = ir::Ref::new("test_".to_string());
-            let undef_ref = ir::Ref::new("undef_".to_string());
-            let value_ref = ir::Ref::new("value_".to_string());
+            let test_ref = ir::Ref::new("test_");
+            let undef_ref = ir::Ref::new("undef_");
+            let value_ref = ir::Ref::new("value_");
             let (mut stmts, test_value) = convert_expression(*test, scope);
             stmts.push(ir::Stmt::Expr(test_ref.clone(), test_value));
             stmts.push(ir::Stmt::Expr(undef_ref.clone(), ir::Expr::Undefined));
@@ -713,15 +901,15 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             stmts.push(ir::Stmt::IfElse(
                 test_ref,
                 {
-                    let alt_ref = ir::Ref::new("alt_".to_string());
-                    let (mut alt_stmts, alt_value) = convert_expression(*alternate, scope);
+                    let alt_ref = ir::Ref::new("alt_");
+                    let (mut alt_stmts, alt_value) = convert_expression(*alt, scope);
                     alt_stmts.push(ir::Stmt::Expr(alt_ref.clone(), alt_value));
                     alt_stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), alt_ref));
                     box ir::Block::with_children(alt_stmts)
                 },
                 {
-                    let cons_ref = ir::Ref::new("cons_".to_string());
-                    let (mut cons_stmts, cons_value) = convert_expression(*consequent, scope);
+                    let cons_ref = ir::Ref::new("cons_");
+                    let (mut cons_stmts, cons_value) = convert_expression(*cons, scope);
                     cons_stmts.push(ir::Stmt::Expr(cons_ref.clone(), cons_value));
                     cons_stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), cons_ref));
                     box ir::Block::with_children(cons_stmts)
@@ -729,32 +917,38 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             ));
             (stmts, ir::Expr::ReadBinding(value_ref))
         }
-        call_expr @ CallExpression(_) | call_expr @ NewExpression(_) => {
-            use ast::ExprOrSpread::*;
-
+        call_expr @ ast::Expr::Call(_) | call_expr @ ast::Expr::New(_) => {
             let (callee, arguments, call_kind) = match call_expr {
-                CallExpression(ast::CallExpression { callee, arguments }) => {
-                    (callee, arguments, ir::CallKind::Call)
-                }
-                NewExpression(ast::NewExpression { callee, arguments }) => {
-                    (callee, arguments, ir::CallKind::New)
-                }
+                ast::Expr::Call(ast::CallExpr {
+                    callee,
+                    args,
+                    span: _,
+                    type_args: _,
+                }) => (callee, args, ir::CallKind::Call),
+                ast::Expr::New(ast::NewExpr {
+                    callee,
+                    args,
+                    span: _,
+                    type_args: _,
+                }) => (
+                    ast::ExprOrSuper::Expr(callee),
+                    args.unwrap_or_else(Vec::new),
+                    ir::CallKind::New,
+                ),
                 _ => unreachable!(),
             };
-            let callee_ref = ir::Ref::new("fn_".to_string());
-            let (mut statements, callee_value) = convert_expr_or_super(*callee, scope);
+            let callee_ref = ir::Ref::new("fn_");
+            let (mut statements, callee_value) = convert_expr_or_super(callee, scope);
             statements.push(ir::Stmt::Expr(callee_ref.clone(), callee_value));
             let arguments = arguments
                 .into_iter()
-                .map(|arg| {
-                    let (kind, expr) = match arg {
-                        Expression(e) => (ir::EleKind::Single, e),
-                        SpreadElement(ast::SpreadElement { argument: e }) => {
-                            (ir::EleKind::Spread, e)
-                        }
+                .map(|ast::ExprOrSpread { spread, expr }| {
+                    let kind = match spread {
+                        Some(_) => ir::EleKind::Spread,
+                        None => ir::EleKind::Single,
                     };
-                    let arg_ref = ir::Ref::new("arg_".to_string());
-                    let (stmts, arg_value) = convert_expression(expr, scope);
+                    let arg_ref = ir::Ref::new("arg_");
+                    let (stmts, arg_value) = convert_expression(*expr, scope);
                     statements.extend(stmts);
                     statements.push(ir::Stmt::Expr(arg_ref.clone(), arg_value));
                     (kind, arg_ref)
@@ -762,10 +956,10 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
                 .collect();
             (statements, ir::Expr::Call(call_kind, callee_ref, arguments))
         }
-        SequenceExpression(ast::SequenceExpression { expressions }) => {
-            let mut expressions: Vec<_> = expressions
+        ast::Expr::Seq(ast::SeqExpr { exprs, span: _ }) => {
+            let mut expressions: Vec<_> = exprs
                 .into_iter()
-                .map(|expr| convert_expression(expr, scope))
+                .map(|expr| convert_expression(*expr, scope))
                 .collect();
             let last_expression = expressions
                 .pop()
@@ -779,29 +973,44 @@ fn convert_expression(expr: ast::Expression, scope: &ScopeMap) -> (Vec<ir::Stmt>
             statements.extend(last_stmts);
             (statements, last_value)
         }
-        TemplateLiteral(_) | TaggedTemplateExpression(_) => {
+        ast::Expr::Paren(ast::ParenExpr { expr, span: _ }) => convert_expression(*expr, scope),
+        ast::Expr::Tpl(_) | ast::Expr::TaggedTpl(_) => {
             unimplemented!("templates not yet supported")
         }
-        ClassExpression(_) => unimplemented!("classes not yet supported"),
+        ast::Expr::Class(_) => unimplemented!("classes not yet supported"),
+        ast::Expr::MetaProp(_) => unreachable!(),
+        ast::Expr::JSXElement(_)
+        | ast::Expr::JSXEmpty(_)
+        | ast::Expr::JSXFragment(_)
+        | ast::Expr::JSXMebmer(_)
+        | ast::Expr::JSXNamespacedName(_) => unreachable!(),
+        ast::Expr::TsTypeAssertion(_)
+        | ast::Expr::TsNonNull(_)
+        | ast::Expr::TsTypeCast(_)
+        | ast::Expr::TsAs(_) => unreachable!(),
     }
 }
 
-fn convert_variable_declaration(
-    var_decl: ast::VariableDeclaration,
-    scope: &mut ScopeMap,
-) -> Vec<ir::Stmt> {
+fn convert_variable_declaration(var_decl: ast::VarDecl, scope: &mut ScopeMap) -> Vec<ir::Stmt> {
     // todo we're definitely gonna need to handle `kind`
-    let ast::VariableDeclaration {
+    let ast::VarDecl {
         kind: _,
-        declarations,
+        decls,
+        span: _,
+        declare: _,
     } = var_decl;
     let mut stmts = vec![];
-    for declarator in declarations.into_iter() {
-        let ast::VariableDeclarator { id, init } = declarator;
-        let init_ref = ir::Ref::new("init_".to_string());
+    for declarator in decls.into_iter() {
+        let ast::VarDeclarator {
+            name,
+            init,
+            span: _,
+            definite: _,
+        } = declarator;
+        let init_ref = ir::Ref::new("init_");
         match init {
             Some(init) => {
-                let (init_stmts, init_value) = convert_expression(init, scope);
+                let (init_stmts, init_value) = convert_expression(*init, scope);
                 stmts.extend(init_stmts);
                 stmts.push(ir::Stmt::Expr(init_ref.clone(), init_value));
             }
@@ -809,23 +1018,29 @@ fn convert_variable_declaration(
                 stmts.push(ir::Stmt::Expr(init_ref.clone(), ir::Expr::Undefined));
             }
         }
-        let var_ref = convert_pattern(id, scope);
+        let var_ref = convert_pattern(name, scope);
         stmts.push(ir::Stmt::WriteBinding(var_ref, init_ref));
     }
     stmts
 }
 
-fn convert_pattern(pat: ast::Pattern, scope: &mut ScopeMap) -> ir::Ref<ir::Mutable> {
-    use ast::Pattern::*;
-
+fn convert_pattern(pat: ast::Pat, scope: &mut ScopeMap) -> ir::Ref<ir::Mutable> {
     match pat {
-        Identifier(ast::Identifier { name }) => {
-            let ref_ = ir::Ref::new(name.clone());
-            scope.insert(name, ref_.clone());
+        ast::Pat::Ident(ast::Ident {
+            sym,
+            span: _,
+            type_ann: _,
+            optional: _,
+        }) => {
+            let ref_ = ir::Ref::new(sym.clone());
+            scope.insert(sym, ref_.clone());
             ref_
         }
-        MemberExpression(_) | ObjectPattern(_) | ArrayPattern(_) | RestElement(_)
-        | AssignmentPattern(_) => unimplemented!("complex patterns not yet supported"),
+        ast::Pat::Array(_)
+        | ast::Pat::Object(_)
+        | ast::Pat::Rest(_)
+        | ast::Pat::Assign(_)
+        | ast::Pat::Expr(_) => unimplemented!("complex patterns not yet supported"),
     }
 }
 
@@ -833,10 +1048,17 @@ fn convert_expr_or_super(
     expr_or_super: ast::ExprOrSuper,
     scope: &ScopeMap,
 ) -> (Vec<ir::Stmt>, ir::Expr) {
-    use ast::ExprOrSuper::*;
-
     match expr_or_super {
-        Expression(expr) => convert_expression(expr, scope),
-        Super(ast::Super {}) => (vec![], ir::Expr::Super),
+        ast::ExprOrSuper::Expr(expr) => convert_expression(*expr, scope),
+        ast::ExprOrSuper::Super(_) => (vec![], ir::Expr::Super),
+    }
+}
+
+fn propname_to_expr(propname: ast::PropName) -> ast::Expr {
+    match propname {
+        ast::PropName::Ident(i) => ast::Expr::Ident(i),
+        ast::PropName::Str(s) => ast::Expr::Lit(ast::Lit::Str(s)),
+        ast::PropName::Num(n) => ast::Expr::Lit(ast::Lit::Num(n)),
+        ast::PropName::Computed(e) => *e,
     }
 }

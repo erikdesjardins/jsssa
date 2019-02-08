@@ -1,7 +1,8 @@
-use ast;
-use ir;
+use swc_ecma_ast as ast;
 
-pub fn convert(ir: ir::Block) -> ast::File {
+use crate::ir;
+
+pub fn convert(ir: ir::Block) -> Vec<ast::Stmt> {
     // perform inlining at this stage? (i.e. scan backwards for all usages)
     unimplemented!();
 }

@@ -9,15 +9,15 @@ cache:
   timeout: 1000
 before_script:
 - rustup toolchain add nightly
-- rustup component add rustfmt-preview
-- rustup component add clippy-preview --toolchain=nightly
+- rustup component add rustfmt
+- rustup component add clippy --toolchain=nightly
 script:
   - cargo fmt --all -- --check
   - RUSTFLAGS="-D warnings" cargo +nightly clippy
   - cargo +nightly test
   - cargo +nightly build --release
   - strip target/release/jsssa
-  - ls -lh target/release
+  - ls -lh target/release/jsssa
 deploy:
   - provider: releases
     api_key:
