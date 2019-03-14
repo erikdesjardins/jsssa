@@ -1,10 +1,10 @@
-#![feature(box_syntax)]
 #![allow(clippy::unneeded_field_pattern)]
 
 mod ast2ir;
 mod ir;
 mod ir2ast;
 mod parse;
+mod utils;
 
 fn main() {
     let ast = parse::parse(
