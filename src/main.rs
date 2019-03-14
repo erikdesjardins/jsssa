@@ -1,5 +1,4 @@
 #![feature(box_syntax)]
-#![recursion_limit = "128"]
 #![allow(clippy::unneeded_field_pattern)]
 
 mod ast2ir;
