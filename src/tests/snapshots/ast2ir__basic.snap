@@ -1,5 +1,5 @@
 ---
-created: "2019-03-14T22:42:34.859453800Z"
+created: "2019-03-14T22:45:05.445108400Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
 expression: "ast.map(ast2ir::convert)"
@@ -113,28 +113,28 @@ Ok(
                                 Block {
                                     children: [
                                         Expr(
-                                            Ref(13 'alt_'),
+                                            Ref(13 'cons_'),
                                             String(
                                                 Atom('hi' type=inline)
                                             )
                                         ),
                                         WriteBinding(
                                             Ref(12 'value_'),
-                                            Ref(13 'alt_')
+                                            Ref(13 'cons_')
                                         )
                                     ]
                                 },
                                 Block {
                                     children: [
                                         Expr(
-                                            Ref(14 'cons_'),
+                                            Ref(14 'alt_'),
                                             Bool(
                                                 true
                                             )
                                         ),
                                         WriteBinding(
                                             Ref(12 'value_'),
-                                            Ref(14 'cons_')
+                                            Ref(14 'alt_')
                                         )
                                     ]
                                 }

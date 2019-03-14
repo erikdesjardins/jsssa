@@ -903,14 +903,14 @@ fn convert_expression(expr: ast::Expr, scope: &ScopeMap) -> (Vec<ir::Stmt>, ir::
             stmts.push(ir::Stmt::IfElse(
                 test_ref,
                 {
-                    let alt_ref = ir::Ref::new("alt_");
+                    let alt_ref = ir::Ref::new("cons_");
                     let (mut alt_stmts, alt_value) = convert_expression(*alt, scope);
                     alt_stmts.push(ir::Stmt::Expr(alt_ref.clone(), alt_value));
                     alt_stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), alt_ref));
                     P(ir::Block::with_children(alt_stmts))
                 },
                 {
-                    let cons_ref = ir::Ref::new("cons_");
+                    let cons_ref = ir::Ref::new("alt_");
                     let (mut cons_stmts, cons_value) = convert_expression(*cons, scope);
                     cons_stmts.push(ir::Stmt::Expr(cons_ref.clone(), cons_value));
                     cons_stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), cons_ref));
