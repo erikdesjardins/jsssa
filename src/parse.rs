@@ -1,15 +1,19 @@
+use std::sync::Arc;
+
 use failure::Error;
 use swc_common::{
     errors::{ColorConfig, Handler},
-    sync::Lrc,
     FileName, FilePathMapping, SourceMap,
 };
 use swc_ecma_ast as ast;
 use swc_ecma_parser::{Parser, Session, SourceFileInput, Syntax};
 
-pub fn parse(js: impl Into<String>) -> Result<Vec<ast::Stmt>, Error> {
+/// Parse a given ES6+ script into SWC's AST.
+///
+/// CPS because SWC uses scoped thread-locals for string interning...
+pub fn parse<R>(js: impl Into<String>, f: impl FnOnce(Result<ast::Script, Error>) -> R) -> R {
     swc_common::GLOBALS.set(&swc_common::Globals::new(), || {
-        let files = Lrc::new(SourceMap::new(FilePathMapping::empty()));
+        let files = Arc::new(SourceMap::new(FilePathMapping::empty()));
 
         let session = Session {
             handler: &{
@@ -25,11 +29,14 @@ pub fn parse(js: impl Into<String>) -> Result<Vec<ast::Stmt>, Error> {
             session,
             Syntax::Es(Default::default()),
             SourceFileInput::from(file.as_ref()),
+            None,
         );
 
-        parser.parse_script().map_err(|mut e| {
+        let ast = parser.parse_script().map_err(|mut e| {
             e.emit();
             unimplemented!("proper error reporting");
-        })
+        });
+
+        f(ast)
     })
 }

@@ -1,24 +1,22 @@
 #![allow(clippy::unneeded_field_pattern)]
 
+use std::io;
+use std::io::Read;
+
 mod ast2ir;
 mod ir;
 mod ir2ast;
 mod parse;
 mod utils;
 
+#[cfg(test)]
+mod tests;
+
 fn main() {
-    let ast = parse::parse(
-        r#"
-            (function f(x) {
-                while (true);
-                x = y.bar;
-                z.foo = x ? true : 'hi';
-                return +[1 || x, { x }, f + 1, ++g];
-            });
-            f(1), true;
-        "#,
-    )
-    .unwrap();
-    let ir = ast2ir::convert(ast);
-    println!("{:#?}", ir);
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    parse::parse(s, |ast| {
+        let ir = ast2ir::convert(ast.unwrap());
+        println!("{:#?}", ir);
+    });
 }

@@ -9,8 +9,9 @@ use crate::utils::P;
 
 type ScopeMap = BTreeMap<JsWord, ir::Ref<ir::Mutable>>;
 
-pub fn convert(ast: Vec<ast::Stmt>) -> ir::Block {
-    convert_block(ast, &BTreeMap::default())
+pub fn convert(ast: ast::Script) -> ir::Block {
+    let ast::Script { shebang:_, body, span: _ } = ast;
+    convert_block(body, &BTreeMap::default())
 }
 
 fn convert_block(body: Vec<ast::Stmt>, parent_scopes: &ScopeMap) -> ir::Block {
@@ -979,6 +980,7 @@ fn convert_expression(expr: ast::Expr, scope: &ScopeMap) -> (Vec<ir::Stmt>, ir::
             unimplemented!("templates not yet supported")
         }
         ast::Expr::Class(_) => unimplemented!("classes not yet supported"),
+        ast::Expr::PrivateName(_) => unimplemented!("private members not yet supported"),
         ast::Expr::MetaProp(_) => unreachable!(),
         ast::Expr::JSXElement(_)
         | ast::Expr::JSXEmpty(_)
