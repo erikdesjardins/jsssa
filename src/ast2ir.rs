@@ -10,7 +10,11 @@ use crate::utils::P;
 type ScopeMap = BTreeMap<JsWord, ir::Ref<ir::Mutable>>;
 
 pub fn convert(ast: ast::Script) -> ir::Block {
-    let ast::Script { shebang:_, body, span: _ } = ast;
+    let ast::Script {
+        shebang: _,
+        body,
+        span: _,
+    } = ast;
     convert_block(body, &BTreeMap::default())
 }
 
