@@ -69,7 +69,7 @@ impl<T: RefType> LiveRef<T> {
         }))
     }
 
-    pub fn name_hint(&self) -> &str {
+    pub fn name_hint(&self) -> &JsWord {
         &self.0.name_hint
     }
 
