@@ -15,71 +15,21 @@ pub enum SSA {}
 #[derive(Clone, Debug)]
 pub enum Mutable {}
 
-pub enum Ref<T: RefType> {
-    Dead,
-    Live(LiveRef<T>),
-}
+pub struct Ref<T: RefType>(Rc<RefInner<T>>);
 
-impl<T: RefType> Clone for Ref<T> {
-    fn clone(&self) -> Self {
-        match self {
-            Ref::Dead => Ref::Dead,
-            Ref::Live(live_ref) => Ref::Live(live_ref.clone()),
-        }
-    }
-}
-
-impl<T: RefType> Debug for Ref<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-            Ref::Dead => write!(f, "Ref(<dead>)"),
-            Ref::Live(LiveRef(inner)) => write!(f, "Ref({} '{}')", inner.id, inner.name_hint),
-        }
-    }
-}
-
-impl<T: RefType> Ref<T> {
-    pub fn new(name_hint: impl Into<JsWord>) -> Self {
-        Ref::Live(LiveRef::new(name_hint.into()))
-    }
-}
-
-pub struct LiveRef<T: RefType>(Rc<LiveRefInner<T>>);
-
-struct LiveRefInner<T: RefType> {
+struct RefInner<T: RefType> {
     id: u64,
     name_hint: JsWord,
     _t: PhantomData<T>,
 }
 
-impl<T: RefType> Clone for LiveRef<T> {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
-}
-
-impl<T: RefType> Eq for LiveRef<T> {}
-
-impl<T: RefType> PartialEq for LiveRef<T> {
-    fn eq(&self, other: &Self) -> bool {
-        // compare only by id, which is unique by construction
-        self.0.id == other.0.id
-    }
-}
-
-impl<T: RefType> Hash for LiveRef<T> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        state.write_u64(self.0.id)
-    }
-}
-
-impl<T: RefType> LiveRef<T> {
-    fn new(name_hint: JsWord) -> Self {
+impl<T: RefType> Ref<T> {
+    pub fn new(name_hint: impl Into<JsWord>) -> Self {
         static ID_COUNTER: AtomicUsize = AtomicUsize::new(1);
 
-        LiveRef(Rc::new(LiveRefInner {
+        Ref(Rc::new(RefInner {
             id: ID_COUNTER.fetch_add(1, Ordering::Relaxed) as u64,
-            name_hint,
+            name_hint: name_hint.into(),
             _t: PhantomData,
         }))
     }
@@ -90,5 +40,32 @@ impl<T: RefType> LiveRef<T> {
 
     pub fn might_be_used(&self) -> bool {
         Rc::strong_count(&self.0) > 1
+    }
+}
+
+impl<T: RefType> Debug for Ref<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "Ref({} '{}')", self.0.id, self.0.name_hint)
+    }
+}
+
+impl<T: RefType> Clone for Ref<T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
+impl<T: RefType> Eq for Ref<T> {}
+
+impl<T: RefType> PartialEq for Ref<T> {
+    fn eq(&self, other: &Self) -> bool {
+        // compare only by id, which is unique by construction
+        self.0.id == other.0.id
+    }
+}
+
+impl<T: RefType> Hash for Ref<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write_u64(self.0.id)
     }
 }

@@ -1,5 +1,5 @@
 ---
-created: "2019-03-14T22:45:05.445108400Z"
+created: "2019-03-15T06:39:08.603744400Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
 expression: "ast.map(ast2ir::convert)"
@@ -7,7 +7,7 @@ expression: "ast.map(ast2ir::convert)"
 Ok(
     Block {
         children: [
-            Expr(
+            WriteSsa(
                 Ref(32 'fn_'),
                 Function(
                     Func {
@@ -22,7 +22,7 @@ Ok(
                     ],
                     Block {
                         children: [
-                            Expr(
+                            WriteSsa(
                                 Ref(31 'curfn_'),
                                 CurrentFunction
                             ),
@@ -33,7 +33,7 @@ Ok(
                             Loop(
                                 Block {
                                     children: [
-                                        Expr(
+                                        WriteSsa(
                                             Ref(3 'while_'),
                                             Bool(
                                                 true
@@ -53,19 +53,19 @@ Ok(
                                     ]
                                 }
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(5 'obj_'),
                                 ReadGlobal(
                                     Atom('y' type=inline)
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(6 'prop_'),
                                 ReadGlobal(
                                     Atom('bar' type=inline)
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(4 'val_'),
                                 ReadMember(
                                     Ref(5 'obj_'),
@@ -77,30 +77,29 @@ Ok(
                                 Ref(4 'val_')
                             ),
                             Expr(
-                                Ref(<dead>),
                                 Read(
                                     Ref(4 'val_')
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(8 'obj_'),
                                 ReadGlobal(
                                     Atom('z' type=inline)
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(9 'prop_'),
                                 ReadGlobal(
                                     Atom('foo' type=inline)
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(10 'test_'),
                                 ReadBinding(
                                     Ref(1 'x')
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(11 'undef_'),
                                 Undefined
                             ),
@@ -112,7 +111,7 @@ Ok(
                                 Ref(10 'test_'),
                                 Block {
                                     children: [
-                                        Expr(
+                                        WriteSsa(
                                             Ref(13 'cons_'),
                                             String(
                                                 Atom('hi' type=inline)
@@ -126,7 +125,7 @@ Ok(
                                 },
                                 Block {
                                     children: [
-                                        Expr(
+                                        WriteSsa(
                                             Ref(14 'alt_'),
                                             Bool(
                                                 true
@@ -139,7 +138,7 @@ Ok(
                                     ]
                                 }
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(7 'val_'),
                                 ReadBinding(
                                     Ref(12 'value_')
@@ -151,12 +150,11 @@ Ok(
                                 Ref(7 'val_')
                             ),
                             Expr(
-                                Ref(<dead>),
                                 Read(
                                     Ref(7 'val_')
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(18 'pred_'),
                                 Number(
                                     1.0
@@ -173,7 +171,7 @@ Ok(
                                 },
                                 Block {
                                     children: [
-                                        Expr(
+                                        WriteSsa(
                                             Ref(20 'cons_'),
                                             ReadBinding(
                                                 Ref(1 'x')
@@ -186,25 +184,25 @@ Ok(
                                     ]
                                 }
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(17 'ele_'),
                                 ReadBinding(
                                     Ref(19 'logi_')
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(22 'key_'),
                                 String(
                                     Atom('x' type=inline)
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(23 'value_'),
                                 ReadBinding(
                                     Ref(1 'x')
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(21 'ele_'),
                                 Object(
                                     [
@@ -216,19 +214,19 @@ Ok(
                                     ]
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(25 'left_'),
                                 ReadBinding(
                                     Ref(2 'f')
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(26 'right_'),
                                 Number(
                                     1.0
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(24 'ele_'),
                                 Binary(
                                     Add,
@@ -236,19 +234,19 @@ Ok(
                                     Ref(26 'right_')
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(29 'read_'),
                                 ReadGlobal(
                                     Atom('g' type=inline)
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(28 'one_'),
                                 Number(
                                     1.0
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(30 'write_'),
                                 Binary(
                                     Add,
@@ -260,13 +258,13 @@ Ok(
                                 Atom('g' type=inline),
                                 Ref(30 'write_')
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(27 'ele_'),
                                 Read(
                                     Ref(30 'write_')
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(16 'unary_'),
                                 Array(
                                     [
@@ -297,7 +295,7 @@ Ok(
                                     ]
                                 )
                             ),
-                            Expr(
+                            WriteSsa(
                                 Ref(15 'return_'),
                                 Unary(
                                     Plus,
@@ -315,20 +313,19 @@ Ok(
                 Ref(33 'f'),
                 Ref(32 'fn_')
             ),
-            Expr(
+            WriteSsa(
                 Ref(34 'fn_'),
                 ReadGlobal(
                     Atom('f' type=inline)
                 )
             ),
-            Expr(
+            WriteSsa(
                 Ref(35 'arg_'),
                 Number(
                     1.0
                 )
             ),
             Expr(
-                Ref(<dead>),
                 Call(
                     Call,
                     Ref(34 'fn_'),
@@ -341,7 +338,6 @@ Ok(
                 )
             ),
             Expr(
-                Ref(<dead>),
                 Bool(
                     true
                 )

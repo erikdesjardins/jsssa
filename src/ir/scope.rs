@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 
 use swc_atoms::JsWord;
 
-use super::{LiveRef, Mutable, Ref, SSA};
+use super::{Mutable, Ref, SSA};
 
 #[derive(Default, Clone)]
 pub struct Ast {
@@ -24,30 +24,30 @@ impl Ast {
 #[derive(Default, Clone)]
 pub struct Ir {
     seen_prefix_hashes: HashMap<u64, u64>,
-    mutable_names: HashMap<LiveRef<Mutable>, JsWord>,
-    ssa_names: HashMap<LiveRef<SSA>, JsWord>,
+    mutable_names: HashMap<Ref<Mutable>, JsWord>,
+    ssa_names: HashMap<Ref<SSA>, JsWord>,
 }
 
 impl Ir {
-    pub fn get_mutable(&self, ref_: &LiveRef<Mutable>) -> Option<&JsWord> {
-        self.mutable_names.get(ref_)
+    pub fn get_mutable(&self, ref_: &Ref<Mutable>) -> Option<JsWord> {
+        self.mutable_names.get(ref_).cloned()
     }
 
-    pub fn declare_mutable(&mut self, ref_: LiveRef<Mutable>) -> JsWord {
+    pub fn declare_mutable(&mut self, ref_: Ref<Mutable>) -> JsWord {
         let name = self.unique_name(ref_.name_hint());
         let old_name = self.mutable_names.insert(ref_, name.clone());
-        assert!(old_name.is_none());
+        assert!(old_name.is_none(), "mutable vars can only be declared once");
         name
     }
 
-    pub fn get_ssa(&self, ref_: &LiveRef<SSA>) -> Option<&JsWord> {
-        self.ssa_names.get(ref_)
+    pub fn get_ssa(&self, ref_: &Ref<SSA>) -> Option<JsWord> {
+        self.ssa_names.get(ref_).cloned()
     }
 
-    pub fn declare_ssa(&mut self, ref_: LiveRef<SSA>) -> JsWord {
+    pub fn declare_ssa(&mut self, ref_: Ref<SSA>) -> JsWord {
         let name = self.unique_name(ref_.name_hint());
         let old_name = self.ssa_names.insert(ref_, name.clone());
-        assert!(old_name.is_none());
+        assert!(old_name.is_none(), "SSA vars can only be declared once");
         name
     }
 

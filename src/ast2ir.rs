@@ -29,7 +29,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
     match stmt {
         ast::Stmt::Expr(expr) => {
             let (mut stmts, last_expr) = convert_expression(*expr, scope);
-            stmts.push(ir::Stmt::Expr(ir::Ref::Dead, last_expr));
+            stmts.push(ir::Stmt::Expr(last_expr));
             stmts
         }
         ast::Stmt::Block(ast::BlockStmt { stmts, span: _ }) => {
@@ -43,12 +43,12 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             match arg {
                 Some(arg) => {
                     let (mut stmts, return_value) = convert_expression(*arg, scope);
-                    stmts.push(ir::Stmt::Expr(ref_.clone(), return_value));
+                    stmts.push(ir::Stmt::WriteSsa(ref_.clone(), return_value));
                     stmts.push(ir::Stmt::Return(ref_));
                     stmts
                 }
                 None => vec![
-                    ir::Stmt::Expr(ref_.clone(), ir::Expr::Undefined),
+                    ir::Stmt::WriteSsa(ref_.clone(), ir::Expr::Undefined),
                     ir::Stmt::Return(ref_),
                 ],
             }
@@ -70,7 +70,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
         }) => {
             let ref_ = ir::Ref::new("if_");
             let (mut stmts, test_value) = convert_expression(*test, scope);
-            stmts.push(ir::Stmt::Expr(ref_.clone(), test_value));
+            stmts.push(ir::Stmt::WriteSsa(ref_.clone(), test_value));
             stmts.push(ir::Stmt::IfElse(
                 ref_,
                 {
@@ -95,7 +95,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
         ast::Stmt::Throw(ast::ThrowStmt { arg, span: _ }) => {
             let ref_ = ir::Ref::new("throw_");
             let (mut stmts, throw_value) = convert_expression(*arg, scope);
-            stmts.push(ir::Stmt::Expr(ref_.clone(), throw_value));
+            stmts.push(ir::Stmt::WriteSsa(ref_.clone(), throw_value));
             stmts.push(ir::Stmt::Throw(ref_));
             stmts
         }
@@ -149,7 +149,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             };
             let cond_ref = ir::Ref::new("while_");
             let (mut test_stmts, test_value) = convert_expression(*test, scope);
-            test_stmts.push(ir::Stmt::Expr(cond_ref.clone(), test_value));
+            test_stmts.push(ir::Stmt::WriteSsa(cond_ref.clone(), test_value));
             test_stmts.push(ir::Stmt::IfElse(
                 cond_ref,
                 P(ir::Block::empty()),
@@ -174,7 +174,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             let mut stmts = match init {
                 Some(ast::VarDeclOrExpr::Expr(init_expr)) => {
                     let (mut init_stmts, init_value) = convert_expression(*init_expr, scope);
-                    init_stmts.push(ir::Stmt::Expr(ir::Ref::Dead, init_value));
+                    init_stmts.push(ir::Stmt::Expr(init_value));
                     init_stmts
                 }
                 Some(ast::VarDeclOrExpr::VarDecl(var_decl)) => {
@@ -187,7 +187,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                     Some(test) => {
                         let cond_ref = ir::Ref::new("for_");
                         let (mut test_stmts, test_value) = convert_expression(*test, scope);
-                        test_stmts.push(ir::Stmt::Expr(cond_ref.clone(), test_value));
+                        test_stmts.push(ir::Stmt::WriteSsa(cond_ref.clone(), test_value));
                         test_stmts.push(ir::Stmt::IfElse(
                             cond_ref,
                             P(ir::Block::empty()),
@@ -201,7 +201,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 if let Some(update) = update {
                     let (update_stmts, update_value) = convert_expression(*update, scope);
                     stmts.extend(update_stmts);
-                    stmts.push(ir::Stmt::Expr(ir::Ref::Dead, update_value));
+                    stmts.push(ir::Stmt::Expr(update_value));
                 }
                 stmts
             }))));
@@ -229,7 +229,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             };
             let right_ref = ir::Ref::new("right_");
             let (mut stmts, right_value) = convert_expression(*right, scope);
-            stmts.push(ir::Stmt::Expr(right_ref.clone(), right_value));
+            stmts.push(ir::Stmt::WriteSsa(right_ref.clone(), right_value));
             let mut body_scope = scope.clone();
             let ele_binding = if_chain! {
                 // todo we're definitely gonna need to use `kind`
@@ -290,7 +290,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 // since it can be brought into scope
                 block.children.insert(
                     0,
-                    ir::Stmt::Expr(desugar_ref.clone(), ir::Expr::CurrentFunction),
+                    ir::Stmt::WriteSsa(desugar_ref.clone(), ir::Expr::CurrentFunction),
                 );
                 block
                     .children
@@ -298,7 +298,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 let fn_ref = ir::Ref::new("fn_");
                 let fn_binding = ir::Ref::new(sym.clone());
                 vec![
-                    ir::Stmt::Expr(
+                    ir::Stmt::WriteSsa(
                         fn_ref.clone(),
                         ir::Expr::Function(
                             ir::FnKind::Func {
@@ -376,7 +376,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 ast::BlockStmtOrExpr::Expr(expr) => {
                     let ref_ = ir::Ref::new("arrow_");
                     let (mut stmts, return_value) = convert_expression(*expr, &fn_scope);
-                    stmts.push(ir::Stmt::Expr(ref_.clone(), return_value));
+                    stmts.push(ir::Stmt::WriteSsa(ref_.clone(), return_value));
                     stmts.push(ir::Stmt::Return(ref_));
                     ir::Block::with_children(stmts)
                 }
@@ -395,7 +395,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 Some(argument) => convert_expression(*argument, scope),
                 None => (vec![], ir::Expr::Undefined),
             };
-            stmts.push(ir::Stmt::Expr(ref_.clone(), yield_value));
+            stmts.push(ir::Stmt::WriteSsa(ref_.clone(), yield_value));
             let kind = if delegate {
                 ir::YieldKind::Delegate
             } else {
@@ -406,7 +406,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
         ast::Expr::Await(ast::AwaitExpr { arg, span: _ }) => {
             let ref_ = ir::Ref::new("await_");
             let (mut stmts, await_value) = convert_expression(*arg, scope);
-            stmts.push(ir::Stmt::Expr(ref_.clone(), await_value));
+            stmts.push(ir::Stmt::WriteSsa(ref_.clone(), await_value));
             (stmts, ir::Expr::Await(ref_))
         }
         ast::Expr::Array(ast::ArrayLit { elems, span: _ }) => {
@@ -422,7 +422,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         let ref_ = ir::Ref::new("ele_");
                         let (stmts, ele_value) = convert_expression(*expr, scope);
                         statements.extend(stmts);
-                        statements.push(ir::Stmt::Expr(ref_.clone(), ele_value));
+                        statements.push(ir::Stmt::WriteSsa(ref_.clone(), ele_value));
                         (kind, ref_)
                     })
                 })
@@ -459,11 +459,11 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                             let ref_key = ir::Ref::new("key_");
                             let (stmts, key_value) = convert_expression(key, scope);
                             statements.extend(stmts);
-                            statements.push(ir::Stmt::Expr(ref_key.clone(), key_value));
+                            statements.push(ir::Stmt::WriteSsa(ref_key.clone(), key_value));
                             let ref_value = ir::Ref::new("value_");
                             let (stmts, value_value) = convert_expression(value, scope);
                             statements.extend(stmts);
-                            statements.push(ir::Stmt::Expr(ref_value.clone(), value_value));
+                            statements.push(ir::Stmt::WriteSsa(ref_value.clone(), value_value));
                             (ir::PropKind::Simple, ref_key, ref_value)
                         }
                         prop @ ast::Prop::Getter(_)
@@ -523,7 +523,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                             let ref_key = ir::Ref::new("key_");
                             let (stmts, key_value) = convert_expression(key, scope);
                             statements.extend(stmts);
-                            statements.push(ir::Stmt::Expr(ref_key.clone(), key_value));
+                            statements.push(ir::Stmt::WriteSsa(ref_key.clone(), key_value));
 
                             let mut fn_scope = scope.clone();
                             let param_refs = params
@@ -545,7 +545,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                 P(body),
                             );
                             let ref_value = ir::Ref::new("value_");
-                            statements.push(ir::Stmt::Expr(ref_value.clone(), fn_value));
+                            statements.push(ir::Stmt::WriteSsa(ref_value.clone(), fn_value));
 
                             (kind, ref_key, ref_value)
                         }
@@ -600,7 +600,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 let desugar_ref = ir::Ref::new("curfn_");
                 block.children.insert(
                     0,
-                    ir::Stmt::Expr(desugar_ref.clone(), ir::Expr::CurrentFunction),
+                    ir::Stmt::WriteSsa(desugar_ref.clone(), ir::Expr::CurrentFunction),
                 );
                 block
                     .children
@@ -638,11 +638,11 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         } = expr;
                         let obj_ref = ir::Ref::new("obj_");
                         let (mut stmts, obj_value) = convert_expr_or_super(obj, scope);
-                        stmts.push(ir::Stmt::Expr(obj_ref.clone(), obj_value));
+                        stmts.push(ir::Stmt::WriteSsa(obj_ref.clone(), obj_value));
                         let prop_ref = ir::Ref::new("prop_");
                         let (prop_stmts, prop_value) = convert_expression(*prop, scope);
                         stmts.extend(prop_stmts);
-                        stmts.push(ir::Stmt::Expr(prop_ref.clone(), prop_value));
+                        stmts.push(ir::Stmt::WriteSsa(prop_ref.clone(), prop_value));
                         return (stmts, ir::Expr::Delete(obj_ref, prop_ref));
                     }
                     _ => unimplemented!("deletion of non-MemberExpression not supported"),
@@ -650,7 +650,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             };
             let ref_ = ir::Ref::new("unary_");
             let (mut stmts, expr_value) = convert_expression(*arg, scope);
-            stmts.push(ir::Stmt::Expr(ref_.clone(), expr_value));
+            stmts.push(ir::Stmt::WriteSsa(ref_.clone(), expr_value));
             (stmts, ir::Expr::Unary(op, ref_))
         }
         ast::Expr::Update(ast::UpdateExpr {
@@ -685,9 +685,9 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 ast::UpdateOp::MinusMinus => ir::BinaryOp::Sub,
             };
             let stmts = vec![
-                ir::Stmt::Expr(read_ref.clone(), read),
-                ir::Stmt::Expr(one_ref.clone(), ir::Expr::Number(1.0)),
-                ir::Stmt::Expr(
+                ir::Stmt::WriteSsa(read_ref.clone(), read),
+                ir::Stmt::WriteSsa(one_ref.clone(), ir::Expr::Number(1.0)),
+                ir::Stmt::WriteSsa(
                     write_ref.clone(),
                     ir::Expr::Binary(op, read_ref.clone(), one_ref),
                 ),
@@ -708,12 +708,12 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     let left_ref = ir::Ref::new("pred_");
                     let value_ref = ir::Ref::new("logi_");
                     let (mut stmts, left_value) = convert_expression(*left, scope);
-                    stmts.push(ir::Stmt::Expr(left_ref.clone(), left_value));
+                    stmts.push(ir::Stmt::WriteSsa(left_ref.clone(), left_value));
                     stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), left_ref.clone()));
                     let (consequent, alternate) = {
                         let right_ref = ir::Ref::new("cons_");
                         let (mut right_stmts, right_value) = convert_expression(*right, scope);
-                        right_stmts.push(ir::Stmt::Expr(right_ref.clone(), right_value));
+                        right_stmts.push(ir::Stmt::WriteSsa(right_ref.clone(), right_value));
                         right_stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), right_ref));
                         let full = ir::Block::with_children(right_stmts);
                         let empty = ir::Block::empty();
@@ -754,11 +754,11 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     };
                     let left_ref = ir::Ref::new("left_");
                     let (mut stmts, left_value) = convert_expression(*left, scope);
-                    stmts.push(ir::Stmt::Expr(left_ref.clone(), left_value));
+                    stmts.push(ir::Stmt::WriteSsa(left_ref.clone(), left_value));
                     let right_ref = ir::Ref::new("right_");
                     let (right_stmts, right_value) = convert_expression(*right, scope);
                     stmts.extend(right_stmts);
-                    stmts.push(ir::Stmt::Expr(right_ref.clone(), right_value));
+                    stmts.push(ir::Stmt::WriteSsa(right_ref.clone(), right_value));
                     (stmts, ir::Expr::Binary(op, left_ref, right_ref))
                 }
             }
@@ -800,10 +800,10 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                             let obj_ref = ir::Ref::new("obj_");
                             let prop_ref = ir::Ref::new("prop_");
                             let (mut stmts, obj_value) = convert_expr_or_super(obj, scope);
-                            stmts.push(ir::Stmt::Expr(obj_ref.clone(), obj_value));
+                            stmts.push(ir::Stmt::WriteSsa(obj_ref.clone(), obj_value));
                             let (prop_stmts, prop_value) = convert_expression(*prop, scope);
                             stmts.extend(prop_stmts);
-                            stmts.push(ir::Stmt::Expr(prop_ref.clone(), prop_value));
+                            stmts.push(ir::Stmt::WriteSsa(prop_ref.clone(), prop_value));
                             (
                                 stmts,
                                 ir::Expr::ReadMember(obj_ref.clone(), prop_ref.clone()),
@@ -826,7 +826,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 ast::AssignOp::Assign => {
                     let (right_stmts, right_val) = convert_expression(*right, scope);
                     stmts.extend(right_stmts);
-                    stmts.push(ir::Stmt::Expr(value_ref.clone(), right_val));
+                    stmts.push(ir::Stmt::WriteSsa(value_ref.clone(), right_val));
                     stmts.push(write_stmt);
                 }
                 op @ ast::AssignOp::AddAssign
@@ -857,12 +857,12 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         ast::AssignOp::ExpAssign => ir::BinaryOp::Exp,
                     };
                     let left_ref = ir::Ref::new("left_");
-                    stmts.push(ir::Stmt::Expr(left_ref.clone(), read_expr));
+                    stmts.push(ir::Stmt::WriteSsa(left_ref.clone(), read_expr));
                     let right_ref = ir::Ref::new("right_");
                     let (right_stmts, right_val) = convert_expression(*right, scope);
                     stmts.extend(right_stmts);
-                    stmts.push(ir::Stmt::Expr(right_ref.clone(), right_val));
-                    stmts.push(ir::Stmt::Expr(
+                    stmts.push(ir::Stmt::WriteSsa(right_ref.clone(), right_val));
+                    stmts.push(ir::Stmt::WriteSsa(
                         value_ref.clone(),
                         ir::Expr::Binary(op, left_ref, right_ref),
                     ));
@@ -880,11 +880,11 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
         }) => {
             let obj_ref = ir::Ref::new("obj_");
             let (mut stmts, obj_value) = convert_expr_or_super(obj, scope);
-            stmts.push(ir::Stmt::Expr(obj_ref.clone(), obj_value));
+            stmts.push(ir::Stmt::WriteSsa(obj_ref.clone(), obj_value));
             let prop_ref = ir::Ref::new("prop_");
             let (prop_stmts, prop_value) = convert_expression(*prop, scope);
             stmts.extend(prop_stmts);
-            stmts.push(ir::Stmt::Expr(prop_ref.clone(), prop_value));
+            stmts.push(ir::Stmt::WriteSsa(prop_ref.clone(), prop_value));
             (stmts, ir::Expr::ReadMember(obj_ref, prop_ref))
         }
         ast::Expr::Cond(ast::CondExpr {
@@ -897,22 +897,22 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             let undef_ref = ir::Ref::new("undef_");
             let value_ref = ir::Ref::new("value_");
             let (mut stmts, test_value) = convert_expression(*test, scope);
-            stmts.push(ir::Stmt::Expr(test_ref.clone(), test_value));
-            stmts.push(ir::Stmt::Expr(undef_ref.clone(), ir::Expr::Undefined));
+            stmts.push(ir::Stmt::WriteSsa(test_ref.clone(), test_value));
+            stmts.push(ir::Stmt::WriteSsa(undef_ref.clone(), ir::Expr::Undefined));
             stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), undef_ref));
             stmts.push(ir::Stmt::IfElse(
                 test_ref,
                 {
                     let alt_ref = ir::Ref::new("cons_");
                     let (mut alt_stmts, alt_value) = convert_expression(*alt, scope);
-                    alt_stmts.push(ir::Stmt::Expr(alt_ref.clone(), alt_value));
+                    alt_stmts.push(ir::Stmt::WriteSsa(alt_ref.clone(), alt_value));
                     alt_stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), alt_ref));
                     P(ir::Block::with_children(alt_stmts))
                 },
                 {
                     let cons_ref = ir::Ref::new("alt_");
                     let (mut cons_stmts, cons_value) = convert_expression(*cons, scope);
-                    cons_stmts.push(ir::Stmt::Expr(cons_ref.clone(), cons_value));
+                    cons_stmts.push(ir::Stmt::WriteSsa(cons_ref.clone(), cons_value));
                     cons_stmts.push(ir::Stmt::WriteBinding(value_ref.clone(), cons_ref));
                     P(ir::Block::with_children(cons_stmts))
                 },
@@ -941,7 +941,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             };
             let callee_ref = ir::Ref::new("fn_");
             let (mut statements, callee_value) = convert_expr_or_super(callee, scope);
-            statements.push(ir::Stmt::Expr(callee_ref.clone(), callee_value));
+            statements.push(ir::Stmt::WriteSsa(callee_ref.clone(), callee_value));
             let arguments = arguments
                 .into_iter()
                 .map(|ast::ExprOrSpread { spread, expr }| {
@@ -952,7 +952,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     let arg_ref = ir::Ref::new("arg_");
                     let (stmts, arg_value) = convert_expression(*expr, scope);
                     statements.extend(stmts);
-                    statements.push(ir::Stmt::Expr(arg_ref.clone(), arg_value));
+                    statements.push(ir::Stmt::WriteSsa(arg_ref.clone(), arg_value));
                     (kind, arg_ref)
                 })
                 .collect();
@@ -969,7 +969,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             let mut statements = vec![];
             for (stmts, value) in expressions.into_iter() {
                 statements.extend(stmts);
-                statements.push(ir::Stmt::Expr(ir::Ref::Dead, value));
+                statements.push(ir::Stmt::Expr(value));
             }
             let (last_stmts, last_value) = last_expression;
             statements.extend(last_stmts);
@@ -1015,10 +1015,10 @@ fn convert_variable_declaration(var_decl: ast::VarDecl, scope: &mut scope::Ast) 
             Some(init) => {
                 let (init_stmts, init_value) = convert_expression(*init, scope);
                 stmts.extend(init_stmts);
-                stmts.push(ir::Stmt::Expr(init_ref.clone(), init_value));
+                stmts.push(ir::Stmt::WriteSsa(init_ref.clone(), init_value));
             }
             None => {
-                stmts.push(ir::Stmt::Expr(init_ref.clone(), ir::Expr::Undefined));
+                stmts.push(ir::Stmt::WriteSsa(init_ref.clone(), ir::Expr::Undefined));
             }
         }
         let var_ref = convert_pattern(name, scope);

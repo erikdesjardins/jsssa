@@ -1,6 +1,6 @@
 use swc_atoms::JsWord;
 
-pub use self::ref_::{LiveRef, Mutable, Ref, RefType, SSA};
+pub use self::ref_::{Mutable, Ref, RefType, SSA};
 
 mod ref_;
 pub mod scope;
@@ -22,7 +22,8 @@ impl Block {
 
 #[derive(Debug)]
 pub enum Stmt {
-    Expr(Ref<SSA>, Expr),
+    Expr(Expr),
+    WriteSsa(Ref<SSA>, Expr),
     WriteBinding(Ref<Mutable>, Ref<SSA>),
     WriteGlobal(JsWord, Ref<SSA>),
     WriteMember(Ref<SSA>, Ref<SSA>, Ref<SSA>),
