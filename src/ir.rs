@@ -131,7 +131,7 @@ pub enum Expr {
     Function {
         kind: FnKind,
         name: Option<JsWord>,
-        args: Vec<Ref<Mutable>>,
+        params: Vec<Ref<Mutable>>,
         body: Box<Block>,
     },
     CurrentFunction,

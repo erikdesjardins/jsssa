@@ -1,5 +1,5 @@
 ---
-created: "2019-03-15T22:14:25.898351400Z"
+created: "2019-03-15T23:32:23.050137500Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
 expression: "ast.map(ast2ir::convert)"
@@ -17,7 +17,7 @@ Ok(
                     name: Some(
                         Atom('f' type=inline)
                     ),
-                    args: [
+                    params: [
                         Ref(1 'x')
                     ],
                     body: Block {

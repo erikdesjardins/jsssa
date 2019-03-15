@@ -348,7 +348,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                                 is_generator,
                             },
                             name: Some(sym),
-                            args: refs,
+                            params: refs,
                             body: P(block),
                         },
                     },
@@ -441,7 +441,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             let func = ir::Expr::Function {
                 kind: ir::FnKind::Arrow { is_async },
                 name: None,
-                args: refs,
+                params: refs,
                 body: P(body),
             };
             (vec![], func)
@@ -620,7 +620,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                     is_generator,
                                 },
                                 name: None,
-                                args: param_refs,
+                                params: param_refs,
                                 body: P(body),
                             };
                             let ref_value = ir::Ref::new("value_");
@@ -702,7 +702,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     is_generator,
                 },
                 name: sym,
-                args: refs,
+                params: refs,
                 body: P(block),
             };
             (vec![], func)
