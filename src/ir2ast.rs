@@ -188,7 +188,18 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 }),
             }
         }
-        ir::Stmt::IfElse { cond, cons, alt } => unimplemented!(),
+        ir::Stmt::IfElse { cond, cons, alt } => ast::Stmt::If(ast::IfStmt {
+            span: span(),
+            test: P(read_ssa_to_expr(cond, scope)),
+            cons: P(ast::Stmt::Block(ast::BlockStmt {
+                span: span(),
+                stmts: convert_block(*cons, scope),
+            })),
+            alt: Some(P(ast::Stmt::Block(ast::BlockStmt {
+                span: span(),
+                stmts: convert_block(*alt, scope),
+            }))),
+        }),
         ir::Stmt::Try {
             body,
             catch,
