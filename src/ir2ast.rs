@@ -89,11 +89,29 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
         }
         ir::Stmt::WriteGlobal { target, val } => unimplemented!(),
         ir::Stmt::WriteMember { obj, prop, val } => unimplemented!(),
-        ir::Stmt::Return { val } => unimplemented!(),
-        ir::Stmt::Throw { val } => unimplemented!(),
-        ir::Stmt::Break => unimplemented!(),
-        ir::Stmt::Continue => unimplemented!(),
-        ir::Stmt::Debugger => unimplemented!(),
+        ir::Stmt::Return { val } => {
+            let expr = read_ssa_to_expr(val, scope);
+            ast::Stmt::Return(ast::ReturnStmt {
+                span: span(),
+                arg: Some(P(expr)),
+            })
+        }
+        ir::Stmt::Throw { val } => {
+            let expr = read_ssa_to_expr(val, scope);
+            ast::Stmt::Throw(ast::ThrowStmt {
+                span: span(),
+                arg: P(expr),
+            })
+        }
+        ir::Stmt::Break => ast::Stmt::Break(ast::BreakStmt {
+            span: span(),
+            label: None,
+        }),
+        ir::Stmt::Continue => ast::Stmt::Continue(ast::ContinueStmt {
+            span: span(),
+            label: None,
+        }),
+        ir::Stmt::Debugger => ast::Stmt::Debugger(ast::DebuggerStmt { span: span() }),
         ir::Stmt::Block { body } => unimplemented!(),
         ir::Stmt::Loop { body } => unimplemented!(),
         ir::Stmt::For {
