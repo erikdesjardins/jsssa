@@ -278,7 +278,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 }
             };
             let body_stmts = convert_statement(*body, &mut body_scope);
-            stmts.push(ir::Stmt::For {
+            stmts.push(ir::Stmt::ForEach {
                 kind,
                 var: ele_binding,
                 init: right_ref,

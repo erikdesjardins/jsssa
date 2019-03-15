@@ -144,7 +144,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 stmts: convert_block(*body, scope),
             })),
         }),
-        ir::Stmt::For {
+        ir::Stmt::ForEach {
             kind,
             var,
             init,

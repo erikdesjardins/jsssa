@@ -54,7 +54,7 @@ pub enum Stmt {
     Loop {
         body: Box<Block>,
     },
-    For {
+    ForEach {
         kind: ForKind,
         var: Ref<Mutable>,
         init: Ref<SSA>,
