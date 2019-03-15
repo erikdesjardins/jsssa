@@ -52,57 +52,48 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 ast::Stmt::Expr(P(expr))
             }
         }
-        ir::Stmt::WriteBinding { target, val } => {
-            let expr = read_ssa_to_expr(val, scope);
-            match scope.get_mutable(&target) {
-                Some(existing_name) => ast::Stmt::Expr(P(ast::Expr::Assign(ast::AssignExpr {
+        ir::Stmt::WriteBinding { target, val } => match scope.get_mutable(&target) {
+            Some(existing_name) => ast::Stmt::Expr(P(ast::Expr::Assign(ast::AssignExpr {
+                span: span(),
+                op: ast::AssignOp::Assign,
+                left: ast::PatOrExpr::Pat(P(ast::Pat::Ident(ast::Ident {
                     span: span(),
-                    op: ast::AssignOp::Assign,
-                    left: ast::PatOrExpr::Pat(P(ast::Pat::Ident(ast::Ident {
-                        span: span(),
-                        sym: existing_name,
-                        type_ann: None,
-                        optional: false,
-                    }))),
-                    right: P(expr),
+                    sym: existing_name,
+                    type_ann: None,
+                    optional: false,
                 }))),
-                None => {
-                    let name = scope.declare_mutable(target);
-                    ast::Stmt::Decl(ast::Decl::Var(ast::VarDecl {
+                right: P(read_ssa_to_expr(val, scope)),
+            }))),
+            None => {
+                let name = scope.declare_mutable(target);
+                ast::Stmt::Decl(ast::Decl::Var(ast::VarDecl {
+                    span: span(),
+                    kind: ast::VarDeclKind::Var,
+                    decls: vec![ast::VarDeclarator {
                         span: span(),
-                        kind: ast::VarDeclKind::Var,
-                        decls: vec![ast::VarDeclarator {
+                        name: ast::Pat::Ident(ast::Ident {
                             span: span(),
-                            name: ast::Pat::Ident(ast::Ident {
-                                span: span(),
-                                sym: name,
-                                type_ann: None,
-                                optional: false,
-                            }),
-                            init: Some(P(expr)),
-                            definite: false,
-                        }],
-                        declare: false,
-                    }))
-                }
+                            sym: name,
+                            type_ann: None,
+                            optional: false,
+                        }),
+                        init: Some(P(read_ssa_to_expr(val, scope))),
+                        definite: false,
+                    }],
+                    declare: false,
+                }))
             }
-        }
+        },
         ir::Stmt::WriteGlobal { target, val } => unimplemented!(),
         ir::Stmt::WriteMember { obj, prop, val } => unimplemented!(),
-        ir::Stmt::Return { val } => {
-            let expr = read_ssa_to_expr(val, scope);
-            ast::Stmt::Return(ast::ReturnStmt {
-                span: span(),
-                arg: Some(P(expr)),
-            })
-        }
-        ir::Stmt::Throw { val } => {
-            let expr = read_ssa_to_expr(val, scope);
-            ast::Stmt::Throw(ast::ThrowStmt {
-                span: span(),
-                arg: P(expr),
-            })
-        }
+        ir::Stmt::Return { val } => ast::Stmt::Return(ast::ReturnStmt {
+            span: span(),
+            arg: Some(P(read_ssa_to_expr(val, scope))),
+        }),
+        ir::Stmt::Throw { val } => ast::Stmt::Throw(ast::ThrowStmt {
+            span: span(),
+            arg: P(read_ssa_to_expr(val, scope)),
+        }),
         ir::Stmt::Break => ast::Stmt::Break(ast::BreakStmt {
             span: span(),
             label: None,
