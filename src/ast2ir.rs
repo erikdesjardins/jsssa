@@ -30,7 +30,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
         ast::Stmt::Expr(expr) => {
             let (mut stmts, last_expr) = convert_expression(*expr, scope);
             stmts.push(ir::Stmt::Expr {
-                target: ir::Ref::new("dead_"),
+                target: ir::Ref::dead(),
                 expr: last_expr,
             });
             stmts
@@ -194,7 +194,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 Some(ast::VarDeclOrExpr::Expr(init_expr)) => {
                     let (mut init_stmts, init_value) = convert_expression(*init_expr, scope);
                     init_stmts.push(ir::Stmt::Expr {
-                        target: ir::Ref::new("dead_"),
+                        target: ir::Ref::dead(),
                         expr: init_value,
                     });
                     init_stmts
@@ -228,7 +228,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                         let (update_stmts, update_value) = convert_expression(*update, scope);
                         stmts.extend(update_stmts);
                         stmts.push(ir::Stmt::Expr {
-                            target: ir::Ref::new("dead_"),
+                            target: ir::Ref::dead(),
                             expr: update_value,
                         });
                     }
@@ -1205,7 +1205,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             for (stmts, value) in expressions.into_iter() {
                 statements.extend(stmts);
                 statements.push(ir::Stmt::Expr {
-                    target: ir::Ref::new("dead_"),
+                    target: ir::Ref::dead(),
                     expr: value,
                 });
             }
