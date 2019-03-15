@@ -1,4 +1,5 @@
 use std::fmt::{self, Debug};
+use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -23,7 +24,7 @@ impl<T: RefType> Clone for Ref<T> {
     fn clone(&self) -> Self {
         match self {
             Ref::Dead => Ref::Dead,
-            Ref::Live(live_ref) => Ref::Live(LiveRef(live_ref.0.clone())),
+            Ref::Live(live_ref) => Ref::Live(live_ref.clone()),
         }
     }
 }
@@ -46,10 +47,18 @@ impl<T: RefType> Ref<T> {
 pub struct LiveRef<T: RefType>(Rc<LiveRefInner<T>>);
 
 struct LiveRefInner<T: RefType> {
-    id: usize,
+    id: u64,
     name_hint: JsWord,
     _t: PhantomData<T>,
 }
+
+impl<T: RefType> Clone for LiveRef<T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
+impl<T: RefType> Eq for LiveRef<T> {}
 
 impl<T: RefType> PartialEq for LiveRef<T> {
     fn eq(&self, other: &Self) -> bool {
@@ -58,12 +67,18 @@ impl<T: RefType> PartialEq for LiveRef<T> {
     }
 }
 
+impl<T: RefType> Hash for LiveRef<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write_u64(self.0.id)
+    }
+}
+
 impl<T: RefType> LiveRef<T> {
     fn new(name_hint: JsWord) -> Self {
         static ID_COUNTER: AtomicUsize = AtomicUsize::new(1);
 
         LiveRef(Rc::new(LiveRefInner {
-            id: ID_COUNTER.fetch_add(1, Ordering::Relaxed),
+            id: ID_COUNTER.fetch_add(1, Ordering::Relaxed) as u64,
             name_hint,
             _t: PhantomData,
         }))
