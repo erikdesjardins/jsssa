@@ -204,7 +204,34 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
             body,
             catch,
             finally,
-        } => unimplemented!(),
+        } => ast::Stmt::Try(ast::TryStmt {
+            span: span(),
+            block: ast::BlockStmt {
+                span: span(),
+                stmts: convert_block(*body, scope),
+            },
+            handler: catch.map(|(param, body)| {
+                let mut body_scope = scope.clone();
+                let param_name = body_scope.declare_mutable(param);
+                ast::CatchClause {
+                    span: span(),
+                    param: Some(ast::Pat::Ident(ast::Ident {
+                        span: span(),
+                        sym: param_name,
+                        type_ann: None,
+                        optional: false,
+                    })),
+                    body: ast::BlockStmt {
+                        span: span(),
+                        stmts: convert_block(*body, &body_scope),
+                    },
+                }
+            }),
+            finalizer: finally.map(|body| ast::BlockStmt {
+                span: span(),
+                stmts: convert_block(*body, scope),
+            }),
+        }),
     }
 }
 
