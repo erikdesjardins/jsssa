@@ -1,5 +1,5 @@
 ---
-created: "2019-03-15T21:10:54.081049600Z"
+created: "2019-03-15T22:14:25.898351400Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
 expression: "ast.map(ast2ir::convert)"
@@ -7,269 +7,269 @@ expression: "ast.map(ast2ir::convert)"
 Ok(
     Block {
         children: [
-            Expr(
-                Ref(34 'fn_'),
-                Function(
-                    Func {
+            Expr {
+                target: Ref(34 'fn_'),
+                expr: Function {
+                    kind: Func {
                         is_async: false,
                         is_generator: false
                     },
-                    Some(
+                    name: Some(
                         Atom('f' type=inline)
                     ),
-                    [
+                    args: [
                         Ref(1 'x')
                     ],
-                    Block {
+                    body: Block {
                         children: [
-                            Expr(
-                                Ref(33 'curfn_'),
-                                CurrentFunction
-                            ),
-                            WriteBinding(
-                                Ref(2 'f'),
-                                Ref(33 'curfn_')
-                            ),
-                            Loop(
-                                Block {
+                            Expr {
+                                target: Ref(33 'curfn_'),
+                                expr: CurrentFunction
+                            },
+                            WriteBinding {
+                                target: Ref(2 'f'),
+                                val: Ref(33 'curfn_')
+                            },
+                            Loop {
+                                body: Block {
                                     children: [
-                                        Expr(
-                                            Ref(3 'while_'),
-                                            Bool(
-                                                true
-                                            )
-                                        ),
-                                        IfElse(
-                                            Ref(3 'while_'),
-                                            Block {
+                                        Expr {
+                                            target: Ref(3 'while_'),
+                                            expr: Bool {
+                                                value: true
+                                            }
+                                        },
+                                        IfElse {
+                                            cond: Ref(3 'while_'),
+                                            cons: Block {
                                                 children: []
                                             },
-                                            Block {
+                                            alt: Block {
                                                 children: [
                                                     Break
                                                 ]
                                             }
-                                        )
+                                        }
                                     ]
                                 }
-                            ),
-                            Expr(
-                                Ref(5 'obj_'),
-                                ReadGlobal(
-                                    Atom('y' type=inline)
-                                )
-                            ),
-                            Expr(
-                                Ref(6 'prop_'),
-                                ReadGlobal(
-                                    Atom('bar' type=inline)
-                                )
-                            ),
-                            Expr(
-                                Ref(4 'val_'),
-                                ReadMember(
-                                    Ref(5 'obj_'),
-                                    Ref(6 'prop_')
-                                )
-                            ),
-                            WriteBinding(
-                                Ref(1 'x'),
-                                Ref(4 'val_')
-                            ),
-                            Expr(
-                                Ref(<dead>),
-                                Read(
-                                    Ref(4 'val_')
-                                )
-                            ),
-                            Expr(
-                                Ref(9 'obj_'),
-                                ReadGlobal(
-                                    Atom('z' type=inline)
-                                )
-                            ),
-                            Expr(
-                                Ref(10 'prop_'),
-                                ReadGlobal(
-                                    Atom('foo' type=inline)
-                                )
-                            ),
-                            Expr(
-                                Ref(11 'test_'),
-                                ReadBinding(
-                                    Ref(1 'x')
-                                )
-                            ),
-                            Expr(
-                                Ref(12 'undef_'),
-                                Undefined
-                            ),
-                            WriteBinding(
-                                Ref(13 'value_'),
-                                Ref(12 'undef_')
-                            ),
-                            IfElse(
-                                Ref(11 'test_'),
-                                Block {
+                            },
+                            Expr {
+                                target: Ref(5 'obj_'),
+                                expr: ReadGlobal {
+                                    source: Atom('y' type=inline)
+                                }
+                            },
+                            Expr {
+                                target: Ref(6 'prop_'),
+                                expr: ReadGlobal {
+                                    source: Atom('bar' type=inline)
+                                }
+                            },
+                            Expr {
+                                target: Ref(4 'val_'),
+                                expr: ReadMember {
+                                    obj: Ref(5 'obj_'),
+                                    prop: Ref(6 'prop_')
+                                }
+                            },
+                            WriteBinding {
+                                target: Ref(1 'x'),
+                                val: Ref(4 'val_')
+                            },
+                            Expr {
+                                target: Ref(<dead>),
+                                expr: Read {
+                                    source: Ref(4 'val_')
+                                }
+                            },
+                            Expr {
+                                target: Ref(9 'obj_'),
+                                expr: ReadGlobal {
+                                    source: Atom('z' type=inline)
+                                }
+                            },
+                            Expr {
+                                target: Ref(10 'prop_'),
+                                expr: ReadGlobal {
+                                    source: Atom('foo' type=inline)
+                                }
+                            },
+                            Expr {
+                                target: Ref(11 'test_'),
+                                expr: ReadBinding {
+                                    source: Ref(1 'x')
+                                }
+                            },
+                            Expr {
+                                target: Ref(12 'undef_'),
+                                expr: Undefined
+                            },
+                            WriteBinding {
+                                target: Ref(13 'value_'),
+                                val: Ref(12 'undef_')
+                            },
+                            IfElse {
+                                cond: Ref(11 'test_'),
+                                cons: Block {
                                     children: [
-                                        Expr(
-                                            Ref(14 'cons_'),
-                                            String(
-                                                Atom('hi' type=inline)
-                                            )
-                                        ),
-                                        WriteBinding(
-                                            Ref(13 'value_'),
-                                            Ref(14 'cons_')
-                                        )
+                                        Expr {
+                                            target: Ref(14 'cons_'),
+                                            expr: String {
+                                                value: Atom('hi' type=inline)
+                                            }
+                                        },
+                                        WriteBinding {
+                                            target: Ref(13 'value_'),
+                                            val: Ref(14 'cons_')
+                                        }
                                     ]
                                 },
-                                Block {
+                                alt: Block {
                                     children: [
-                                        Expr(
-                                            Ref(15 'alt_'),
-                                            Bool(
-                                                true
-                                            )
-                                        ),
-                                        WriteBinding(
-                                            Ref(13 'value_'),
-                                            Ref(15 'alt_')
-                                        )
+                                        Expr {
+                                            target: Ref(15 'alt_'),
+                                            expr: Bool {
+                                                value: true
+                                            }
+                                        },
+                                        WriteBinding {
+                                            target: Ref(13 'value_'),
+                                            val: Ref(15 'alt_')
+                                        }
                                     ]
                                 }
-                            ),
-                            Expr(
-                                Ref(8 'val_'),
-                                ReadBinding(
-                                    Ref(13 'value_')
-                                )
-                            ),
-                            WriteMember(
-                                Ref(9 'obj_'),
-                                Ref(10 'prop_'),
-                                Ref(8 'val_')
-                            ),
-                            Expr(
-                                Ref(<dead>),
-                                Read(
-                                    Ref(8 'val_')
-                                )
-                            ),
-                            Expr(
-                                Ref(20 'pred_'),
-                                Number(
-                                    1.0
-                                )
-                            ),
-                            WriteBinding(
-                                Ref(21 'logi_'),
-                                Ref(20 'pred_')
-                            ),
-                            IfElse(
-                                Ref(20 'pred_'),
-                                Block {
+                            },
+                            Expr {
+                                target: Ref(8 'val_'),
+                                expr: ReadBinding {
+                                    source: Ref(13 'value_')
+                                }
+                            },
+                            WriteMember {
+                                obj: Ref(9 'obj_'),
+                                prop: Ref(10 'prop_'),
+                                val: Ref(8 'val_')
+                            },
+                            Expr {
+                                target: Ref(<dead>),
+                                expr: Read {
+                                    source: Ref(8 'val_')
+                                }
+                            },
+                            Expr {
+                                target: Ref(20 'pred_'),
+                                expr: Number {
+                                    value: 1.0
+                                }
+                            },
+                            WriteBinding {
+                                target: Ref(21 'logi_'),
+                                val: Ref(20 'pred_')
+                            },
+                            IfElse {
+                                cond: Ref(20 'pred_'),
+                                cons: Block {
                                     children: []
                                 },
-                                Block {
+                                alt: Block {
                                     children: [
-                                        Expr(
-                                            Ref(22 'cons_'),
-                                            ReadBinding(
-                                                Ref(1 'x')
-                                            )
-                                        ),
-                                        WriteBinding(
-                                            Ref(21 'logi_'),
-                                            Ref(22 'cons_')
-                                        )
+                                        Expr {
+                                            target: Ref(22 'cons_'),
+                                            expr: ReadBinding {
+                                                source: Ref(1 'x')
+                                            }
+                                        },
+                                        WriteBinding {
+                                            target: Ref(21 'logi_'),
+                                            val: Ref(22 'cons_')
+                                        }
                                     ]
                                 }
-                            ),
-                            Expr(
-                                Ref(19 'ele_'),
-                                ReadBinding(
-                                    Ref(21 'logi_')
-                                )
-                            ),
-                            Expr(
-                                Ref(24 'key_'),
-                                String(
-                                    Atom('x' type=inline)
-                                )
-                            ),
-                            Expr(
-                                Ref(25 'value_'),
-                                ReadBinding(
-                                    Ref(1 'x')
-                                )
-                            ),
-                            Expr(
-                                Ref(23 'ele_'),
-                                Object(
-                                    [
+                            },
+                            Expr {
+                                target: Ref(19 'ele_'),
+                                expr: ReadBinding {
+                                    source: Ref(21 'logi_')
+                                }
+                            },
+                            Expr {
+                                target: Ref(24 'key_'),
+                                expr: String {
+                                    value: Atom('x' type=inline)
+                                }
+                            },
+                            Expr {
+                                target: Ref(25 'value_'),
+                                expr: ReadBinding {
+                                    source: Ref(1 'x')
+                                }
+                            },
+                            Expr {
+                                target: Ref(23 'ele_'),
+                                expr: Object {
+                                    props: [
                                         (
                                             Simple,
                                             Ref(24 'key_'),
                                             Ref(25 'value_')
                                         )
                                     ]
-                                )
-                            ),
-                            Expr(
-                                Ref(27 'left_'),
-                                ReadBinding(
-                                    Ref(2 'f')
-                                )
-                            ),
-                            Expr(
-                                Ref(28 'right_'),
-                                Number(
-                                    1.0
-                                )
-                            ),
-                            Expr(
-                                Ref(26 'ele_'),
-                                Binary(
-                                    Add,
-                                    Ref(27 'left_'),
-                                    Ref(28 'right_')
-                                )
-                            ),
-                            Expr(
-                                Ref(31 'read_'),
-                                ReadGlobal(
-                                    Atom('g' type=inline)
-                                )
-                            ),
-                            Expr(
-                                Ref(30 'one_'),
-                                Number(
-                                    1.0
-                                )
-                            ),
-                            Expr(
-                                Ref(32 'write_'),
-                                Binary(
-                                    Add,
-                                    Ref(31 'read_'),
-                                    Ref(30 'one_')
-                                )
-                            ),
-                            WriteGlobal(
-                                Atom('g' type=inline),
-                                Ref(32 'write_')
-                            ),
-                            Expr(
-                                Ref(29 'ele_'),
-                                Read(
-                                    Ref(32 'write_')
-                                )
-                            ),
-                            Expr(
-                                Ref(18 'unary_'),
-                                Array(
-                                    [
+                                }
+                            },
+                            Expr {
+                                target: Ref(27 'left_'),
+                                expr: ReadBinding {
+                                    source: Ref(2 'f')
+                                }
+                            },
+                            Expr {
+                                target: Ref(28 'right_'),
+                                expr: Number {
+                                    value: 1.0
+                                }
+                            },
+                            Expr {
+                                target: Ref(26 'ele_'),
+                                expr: Binary {
+                                    op: Add,
+                                    left: Ref(27 'left_'),
+                                    right: Ref(28 'right_')
+                                }
+                            },
+                            Expr {
+                                target: Ref(31 'read_'),
+                                expr: ReadGlobal {
+                                    source: Atom('g' type=inline)
+                                }
+                            },
+                            Expr {
+                                target: Ref(30 'one_'),
+                                expr: Number {
+                                    value: 1.0
+                                }
+                            },
+                            Expr {
+                                target: Ref(32 'write_'),
+                                expr: Binary {
+                                    op: Add,
+                                    left: Ref(31 'read_'),
+                                    right: Ref(30 'one_')
+                                }
+                            },
+                            WriteGlobal {
+                                target: Atom('g' type=inline),
+                                val: Ref(32 'write_')
+                            },
+                            Expr {
+                                target: Ref(29 'ele_'),
+                                expr: Read {
+                                    source: Ref(32 'write_')
+                                }
+                            },
+                            Expr {
+                                target: Ref(18 'unary_'),
+                                expr: Array {
+                                    elems: [
                                         Some(
                                             (
                                                 Single,
@@ -295,57 +295,57 @@ Ok(
                                             )
                                         )
                                     ]
-                                )
-                            ),
-                            Expr(
-                                Ref(17 'return_'),
-                                Unary(
-                                    Plus,
-                                    Ref(18 'unary_')
-                                )
-                            ),
-                            Return(
-                                Ref(17 'return_')
-                            )
+                                }
+                            },
+                            Expr {
+                                target: Ref(17 'return_'),
+                                expr: Unary {
+                                    op: Plus,
+                                    val: Ref(18 'unary_')
+                                }
+                            },
+                            Return {
+                                val: Ref(17 'return_')
+                            }
                         ]
                     }
-                )
-            ),
-            WriteBinding(
-                Ref(<dead>),
-                Ref(34 'fn_')
-            ),
-            Expr(
-                Ref(36 'fn_'),
-                ReadGlobal(
-                    Atom('f' type=inline)
-                )
-            ),
-            Expr(
-                Ref(37 'arg_'),
-                Number(
-                    1.0
-                )
-            ),
-            Expr(
-                Ref(<dead>),
-                Call(
-                    Call,
-                    Ref(36 'fn_'),
-                    [
+                }
+            },
+            WriteBinding {
+                target: Ref(<dead>),
+                val: Ref(34 'fn_')
+            },
+            Expr {
+                target: Ref(36 'fn_'),
+                expr: ReadGlobal {
+                    source: Atom('f' type=inline)
+                }
+            },
+            Expr {
+                target: Ref(37 'arg_'),
+                expr: Number {
+                    value: 1.0
+                }
+            },
+            Expr {
+                target: Ref(<dead>),
+                expr: Call {
+                    kind: Call,
+                    func: Ref(36 'fn_'),
+                    args: [
                         (
                             Single,
                             Ref(37 'arg_')
                         )
                     ]
-                )
-            ),
-            Expr(
-                Ref(<dead>),
-                Bool(
-                    true
-                )
-            )
+                }
+            },
+            Expr {
+                target: Ref(<dead>),
+                expr: Bool {
+                    value: true
+                }
+            }
         ]
     }
 )

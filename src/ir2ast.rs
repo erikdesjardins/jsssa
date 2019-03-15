@@ -33,10 +33,10 @@ fn convert_block(block: ir::Block, parent_scope: &scope::Ir) -> Vec<ast::Stmt> {
 
 fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
     match stmt {
-        ir::Stmt::Expr(write_ref, expr) => {
+        ir::Stmt::Expr { target, expr } => {
             let expr = convert_expr(expr, scope);
-            if write_ref.maybe_used() {
-                let name = scope.declare_ssa(write_ref);
+            if target.maybe_used() {
+                let name = scope.declare_ssa(target);
                 ast::Stmt::Decl(ast::Decl::Var(ast::VarDecl {
                     span: temp_span(),
                     kind: ast::VarDeclKind::Var,
@@ -57,9 +57,9 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 ast::Stmt::Expr(P(expr))
             }
         }
-        ir::Stmt::WriteBinding(target_ref, source_ref) => {
-            let expr = ssa_to_expr(source_ref, scope);
-            match scope.get_mutable(&target_ref) {
+        ir::Stmt::WriteBinding { target, val } => {
+            let expr = read_ssa_to_expr(val, scope);
+            match scope.get_mutable(&target) {
                 Some(existing_name) => ast::Stmt::Expr(P(ast::Expr::Assign(ast::AssignExpr {
                     span: temp_span(),
                     op: ast::AssignOp::Assign,
@@ -72,7 +72,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                     right: P(expr),
                 }))),
                 None => {
-                    let name = scope.declare_mutable(target_ref);
+                    let name = scope.declare_mutable(target);
                     ast::Stmt::Decl(ast::Decl::Var(ast::VarDecl {
                         span: temp_span(),
                         kind: ast::VarDeclKind::Var,
@@ -92,18 +92,27 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 }
             }
         }
-        ir::Stmt::WriteGlobal(target_name, source_ref) => unimplemented!(),
-        ir::Stmt::WriteMember(obj_ref, prop_ref, source_ref) => unimplemented!(),
-        ir::Stmt::Return(ref_) => unimplemented!(),
-        ir::Stmt::Throw(ref_) => unimplemented!(),
+        ir::Stmt::WriteGlobal { target, val } => unimplemented!(),
+        ir::Stmt::WriteMember { obj, prop, val } => unimplemented!(),
+        ir::Stmt::Return { val } => unimplemented!(),
+        ir::Stmt::Throw { val } => unimplemented!(),
         ir::Stmt::Break => unimplemented!(),
         ir::Stmt::Continue => unimplemented!(),
         ir::Stmt::Debugger => unimplemented!(),
-        ir::Stmt::Block(block) => unimplemented!(),
-        ir::Stmt::Loop(block) => unimplemented!(),
-        ir::Stmt::For(kind, loop_var, source_ref, block) => unimplemented!(),
-        ir::Stmt::IfElse(cond_ref, cons_block, alt_block) => unimplemented!(),
-        ir::Stmt::Try(block, catch, finally) => unimplemented!(),
+        ir::Stmt::Block { body } => unimplemented!(),
+        ir::Stmt::Loop { body } => unimplemented!(),
+        ir::Stmt::For {
+            kind,
+            var,
+            init,
+            body,
+        } => unimplemented!(),
+        ir::Stmt::IfElse { cond, cons, alt } => unimplemented!(),
+        ir::Stmt::Try {
+            body,
+            catch,
+            finally,
+        } => unimplemented!(),
     }
 }
 
@@ -111,7 +120,7 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
     unimplemented!()
 }
 
-fn ssa_to_expr(ssa_ref: ir::Ref<ir::SSA>, scope: &scope::Ir) -> ast::Expr {
+fn read_ssa_to_expr(ssa_ref: ir::Ref<ir::SSA>, scope: &scope::Ir) -> ast::Expr {
     let name = match scope.get_ssa(&ssa_ref) {
         Some(name) => name,
         None => unreachable!("reading from undeclared SSA ref"),

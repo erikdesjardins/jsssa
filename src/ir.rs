@@ -22,50 +22,126 @@ impl Block {
 
 #[derive(Debug)]
 pub enum Stmt {
-    Expr(Ref<SSA>, Expr),
-    WriteBinding(Ref<Mutable>, Ref<SSA>),
-    WriteGlobal(JsWord, Ref<SSA>),
-    WriteMember(Ref<SSA>, Ref<SSA>, Ref<SSA>),
-    Return(Ref<SSA>),
-    Throw(Ref<SSA>),
+    Expr {
+        target: Ref<SSA>,
+        expr: Expr,
+    },
+    WriteBinding {
+        target: Ref<Mutable>,
+        val: Ref<SSA>,
+    },
+    WriteGlobal {
+        target: JsWord,
+        val: Ref<SSA>,
+    },
+    WriteMember {
+        obj: Ref<SSA>,
+        prop: Ref<SSA>,
+        val: Ref<SSA>,
+    },
+    Return {
+        val: Ref<SSA>,
+    },
+    Throw {
+        val: Ref<SSA>,
+    },
     Break,
     Continue,
     Debugger,
-    Block(Box<Block>),
-    Loop(Box<Block>),
-    For(ForKind, Ref<Mutable>, Ref<SSA>, Box<Block>),
-    IfElse(Ref<SSA>, Box<Block>, Box<Block>),
-    Try(
-        Box<Block>,
-        Option<(Ref<Mutable>, Box<Block>)>,
-        Option<Box<Block>>,
-    ),
+    Block {
+        body: Box<Block>,
+    },
+    Loop {
+        body: Box<Block>,
+    },
+    For {
+        kind: ForKind,
+        var: Ref<Mutable>,
+        init: Ref<SSA>,
+        body: Box<Block>,
+    },
+    IfElse {
+        cond: Ref<SSA>,
+        cons: Box<Block>,
+        alt: Box<Block>,
+    },
+    Try {
+        body: Box<Block>,
+        catch: Option<(Ref<Mutable>, Box<Block>)>,
+        finally: Option<Box<Block>>,
+    },
 }
 
 #[derive(Debug)]
 pub enum Expr {
-    Bool(bool),
-    Number(f64),
-    String(JsWord),
+    Bool {
+        value: bool,
+    },
+    Number {
+        value: f64,
+    },
+    String {
+        value: JsWord,
+    },
     Null,
     Undefined,
     This,
     Super,
-    Read(Ref<SSA>),
-    ReadBinding(Ref<Mutable>),
-    ReadGlobal(JsWord),
-    ReadMember(Ref<SSA>, Ref<SSA>),
-    Array(Vec<Option<(EleKind, Ref<SSA>)>>),
-    Object(Vec<(PropKind, Ref<SSA>, Ref<SSA>)>),
-    RegExp(JsWord, Option<JsWord>),
-    Unary(UnaryOp, Ref<SSA>),
-    Binary(BinaryOp, Ref<SSA>, Ref<SSA>),
-    Delete(Ref<SSA>, Ref<SSA>),
-    Call(CallKind, Ref<SSA>, Vec<(EleKind, Ref<SSA>)>),
-    Function(FnKind, Option<JsWord>, Vec<Ref<Mutable>>, Box<Block>),
+    Read {
+        source: Ref<SSA>,
+    },
+    ReadBinding {
+        source: Ref<Mutable>,
+    },
+    ReadGlobal {
+        source: JsWord,
+    },
+    ReadMember {
+        obj: Ref<SSA>,
+        prop: Ref<SSA>,
+    },
+    Array {
+        elems: Vec<Option<(EleKind, Ref<SSA>)>>,
+    },
+    Object {
+        props: Vec<(PropKind, Ref<SSA>, Ref<SSA>)>,
+    },
+    RegExp {
+        regex: JsWord,
+        flags: Option<JsWord>,
+    },
+    Unary {
+        op: UnaryOp,
+        val: Ref<SSA>,
+    },
+    Binary {
+        op: BinaryOp,
+        left: Ref<SSA>,
+        right: Ref<SSA>,
+    },
+    Delete {
+        obj: Ref<SSA>,
+        prop: Ref<SSA>,
+    },
+    Call {
+        kind: CallKind,
+        func: Ref<SSA>,
+        args: Vec<(EleKind, Ref<SSA>)>,
+    },
+    Function {
+        kind: FnKind,
+        name: Option<JsWord>,
+        args: Vec<Ref<Mutable>>,
+        body: Box<Block>,
+    },
     CurrentFunction,
-    Yield(YieldKind, Ref<SSA>),
-    Await(Ref<SSA>),
+    Yield {
+        kind: YieldKind,
+        val: Ref<SSA>,
+    },
+    Await {
+        val: Ref<SSA>,
+    },
 }
 
 #[derive(Debug)]
