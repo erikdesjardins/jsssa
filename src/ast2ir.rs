@@ -1,13 +1,9 @@
-use std::collections::BTreeMap;
-
 use if_chain::if_chain;
-use swc_atoms::JsWord;
 use swc_ecma_ast as ast;
 
 use crate::ir;
+use crate::ir::scope;
 use crate::utils::P;
-
-type ScopeMap = BTreeMap<JsWord, ir::Ref<ir::Mutable>>;
 
 pub fn convert(ast: ast::Script) -> ir::Block {
     let ast::Script {
@@ -15,11 +11,11 @@ pub fn convert(ast: ast::Script) -> ir::Block {
         body,
         span: _,
     } = ast;
-    convert_block(body, &BTreeMap::default())
+    convert_block(body, &scope::Ast::default())
 }
 
-fn convert_block(body: Vec<ast::Stmt>, parent_scopes: &ScopeMap) -> ir::Block {
-    let mut scope = parent_scopes.clone();
+fn convert_block(body: Vec<ast::Stmt>, parent_scope: &scope::Ast) -> ir::Block {
+    let mut scope = parent_scope.clone();
 
     let children = body
         .into_iter()
@@ -29,7 +25,7 @@ fn convert_block(body: Vec<ast::Stmt>, parent_scopes: &ScopeMap) -> ir::Block {
     ir::Block { children }
 }
 
-fn convert_statement(stmt: ast::Stmt, scope: &mut ScopeMap) -> Vec<ir::Stmt> {
+fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
     match stmt {
         ast::Stmt::Expr(expr) => {
             let (mut stmts, last_expr) = convert_expression(*expr, scope);
@@ -283,7 +279,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut ScopeMap) -> Vec<ir::Stmt> {
                     .map(|param| convert_pattern(param, &mut fn_scope))
                     .collect();
                 let recursive_ref = ir::Ref::new(sym.clone());
-                fn_scope.insert(sym.clone(), recursive_ref.clone());
+                fn_scope.declare_mutable(sym.clone(), recursive_ref.clone());
                 let body = match body {
                     Some(ast::BlockStmt { stmts, span: _ }) => stmts,
                     None => unreachable!("bodyless function type declaration"),
@@ -327,7 +323,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut ScopeMap) -> Vec<ir::Stmt> {
     }
 }
 
-fn convert_expression(expr: ast::Expr, scope: &ScopeMap) -> (Vec<ir::Stmt>, ir::Expr) {
+fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir::Expr) {
     match expr {
         ast::Expr::Ident(ast::Ident {
             sym,
@@ -335,7 +331,7 @@ fn convert_expression(expr: ast::Expr, scope: &ScopeMap) -> (Vec<ir::Stmt>, ir::
             type_ann: _,
             optional: _,
         }) => {
-            let expr = match scope.get(&sym) {
+            let expr = match scope.get_mutable(&sym) {
                 Some(ref_) => ir::Expr::ReadBinding(ref_.clone()),
                 None => ir::Expr::ReadGlobal(sym),
             };
@@ -590,7 +586,7 @@ fn convert_expression(expr: ast::Expr, scope: &ScopeMap) -> (Vec<ir::Stmt>, ir::
             let recursive_ref = match &sym {
                 Some(sym) => {
                     let recursive_ref = ir::Ref::new(sym.clone());
-                    fn_scope.insert(sym.clone(), recursive_ref.clone());
+                    fn_scope.declare_mutable(sym.clone(), recursive_ref.clone());
                     Some(recursive_ref)
                 }
                 None => None,
@@ -672,7 +668,7 @@ fn convert_expression(expr: ast::Expr, scope: &ScopeMap) -> (Vec<ir::Stmt>, ir::
                     span: _,
                     type_ann: _,
                     optional: _,
-                }) => match scope.get(&sym) {
+                }) => match scope.get_mutable(&sym) {
                     Some(ref_) => (
                         ir::Expr::ReadBinding(ref_.clone()),
                         ir::Stmt::WriteBinding(ref_.clone(), write_ref.clone()),
@@ -781,7 +777,7 @@ fn convert_expression(expr: ast::Expr, scope: &ScopeMap) -> (Vec<ir::Stmt>, ir::
                         span: _,
                         type_ann: _,
                         optional: _,
-                    }) => match scope.get(&sym) {
+                    }) => match scope.get_mutable(&sym) {
                         Some(binding) => (
                             vec![],
                             ir::Expr::ReadBinding(binding.clone()),
@@ -998,7 +994,7 @@ fn convert_expression(expr: ast::Expr, scope: &ScopeMap) -> (Vec<ir::Stmt>, ir::
     }
 }
 
-fn convert_variable_declaration(var_decl: ast::VarDecl, scope: &mut ScopeMap) -> Vec<ir::Stmt> {
+fn convert_variable_declaration(var_decl: ast::VarDecl, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
     // todo we're definitely gonna need to handle `kind`
     let ast::VarDecl {
         kind: _,
@@ -1031,7 +1027,7 @@ fn convert_variable_declaration(var_decl: ast::VarDecl, scope: &mut ScopeMap) ->
     stmts
 }
 
-fn convert_pattern(pat: ast::Pat, scope: &mut ScopeMap) -> ir::Ref<ir::Mutable> {
+fn convert_pattern(pat: ast::Pat, scope: &mut scope::Ast) -> ir::Ref<ir::Mutable> {
     match pat {
         ast::Pat::Ident(ast::Ident {
             sym,
@@ -1040,7 +1036,7 @@ fn convert_pattern(pat: ast::Pat, scope: &mut ScopeMap) -> ir::Ref<ir::Mutable> 
             optional: _,
         }) => {
             let ref_ = ir::Ref::new(sym.clone());
-            scope.insert(sym, ref_.clone());
+            scope.declare_mutable(sym, ref_.clone());
             ref_
         }
         ast::Pat::Array(_)
@@ -1053,7 +1049,7 @@ fn convert_pattern(pat: ast::Pat, scope: &mut ScopeMap) -> ir::Ref<ir::Mutable> 
 
 fn convert_expr_or_super(
     expr_or_super: ast::ExprOrSuper,
-    scope: &ScopeMap,
+    scope: &scope::Ast,
 ) -> (Vec<ir::Stmt>, ir::Expr) {
     match expr_or_super {
         ast::ExprOrSuper::Expr(expr) => convert_expression(*expr, scope),

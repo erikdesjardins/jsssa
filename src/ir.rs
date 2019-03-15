@@ -1,6 +1,9 @@
 use swc_atoms::JsWord;
 
-use crate::ir::{Mutable, Ref, SSA};
+pub use self::ref_::{LiveRef, Mutable, Ref, RefType, SSA};
+
+mod ref_;
+pub mod scope;
 
 #[derive(Debug)]
 pub struct Block {
