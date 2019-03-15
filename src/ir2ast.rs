@@ -149,7 +149,45 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
             var,
             init,
             body,
-        } => unimplemented!(),
+        } => {
+            let var_name = scope.declare_mutable(var);
+            let left = ast::VarDeclOrPat::VarDecl(ast::VarDecl {
+                span: span(),
+                kind: ast::VarDeclKind::Var,
+                decls: vec![ast::VarDeclarator {
+                    span: span(),
+                    name: ast::Pat::Ident(ast::Ident {
+                        span: span(),
+                        sym: var_name,
+                        type_ann: None,
+                        optional: false,
+                    }),
+                    init: None,
+                    definite: false,
+                }],
+                declare: false,
+            });
+            let right = P(read_ssa_to_expr(init, scope));
+            let body = P(ast::Stmt::Block(ast::BlockStmt {
+                span: span(),
+                stmts: convert_block(*body, scope),
+            }));
+            match kind {
+                ir::ForKind::In => ast::Stmt::ForIn(ast::ForInStmt {
+                    span: span(),
+                    left,
+                    right,
+                    body,
+                }),
+                ir::ForKind::Of => ast::Stmt::ForOf(ast::ForOfStmt {
+                    span: span(),
+                    await_token: None,
+                    left,
+                    right,
+                    body,
+                }),
+            }
+        }
         ir::Stmt::IfElse { cond, cons, alt } => unimplemented!(),
         ir::Stmt::Try {
             body,
