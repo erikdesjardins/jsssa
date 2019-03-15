@@ -84,7 +84,19 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 }))
             }
         },
-        ir::Stmt::WriteGlobal { target, val } => unimplemented!(),
+        ir::Stmt::WriteGlobal { target, val } => {
+            ast::Stmt::Expr(P(ast::Expr::Assign(ast::AssignExpr {
+                span: span(),
+                op: ast::AssignOp::Assign,
+                left: ast::PatOrExpr::Pat(P(ast::Pat::Ident(ast::Ident {
+                    span: span(),
+                    sym: target,
+                    type_ann: None,
+                    optional: false,
+                }))),
+                right: P(read_ssa_to_expr(val, scope)),
+            })))
+        }
         ir::Stmt::WriteMember { obj, prop, val } => unimplemented!(),
         ir::Stmt::Return { val } => ast::Stmt::Return(ast::ReturnStmt {
             span: span(),
