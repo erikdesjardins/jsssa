@@ -97,7 +97,21 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 right: P(read_ssa_to_expr(val, scope)),
             })))
         }
-        ir::Stmt::WriteMember { obj, prop, val } => unimplemented!(),
+        ir::Stmt::WriteMember { obj, prop, val } => {
+            ast::Stmt::Expr(P(ast::Expr::Assign(ast::AssignExpr {
+                span: span(),
+                op: ast::AssignOp::Assign,
+                left: ast::PatOrExpr::Pat(P(ast::Pat::Expr(P(ast::Expr::Member(
+                    ast::MemberExpr {
+                        span: span(),
+                        obj: ast::ExprOrSuper::Expr(P(read_ssa_to_expr(obj, scope))),
+                        prop: P(read_ssa_to_expr(prop, scope)),
+                        computed: true,
+                    },
+                ))))),
+                right: P(read_ssa_to_expr(val, scope)),
+            })))
+        }
         ir::Stmt::Return { val } => ast::Stmt::Return(ast::ReturnStmt {
             span: span(),
             arg: Some(P(read_ssa_to_expr(val, scope))),
