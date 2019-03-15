@@ -5,16 +5,11 @@ use crate::ir;
 use crate::ir::scope;
 use crate::utils::P;
 
-fn temp_span() -> Span {
-    // todo
-    unimplemented!()
-}
-
 pub fn convert(ir: ir::Block) -> ast::Script {
     // todo perform inlining at this stage? (i.e. scan backwards for all usages)
     let body = convert_block(ir, &scope::Ir::default());
     ast::Script {
-        span: temp_span(),
+        span: span(),
         body,
         shebang: None,
     }
@@ -38,12 +33,12 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
             if target.maybe_used() {
                 let name = scope.declare_ssa(target);
                 ast::Stmt::Decl(ast::Decl::Var(ast::VarDecl {
-                    span: temp_span(),
+                    span: span(),
                     kind: ast::VarDeclKind::Var,
                     decls: vec![ast::VarDeclarator {
-                        span: temp_span(),
+                        span: span(),
                         name: ast::Pat::Ident(ast::Ident {
-                            span: temp_span(),
+                            span: span(),
                             sym: name,
                             type_ann: None,
                             optional: false,
@@ -61,10 +56,10 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
             let expr = read_ssa_to_expr(val, scope);
             match scope.get_mutable(&target) {
                 Some(existing_name) => ast::Stmt::Expr(P(ast::Expr::Assign(ast::AssignExpr {
-                    span: temp_span(),
+                    span: span(),
                     op: ast::AssignOp::Assign,
                     left: ast::PatOrExpr::Pat(P(ast::Pat::Ident(ast::Ident {
-                        span: temp_span(),
+                        span: span(),
                         sym: existing_name,
                         type_ann: None,
                         optional: false,
@@ -74,12 +69,12 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 None => {
                     let name = scope.declare_mutable(target);
                     ast::Stmt::Decl(ast::Decl::Var(ast::VarDecl {
-                        span: temp_span(),
+                        span: span(),
                         kind: ast::VarDeclKind::Var,
                         decls: vec![ast::VarDeclarator {
-                            span: temp_span(),
+                            span: span(),
                             name: ast::Pat::Ident(ast::Ident {
-                                span: temp_span(),
+                                span: span(),
                                 sym: name,
                                 type_ann: None,
                                 optional: false,
@@ -126,9 +121,14 @@ fn read_ssa_to_expr(ssa_ref: ir::Ref<ir::SSA>, scope: &scope::Ir) -> ast::Expr {
         None => unreachable!("reading from undeclared SSA ref"),
     };
     ast::Expr::Ident(ast::Ident {
-        span: temp_span(),
+        span: span(),
         sym: name,
         type_ann: None,
         optional: false,
     })
+}
+
+fn span() -> Span {
+    // todo make sourcemaps work by wiring this through from the original AST
+    Span::default()
 }
