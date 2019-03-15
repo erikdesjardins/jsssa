@@ -22,8 +22,7 @@ impl Block {
 
 #[derive(Debug)]
 pub enum Stmt {
-    Expr(Expr),
-    WriteSsa(Ref<SSA>, Expr),
+    Expr(Ref<SSA>, Expr),
     WriteBinding(Ref<Mutable>, Ref<SSA>),
     WriteGlobal(JsWord, Ref<SSA>),
     WriteMember(Ref<SSA>, Ref<SSA>, Ref<SSA>),

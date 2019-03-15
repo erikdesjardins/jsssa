@@ -33,29 +33,29 @@ fn convert_block(block: ir::Block, parent_scope: &scope::Ir) -> Vec<ast::Stmt> {
 
 fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
     match stmt {
-        ir::Stmt::Expr(expr) => {
+        ir::Stmt::Expr(write_ref, expr) => {
             let expr = convert_expr(expr, scope);
-            ast::Stmt::Expr(P(expr))
-        }
-        ir::Stmt::WriteSsa(target_ref, expr) => {
-            let expr = convert_expr(expr, scope);
-            let name = scope.declare_ssa(target_ref);
-            ast::Stmt::Decl(ast::Decl::Var(ast::VarDecl {
-                span: temp_span(),
-                kind: ast::VarDeclKind::Var,
-                decls: vec![ast::VarDeclarator {
+            if write_ref.maybe_used() {
+                let name = scope.declare_ssa(write_ref);
+                ast::Stmt::Decl(ast::Decl::Var(ast::VarDecl {
                     span: temp_span(),
-                    name: ast::Pat::Ident(ast::Ident {
+                    kind: ast::VarDeclKind::Var,
+                    decls: vec![ast::VarDeclarator {
                         span: temp_span(),
-                        sym: name,
-                        type_ann: None,
-                        optional: false,
-                    }),
-                    init: Some(P(expr)),
-                    definite: false,
-                }],
-                declare: false,
-            }))
+                        name: ast::Pat::Ident(ast::Ident {
+                            span: temp_span(),
+                            sym: name,
+                            type_ann: None,
+                            optional: false,
+                        }),
+                        init: Some(P(expr)),
+                        definite: false,
+                    }],
+                    declare: false,
+                }))
+            } else {
+                ast::Stmt::Expr(P(expr))
+            }
         }
         ir::Stmt::WriteBinding(target_ref, source_ref) => {
             let expr = ssa_to_expr(source_ref, scope);

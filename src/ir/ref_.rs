@@ -38,14 +38,18 @@ impl<T: RefType> Ref<T> {
         &self.0.name_hint
     }
 
-    pub fn might_be_used(&self) -> bool {
+    pub fn maybe_used(&self) -> bool {
         Rc::strong_count(&self.0) > 1
     }
 }
 
 impl<T: RefType> Debug for Ref<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "Ref({} '{}')", self.0.id, self.0.name_hint)
+        if self.maybe_used() {
+            write!(f, "Ref({} '{}')", self.0.id, self.0.name_hint)
+        } else {
+            write!(f, "Ref(<dead>)")
+        }
     }
 }
 
