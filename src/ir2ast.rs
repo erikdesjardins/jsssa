@@ -260,10 +260,31 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
             }))),
         }),
         ir::Expr::This => ast::Expr::This(ast::ThisExpr { span: span() }),
-        ir::Expr::Read { source } => unimplemented!(),
-        ir::Expr::ReadBinding { source } => unimplemented!(),
-        ir::Expr::ReadGlobal { source } => unimplemented!(),
-        ir::Expr::ReadMember { obj, prop } => unimplemented!(),
+        ir::Expr::Read { source } => read_ssa_to_expr(source, scope),
+        ir::Expr::ReadBinding { source } => {
+            let name = match scope.get_mutable(&source) {
+                Some(name) => name,
+                None => unreachable!("reading from undeclared mutable ref"),
+            };
+            ast::Expr::Ident(ast::Ident {
+                span: span(),
+                sym: name,
+                type_ann: None,
+                optional: false,
+            })
+        }
+        ir::Expr::ReadGlobal { source } => ast::Expr::Ident(ast::Ident {
+            span: span(),
+            sym: source,
+            type_ann: None,
+            optional: false,
+        }),
+        ir::Expr::ReadMember { obj, prop } => ast::Expr::Member(ast::MemberExpr {
+            span: span(),
+            obj: ast::ExprOrSuper::Expr(P(read_ssa_to_expr(obj, scope))),
+            prop: P(read_ssa_to_expr(prop, scope)),
+            computed: true,
+        }),
         ir::Expr::Array { elems } => unimplemented!(),
         ir::Expr::Object { props } => unimplemented!(),
         ir::Expr::RegExp { regex, flags } => unimplemented!(),
