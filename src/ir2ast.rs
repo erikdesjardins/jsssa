@@ -236,7 +236,35 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
 }
 
 fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
-    unimplemented!()
+    match expr {
+        ir::Expr::Bool { value } => unimplemented!(),
+        ir::Expr::Number { value } => unimplemented!(),
+        ir::Expr::String { value } => unimplemented!(),
+        ir::Expr::Null => unimplemented!(),
+        ir::Expr::Undefined => unimplemented!(),
+        ir::Expr::This => unimplemented!(),
+        ir::Expr::Super => unimplemented!(),
+        ir::Expr::Read { source } => unimplemented!(),
+        ir::Expr::ReadBinding { source } => unimplemented!(),
+        ir::Expr::ReadGlobal { source } => unimplemented!(),
+        ir::Expr::ReadMember { obj, prop } => unimplemented!(),
+        ir::Expr::Array { elems } => unimplemented!(),
+        ir::Expr::Object { props } => unimplemented!(),
+        ir::Expr::RegExp { regex, flags } => unimplemented!(),
+        ir::Expr::Unary { op, val } => unimplemented!(),
+        ir::Expr::Binary { op, left, right } => unimplemented!(),
+        ir::Expr::Delete { obj, prop } => unimplemented!(),
+        ir::Expr::Call { kind, func, args } => unimplemented!(),
+        ir::Expr::Function {
+            kind,
+            name,
+            params,
+            body,
+        } => unimplemented!(),
+        ir::Expr::CurrentFunction => unimplemented!(),
+        ir::Expr::Yield { kind, val } => unimplemented!(),
+        ir::Expr::Await { val } => unimplemented!(),
+    }
 }
 
 fn read_ssa_to_expr(ssa_ref: ir::Ref<ir::SSA>, scope: &scope::Ir) -> ast::Expr {
