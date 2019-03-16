@@ -399,9 +399,9 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             ast::Lit::Null(ast::Null { span: _ }) => (vec![], ir::Expr::Null),
             ast::Lit::Str(ast::Str {
                 value,
+                has_escape,
                 span: _,
-                has_escape: _,
-            }) => (vec![], ir::Expr::String { value }),
+            }) => (vec![], ir::Expr::String { value, has_escape }),
             ast::Lit::Bool(ast::Bool { value, span: _ }) => (vec![], ir::Expr::Bool { value }),
             ast::Lit::Num(ast::Number { value, span: _ }) => (vec![], ir::Expr::Number { value }),
             ast::Lit::JSXText(_) => unreachable!(),
@@ -1300,7 +1300,7 @@ fn convert_expr_or_super(
 ) -> (Vec<ir::Stmt>, ir::Expr) {
     match expr_or_super {
         ast::ExprOrSuper::Expr(expr) => convert_expression(*expr, scope),
-        ast::ExprOrSuper::Super(_) => (vec![], ir::Expr::Super),
+        ast::ExprOrSuper::Super(_) => unimplemented!("classes (and thus super) not yet supported"),
     }
 }
 

@@ -237,13 +237,29 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
 
 fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
     match expr {
-        ir::Expr::Bool { value } => unimplemented!(),
-        ir::Expr::Number { value } => unimplemented!(),
-        ir::Expr::String { value } => unimplemented!(),
-        ir::Expr::Null => unimplemented!(),
-        ir::Expr::Undefined => unimplemented!(),
-        ir::Expr::This => unimplemented!(),
-        ir::Expr::Super => unimplemented!(),
+        ir::Expr::Bool { value } => ast::Expr::Lit(ast::Lit::Bool(ast::Bool {
+            span: span(),
+            value,
+        })),
+        ir::Expr::Number { value } => ast::Expr::Lit(ast::Lit::Num(ast::Number {
+            span: span(),
+            value,
+        })),
+        ir::Expr::String { value, has_escape } => ast::Expr::Lit(ast::Lit::Str(ast::Str {
+            span: span(),
+            value,
+            has_escape,
+        })),
+        ir::Expr::Null => ast::Expr::Lit(ast::Lit::Null(ast::Null { span: span() })),
+        ir::Expr::Undefined => ast::Expr::Unary(ast::UnaryExpr {
+            span: span(),
+            op: ast::UnaryOp::Void,
+            arg: P(ast::Expr::Lit(ast::Lit::Num(ast::Number {
+                span: span(),
+                value: 0.0,
+            }))),
+        }),
+        ir::Expr::This => ast::Expr::This(ast::ThisExpr { span: span() }),
         ir::Expr::Read { source } => unimplemented!(),
         ir::Expr::ReadBinding { source } => unimplemented!(),
         ir::Expr::ReadGlobal { source } => unimplemented!(),

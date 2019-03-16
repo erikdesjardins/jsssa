@@ -82,11 +82,11 @@ pub enum Expr {
     },
     String {
         value: JsWord,
+        has_escape: bool,
     },
     Null,
     Undefined,
     This,
-    Super,
     Read {
         source: Ref<SSA>,
     },
