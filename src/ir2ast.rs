@@ -299,8 +299,18 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
             body,
         } => unimplemented!(),
         ir::Expr::CurrentFunction => unimplemented!(),
-        ir::Expr::Yield { kind, val } => unimplemented!(),
-        ir::Expr::Await { val } => unimplemented!(),
+        ir::Expr::Yield { kind, val } => ast::Expr::Yield(ast::YieldExpr {
+            span: span(),
+            arg: Some(P(read_ssa_to_expr(val, scope))),
+            delegate: match kind {
+                ir::YieldKind::Single => false,
+                ir::YieldKind::Delegate => true,
+            },
+        }),
+        ir::Expr::Await { val } => ast::Expr::Await(ast::AwaitExpr {
+            span: span(),
+            arg: P(read_ssa_to_expr(val, scope)),
+        }),
     }
 }
 
