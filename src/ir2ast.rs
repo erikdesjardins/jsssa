@@ -285,7 +285,21 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
             prop: P(read_ssa_to_expr(prop, scope)),
             computed: true,
         }),
-        ir::Expr::Array { elems } => unimplemented!(),
+        ir::Expr::Array { elems } => ast::Expr::Array(ast::ArrayLit {
+            span: span(),
+            elems: elems
+                .into_iter()
+                .map(|elem| {
+                    elem.map(|(kind, val)| ast::ExprOrSpread {
+                        spread: match kind {
+                            ir::EleKind::Single => None,
+                            ir::EleKind::Spread => Some(span()),
+                        },
+                        expr: P(read_ssa_to_expr(val, scope)),
+                    })
+                })
+                .collect(),
+        }),
         ir::Expr::Object { props } => unimplemented!(),
         ir::Expr::RegExp { regex, flags } => unimplemented!(),
         ir::Expr::Unary { op, val } => unimplemented!(),
