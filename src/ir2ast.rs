@@ -385,7 +385,33 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
                 computed: true,
             })),
         }),
-        ir::Expr::Call { kind, func, args } => unimplemented!(),
+        ir::Expr::Call { kind, func, args } => {
+            let callee = P(read_ssa_to_expr(func, scope));
+            let args = args
+                .into_iter()
+                .map(|(kind, val)| ast::ExprOrSpread {
+                    spread: match kind {
+                        ir::EleKind::Single => None,
+                        ir::EleKind::Spread => Some(span()),
+                    },
+                    expr: P(read_ssa_to_expr(val, scope)),
+                })
+                .collect();
+            match kind {
+                ir::CallKind::Call => ast::Expr::Call(ast::CallExpr {
+                    span: span(),
+                    callee: ast::ExprOrSuper::Expr(callee),
+                    args,
+                    type_args: None,
+                }),
+                ir::CallKind::New => ast::Expr::New(ast::NewExpr {
+                    span: span(),
+                    callee,
+                    args: Some(args),
+                    type_args: None,
+                }),
+            }
+        }
         ir::Expr::Function {
             kind,
             name,
