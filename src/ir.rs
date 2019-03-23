@@ -108,6 +108,7 @@ pub enum Expr {
     },
     RegExp {
         regex: JsWord,
+        has_escape: bool,
         flags: Option<JsWord>,
     },
     Unary {

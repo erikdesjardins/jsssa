@@ -317,7 +317,23 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
                 })
                 .collect(),
         }),
-        ir::Expr::RegExp { regex, flags } => unimplemented!(),
+        ir::Expr::RegExp {
+            regex,
+            has_escape,
+            flags,
+        } => ast::Expr::Lit(ast::Lit::Regex(ast::Regex {
+            span: span(),
+            exp: ast::Str {
+                span: span(),
+                value: regex,
+                has_escape,
+            },
+            flags: flags.map(|f| ast::Str {
+                span: span(),
+                value: f,
+                has_escape: false,
+            }),
+        })),
         ir::Expr::Unary { op, val } => unimplemented!(),
         ir::Expr::Binary { op, left, right } => unimplemented!(),
         ir::Expr::Delete { obj, prop } => unimplemented!(),

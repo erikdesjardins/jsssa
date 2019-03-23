@@ -386,13 +386,19 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
         }
         ast::Expr::Lit(lit) => match lit {
             ast::Lit::Regex(ast::Regex {
-                exp,
+                exp:
+                    ast::Str {
+                        value,
+                        has_escape,
+                        span: _,
+                    },
                 flags,
                 span: _,
             }) => (
                 vec![],
                 ir::Expr::RegExp {
-                    regex: exp.value,
+                    regex: value,
+                    has_escape,
                     flags: flags.map(|s| s.value),
                 },
             ),
