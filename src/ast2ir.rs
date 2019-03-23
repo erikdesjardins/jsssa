@@ -332,13 +332,14 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 );
                 block.children.insert(
                     1,
-                    ir::Stmt::WriteBinding {
+                    ir::Stmt::DeclareMutable {
                         target: recursive_ref,
                         val: desugar_ref,
                     },
                 );
                 let fn_ref = ir::Ref::new("fn_");
                 let fn_binding = ir::Ref::new(sym.clone());
+                scope.declare_mutable(sym.clone(), fn_binding.clone());
                 vec![
                     ir::Stmt::Expr {
                         target: fn_ref.clone(),
@@ -352,7 +353,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                             body: P(block),
                         },
                     },
-                    ir::Stmt::WriteBinding {
+                    ir::Stmt::DeclareMutable {
                         target: fn_binding,
                         val: fn_ref,
                     },
@@ -377,7 +378,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             optional: _,
         }) => {
             let expr = match scope.get_mutable(&sym) {
-                Some(ref_) => ir::Expr::ReadBinding {
+                Some(ref_) => ir::Expr::ReadMutable {
                     source: ref_.clone(),
                 },
                 None => ir::Expr::ReadGlobal { source: sym },
@@ -695,7 +696,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 );
                 block.children.insert(
                     1,
-                    ir::Stmt::WriteBinding {
+                    ir::Stmt::DeclareMutable {
                         target: recursive_ref,
                         val: desugar_ref,
                     },
@@ -780,10 +781,10 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     optional: _,
                 }) => match scope.get_mutable(&sym) {
                     Some(ref_) => (
-                        ir::Expr::ReadBinding {
+                        ir::Expr::ReadMutable {
                             source: ref_.clone(),
                         },
-                        ir::Stmt::WriteBinding {
+                        ir::Stmt::WriteMutable {
                             target: ref_.clone(),
                             val: write_ref.clone(),
                         },
@@ -842,7 +843,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         target: left_ref.clone(),
                         expr: left_value,
                     });
-                    stmts.push(ir::Stmt::WriteBinding {
+                    stmts.push(ir::Stmt::DeclareMutable {
                         target: value_ref.clone(),
                         val: left_ref.clone(),
                     });
@@ -853,7 +854,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                             target: right_ref.clone(),
                             expr: right_value,
                         });
-                        right_stmts.push(ir::Stmt::WriteBinding {
+                        right_stmts.push(ir::Stmt::WriteMutable {
                             target: value_ref.clone(),
                             val: right_ref,
                         });
@@ -870,7 +871,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         cons: P(consequent),
                         alt: P(alternate),
                     });
-                    (stmts, ir::Expr::ReadBinding { source: value_ref })
+                    (stmts, ir::Expr::ReadMutable { source: value_ref })
                 }
                 op => {
                     let op = match op {
@@ -939,10 +940,10 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     }) => match scope.get_mutable(&sym) {
                         Some(binding) => (
                             vec![],
-                            ir::Expr::ReadBinding {
+                            ir::Expr::ReadMutable {
                                 source: binding.clone(),
                             },
-                            ir::Stmt::WriteBinding {
+                            ir::Stmt::WriteMutable {
                                 target: binding.clone(),
                                 val: value_ref.clone(),
                             },
@@ -1112,7 +1113,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 target: undef_ref.clone(),
                 expr: ir::Expr::Undefined,
             });
-            stmts.push(ir::Stmt::WriteBinding {
+            stmts.push(ir::Stmt::DeclareMutable {
                 target: value_ref.clone(),
                 val: undef_ref,
             });
@@ -1125,7 +1126,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         target: alt_ref.clone(),
                         expr: alt_value,
                     });
-                    alt_stmts.push(ir::Stmt::WriteBinding {
+                    alt_stmts.push(ir::Stmt::WriteMutable {
                         target: value_ref.clone(),
                         val: alt_ref,
                     });
@@ -1138,14 +1139,14 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         target: cons_ref.clone(),
                         expr: cons_value,
                     });
-                    cons_stmts.push(ir::Stmt::WriteBinding {
+                    cons_stmts.push(ir::Stmt::WriteMutable {
                         target: value_ref.clone(),
                         val: cons_ref,
                     });
                     P(ir::Block::with_children(cons_stmts))
                 },
             });
-            (stmts, ir::Expr::ReadBinding { source: value_ref })
+            (stmts, ir::Expr::ReadMutable { source: value_ref })
         }
         call_expr @ ast::Expr::Call(_) | call_expr @ ast::Expr::New(_) => {
             let (callee, arguments, call_kind) = match call_expr {
@@ -1272,7 +1273,7 @@ fn convert_variable_declaration(var_decl: ast::VarDecl, scope: &mut scope::Ast) 
             }
         }
         let var_ref = convert_pattern(name, scope);
-        stmts.push(ir::Stmt::WriteBinding {
+        stmts.push(ir::Stmt::DeclareMutable {
             target: var_ref,
             val: init_ref,
         });

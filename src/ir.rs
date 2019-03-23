@@ -26,7 +26,11 @@ pub enum Stmt {
         target: Ref<SSA>,
         expr: Expr,
     },
-    WriteBinding {
+    DeclareMutable {
+        target: Ref<Mutable>,
+        val: Ref<SSA>,
+    },
+    WriteMutable {
         target: Ref<Mutable>,
         val: Ref<SSA>,
     },
@@ -90,7 +94,7 @@ pub enum Expr {
     Read {
         source: Ref<SSA>,
     },
-    ReadBinding {
+    ReadMutable {
         source: Ref<Mutable>,
     },
     ReadGlobal {

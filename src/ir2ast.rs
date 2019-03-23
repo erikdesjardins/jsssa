@@ -52,7 +52,26 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 ast::Stmt::Expr(P(expr))
             }
         }
-        ir::Stmt::WriteBinding { target, val } => match scope.get_mutable(&target) {
+        ir::Stmt::DeclareMutable { target, val } => {
+            let name = scope.declare_mutable(target);
+            ast::Stmt::Decl(ast::Decl::Var(ast::VarDecl {
+                span: span(),
+                kind: ast::VarDeclKind::Var,
+                decls: vec![ast::VarDeclarator {
+                    span: span(),
+                    name: ast::Pat::Ident(ast::Ident {
+                        span: span(),
+                        sym: name,
+                        type_ann: None,
+                        optional: false,
+                    }),
+                    init: Some(P(read_ssa_to_expr(val, scope))),
+                    definite: false,
+                }],
+                declare: false,
+            }))
+        }
+        ir::Stmt::WriteMutable { target, val } => match scope.get_mutable(&target) {
             Some(existing_name) => ast::Stmt::Expr(P(ast::Expr::Assign(ast::AssignExpr {
                 span: span(),
                 op: ast::AssignOp::Assign,
@@ -64,25 +83,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 }))),
                 right: P(read_ssa_to_expr(val, scope)),
             }))),
-            None => {
-                let name = scope.declare_mutable(target);
-                ast::Stmt::Decl(ast::Decl::Var(ast::VarDecl {
-                    span: span(),
-                    kind: ast::VarDeclKind::Var,
-                    decls: vec![ast::VarDeclarator {
-                        span: span(),
-                        name: ast::Pat::Ident(ast::Ident {
-                            span: span(),
-                            sym: name,
-                            type_ann: None,
-                            optional: false,
-                        }),
-                        init: Some(P(read_ssa_to_expr(val, scope))),
-                        definite: false,
-                    }],
-                    declare: false,
-                }))
-            }
+            None => unreachable!("writing to undeclared mutable ref"),
         },
         ir::Stmt::WriteGlobal { target, val } => {
             ast::Stmt::Expr(P(ast::Expr::Assign(ast::AssignExpr {
@@ -261,7 +262,7 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
         }),
         ir::Expr::This => ast::Expr::This(ast::ThisExpr { span: span() }),
         ir::Expr::Read { source } => read_ssa_to_expr(source, scope),
-        ir::Expr::ReadBinding { source } => {
+        ir::Expr::ReadMutable { source } => {
             let name = match scope.get_mutable(&source) {
                 Some(name) => name,
                 None => unreachable!("reading from undeclared mutable ref"),
