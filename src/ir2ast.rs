@@ -375,7 +375,16 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
             left: P(read_ssa_to_expr(left, scope)),
             right: P(read_ssa_to_expr(right, scope)),
         }),
-        ir::Expr::Delete { obj, prop } => unimplemented!(),
+        ir::Expr::Delete { obj, prop } => ast::Expr::Unary(ast::UnaryExpr {
+            span: span(),
+            op: ast::UnaryOp::Delete,
+            arg: P(ast::Expr::Member(ast::MemberExpr {
+                span: span(),
+                obj: ast::ExprOrSuper::Expr(P(read_ssa_to_expr(obj, scope))),
+                prop: P(read_ssa_to_expr(prop, scope)),
+                computed: true,
+            })),
+        }),
         ir::Expr::Call { kind, func, args } => unimplemented!(),
         ir::Expr::Function {
             kind,
