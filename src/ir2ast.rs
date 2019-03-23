@@ -300,7 +300,23 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
                 })
                 .collect(),
         }),
-        ir::Expr::Object { props } => unimplemented!(),
+        ir::Expr::Object { props } => ast::Expr::Object(ast::ObjectLit {
+            span: span(),
+            props: props
+                .into_iter()
+                .map(|(kind, prop, val)| {
+                    ast::PropOrSpread::Prop(P(match kind {
+                        ir::PropKind::Simple => ast::Prop::KeyValue(ast::KeyValueProp {
+                            key: ast::PropName::Computed(P(read_ssa_to_expr(prop, scope))),
+                            value: P(read_ssa_to_expr(val, scope)),
+                        }),
+                        ir::PropKind::Get | ir::PropKind::Set => {
+                            unimplemented!("getter and setter props cannot yet be elaborated")
+                        }
+                    }))
+                })
+                .collect(),
+        }),
         ir::Expr::RegExp { regex, flags } => unimplemented!(),
         ir::Expr::Unary { op, val } => unimplemented!(),
         ir::Expr::Binary { op, left, right } => unimplemented!(),
