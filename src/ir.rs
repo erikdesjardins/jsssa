@@ -128,6 +128,13 @@ pub enum Expr {
         obj: Ref<SSA>,
         prop: Ref<SSA>,
     },
+    Yield {
+        kind: YieldKind,
+        val: Ref<SSA>,
+    },
+    Await {
+        val: Ref<SSA>,
+    },
     Call {
         kind: CallKind,
         func: Ref<SSA>,
@@ -140,13 +147,6 @@ pub enum Expr {
         body: Box<Block>,
     },
     CurrentFunction,
-    Yield {
-        kind: YieldKind,
-        val: Ref<SSA>,
-    },
-    Await {
-        val: Ref<SSA>,
-    },
 }
 
 #[derive(Debug)]
