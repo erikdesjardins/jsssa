@@ -20,6 +20,7 @@ impl Block {
     }
 }
 
+// todo allow inlined IR via Stmt<T> { ... val: T } and ssa ir is Stmt<Ref<SSA>>
 #[derive(Debug)]
 pub enum Stmt {
     Expr {
