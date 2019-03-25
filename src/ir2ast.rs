@@ -474,12 +474,12 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
                 })
                 .for_each(drop);
 
-            let mut params = body
+            let params = body
                 .children
                 .drain_filter(|stmt| match stmt {
                     ir::Stmt::Expr {
-                        target,
-                        expr: ir::Expr::Argument { index },
+                        target: _,
+                        expr: ir::Expr::Argument { .. },
                     } => true,
                     _ => false,
                 })

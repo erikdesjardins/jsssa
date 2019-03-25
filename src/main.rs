@@ -1,5 +1,5 @@
 #![feature(drain_filter)]
-#![allow(clippy::unneeded_field_pattern)]
+#![allow(clippy::unneeded_field_pattern, clippy::cognitive_complexity)]
 
 use std::io;
 use std::io::Read;

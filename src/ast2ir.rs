@@ -572,7 +572,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                         optional: _,
                                     } = ident.clone();
                                     let key = ast::Expr::Lit(ast::Lit::Str(ast::Str {
-                                        span: span.clone(),
+                                        span,
                                         value: sym.clone(),
                                         has_escape: false,
                                     }));
@@ -684,9 +684,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                     },
                                 ]
                             });
-                            let body = ir::Block::with_children(
-                                params.into_iter().chain(children).collect(),
-                            );
+                            let body = ir::Block::with_children(params.chain(children).collect());
                             let fn_value = ir::Expr::Function {
                                 kind: ir::FnKind::Func {
                                     is_async,
@@ -759,7 +757,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     },
                 ]
             });
-            let mut block = ir::Block::with_children(params.into_iter().chain(children).collect());
+            let mut block = ir::Block::with_children(params.chain(children).collect());
             if let Some(recursive_ref) = recursive_ref {
                 let desugar_ref = ir::Ref::new(recursive_ref.name_hint());
                 block.children.insert(
