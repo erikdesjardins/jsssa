@@ -18,7 +18,7 @@ pub enum Mutable {}
 pub struct Ref<T: RefType>(Rc<RefInner<T>>);
 
 struct RefInner<T: RefType> {
-    id: u64,
+    id: usize,
     name_hint: JsWord,
     _t: PhantomData<T>,
 }
@@ -28,14 +28,14 @@ impl<T: RefType> Ref<T> {
         static ID_COUNTER: AtomicUsize = AtomicUsize::new(1);
 
         Ref(Rc::new(RefInner {
-            id: ID_COUNTER.fetch_add(1, Ordering::Relaxed) as u64,
+            id: ID_COUNTER.fetch_add(1, Ordering::Relaxed),
             name_hint: name_hint.into(),
             _t: PhantomData,
         }))
     }
 
     pub fn dead() -> Self {
-        Self::new("dead_")
+        Self::new("")
     }
 
     pub fn name_hint(&self) -> &JsWord {
@@ -74,6 +74,6 @@ impl<T: RefType> PartialEq for Ref<T> {
 
 impl<T: RefType> Hash for Ref<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        state.write_u64(self.0.id)
+        state.write_usize(self.0.id)
     }
 }

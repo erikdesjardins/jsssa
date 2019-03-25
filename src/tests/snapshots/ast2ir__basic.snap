@@ -1,5 +1,5 @@
 ---
-created: "2019-03-25T21:56:45.374674200Z"
+created: "2019-03-25T22:58:21.115956Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
 expression: "ast.map(ast2ir::convert)"
@@ -14,18 +14,15 @@ Ok(
                         is_async: false,
                         is_generator: false
                     },
-                    name: Some(
-                        Atom('f' type=inline)
-                    ),
                     body: Block {
                         children: [
                             Expr {
-                                target: Ref(33 'curfn_'),
+                                target: Ref(33 'f'),
                                 expr: CurrentFunction
                             },
                             DeclareMutable {
                                 target: Ref(2 'f'),
-                                val: Ref(33 'curfn_')
+                                val: Ref(33 'f')
                             },
                             Expr {
                                 target: Ref(34 'x'),

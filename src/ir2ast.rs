@@ -151,18 +151,20 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
             mut body,
         } => {
             let mut for_scope = scope.clone();
-            let var_name = match body.children.get(0) {
-                Some(ir::Stmt::Expr {
-                    target,
-                    expr: ir::Expr::Argument { index: 0 },
-                }) => {
-                    let name = for_scope.declare_ssa(target.clone());
-                    // drop this expr
-                    body.children.remove(0);
-                    name
-                }
-                _ => for_scope.declare_ssa(ir::Ref::dead()),
-            };
+            let mut var_name = None;
+            body.children
+                .drain_filter(|stmt| match stmt {
+                    ir::Stmt::Expr {
+                        target,
+                        expr: ir::Expr::Argument { index: 0 },
+                    } => {
+                        assert!(var_name.is_none(), "ForEach can only have one argument");
+                        var_name = Some(for_scope.declare_ssa(target.clone()));
+                        true
+                    }
+                    _ => false,
+                })
+                .for_each(drop);
             let left = ast::VarDeclOrPat::VarDecl(ast::VarDecl {
                 span: span(),
                 kind: ast::VarDeclKind::Var,
@@ -170,7 +172,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                     span: span(),
                     name: ast::Pat::Ident(ast::Ident {
                         span: span(),
-                        sym: var_name,
+                        sym: var_name.unwrap_or_else(|| for_scope.declare_ssa(ir::Ref::dead())),
                         type_ann: None,
                         optional: false,
                     }),
@@ -224,18 +226,20 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
             },
             handler: catch.map(|mut body| {
                 let mut catch_scope = scope.clone();
-                let param_name = match body.children.get(0) {
-                    Some(ir::Stmt::Expr {
-                        target,
-                        expr: ir::Expr::Argument { index: 0 },
-                    }) => {
-                        let name = catch_scope.declare_ssa(target.clone());
-                        // drop this expr
-                        body.children.remove(0);
-                        Some(name)
-                    }
-                    _ => None,
-                };
+                let mut param_name = None;
+                body.children
+                    .drain_filter(|stmt| match stmt {
+                        ir::Stmt::Expr {
+                            target,
+                            expr: ir::Expr::Argument { index: 0 },
+                        } => {
+                            assert!(param_name.is_none(), "Catch can only have one argument");
+                            param_name = Some(catch_scope.declare_ssa(target.clone()));
+                            true
+                        }
+                        _ => false,
+                    })
+                    .for_each(drop);
                 ast::CatchClause {
                     span: span(),
                     param: param_name.map(|param_name| {
@@ -449,7 +453,102 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
                 }),
             }
         }
-        ir::Expr::Function { kind, name, body } => unimplemented!(),
+        ir::Expr::Function { kind, mut body } => {
+            let mut fn_scope = scope.clone();
+
+            let mut fn_name = None;
+            body.children
+                .drain_filter(|stmt| match stmt {
+                    ir::Stmt::Expr {
+                        target,
+                        expr: ir::Expr::CurrentFunction,
+                    } => {
+                        assert!(
+                            fn_name.is_none(),
+                            "CurrentFunction can only be referenced once"
+                        );
+                        fn_name = Some(fn_scope.declare_ssa(target.clone()));
+                        true
+                    }
+                    _ => false,
+                })
+                .for_each(drop);
+
+            let mut params = body
+                .children
+                .drain_filter(|stmt| match stmt {
+                    ir::Stmt::Expr {
+                        target,
+                        expr: ir::Expr::Argument { index },
+                    } => true,
+                    _ => false,
+                })
+                .map(|arg_expr| match arg_expr {
+                    ir::Stmt::Expr {
+                        target,
+                        expr: ir::Expr::Argument { index },
+                    } => (target, index),
+                    _ => unreachable!(),
+                })
+                .fold(vec![], |mut param_refs, (target, index)| {
+                    // fill in gaps left by unreferenced params
+                    param_refs.resize_with(index + 1, ir::Ref::dead);
+                    param_refs[index] = target;
+                    param_refs
+                })
+                .into_iter()
+                .map(|param_ref| {
+                    let param_name = fn_scope.declare_ssa(param_ref);
+                    ast::Pat::Ident(ast::Ident {
+                        span: span(),
+                        sym: param_name,
+                        type_ann: None,
+                        optional: false,
+                    })
+                })
+                .collect();
+
+            let body = ast::BlockStmt {
+                span: span(),
+                stmts: convert_block(*body, &scope),
+            };
+
+            match kind {
+                ir::FnKind::Arrow { is_async } => {
+                    assert!(fn_name.is_none(), "arrow function cannot be named");
+                    ast::Expr::Arrow(ast::ArrowExpr {
+                        span: span(),
+                        params,
+                        body: ast::BlockStmtOrExpr::BlockStmt(body),
+                        is_async,
+                        is_generator: false,
+                        type_params: None,
+                        return_type: None,
+                    })
+                }
+                ir::FnKind::Func {
+                    is_async,
+                    is_generator,
+                } => ast::Expr::Fn(ast::FnExpr {
+                    ident: fn_name.map(|fn_name| ast::Ident {
+                        span: span(),
+                        sym: fn_name,
+                        type_ann: None,
+                        optional: false,
+                    }),
+                    function: ast::Function {
+                        span: span(),
+                        params,
+                        decorators: vec![],
+                        body: Some(body),
+                        is_async,
+                        is_generator,
+                        type_params: None,
+                        return_type: None,
+                    },
+                }),
+            }
+        }
         ir::Expr::CurrentFunction | ir::Expr::Argument { .. } => {
             unreachable!("CurrentFunction and Argument should be removed by convert_stmt")
         }

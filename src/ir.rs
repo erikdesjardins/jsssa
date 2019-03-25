@@ -142,12 +142,11 @@ pub enum Expr {
     },
     Function {
         kind: FnKind,
-        name: Option<JsWord>,
         body: Box<Block>,
     },
     CurrentFunction,
     Argument {
-        index: u64,
+        index: usize,
     },
 }
 

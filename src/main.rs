@@ -1,3 +1,4 @@
+#![feature(drain_filter)]
 #![allow(clippy::unneeded_field_pattern)]
 
 use std::io;

@@ -350,7 +350,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                     None => unreachable!("bodyless function type declaration"),
                 };
                 let ir::Block { children } = convert_block(body, &fn_scope);
-                let desugar_ref = ir::Ref::new("curfn_");
+                let desugar_ref = ir::Ref::new(recursive_ref.name_hint());
                 let cur_fn = vec![
                     ir::Stmt::Expr {
                         target: desugar_ref.clone(),
@@ -366,7 +366,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                     vec![
                         ir::Stmt::Expr {
                             target: param_ref.clone(),
-                            expr: ir::Expr::Argument { index: i as u64 },
+                            expr: ir::Expr::Argument { index: i },
                         },
                         ir::Stmt::DeclareMutable {
                             target: arg,
@@ -379,7 +379,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 );
                 let fn_ref = ir::Ref::new("fn_");
                 let fn_binding = ir::Ref::new(sym.clone());
-                scope.declare_mutable(sym.clone(), fn_binding.clone());
+                scope.declare_mutable(sym, fn_binding.clone());
                 vec![
                     ir::Stmt::Expr {
                         target: fn_ref.clone(),
@@ -388,7 +388,6 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                                 is_async,
                                 is_generator,
                             },
-                            name: Some(sym),
                             body: P(block),
                         },
                     },
@@ -488,7 +487,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 vec![
                     ir::Stmt::Expr {
                         target: param_ref.clone(),
-                        expr: ir::Expr::Argument { index: i as u64 },
+                        expr: ir::Expr::Argument { index: i },
                     },
                     ir::Stmt::DeclareMutable {
                         target: arg,
@@ -500,7 +499,6 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             assert!(!is_generator, "generator arrow function");
             let func = ir::Expr::Function {
                 kind: ir::FnKind::Arrow { is_async },
-                name: None,
                 body: P(body),
             };
             (vec![], func)
@@ -678,7 +676,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                 vec![
                                     ir::Stmt::Expr {
                                         target: param_ref.clone(),
-                                        expr: ir::Expr::Argument { index: i as u64 },
+                                        expr: ir::Expr::Argument { index: i },
                                     },
                                     ir::Stmt::DeclareMutable {
                                         target: arg,
@@ -694,7 +692,6 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                     is_async,
                                     is_generator,
                                 },
-                                name: None,
                                 body: P(body),
                             };
                             let ref_value = ir::Ref::new("value_");
@@ -726,23 +723,20 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     return_type: _,
                 },
         }) => {
-            let sym = ident.map(
-                |ast::Ident {
-                     sym,
-                     span: _,
-                     type_ann: _,
-                     optional: _,
-                 }| sym,
-            );
             let mut fn_scope = scope.clone();
             let param_refs = params
                 .into_iter()
                 .map(|param| convert_pattern(param, &mut fn_scope))
                 .collect::<Vec<_>>();
-            let recursive_ref = match &sym {
-                Some(sym) => {
+            let recursive_ref = match ident {
+                Some(ast::Ident {
+                    sym,
+                    span: _,
+                    type_ann: _,
+                    optional: _,
+                }) => {
                     let recursive_ref = ir::Ref::new(sym.clone());
-                    fn_scope.declare_mutable(sym.clone(), recursive_ref.clone());
+                    fn_scope.declare_mutable(sym, recursive_ref.clone());
                     Some(recursive_ref)
                 }
                 None => None,
@@ -757,7 +751,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 vec![
                     ir::Stmt::Expr {
                         target: param_ref.clone(),
-                        expr: ir::Expr::Argument { index: i as u64 },
+                        expr: ir::Expr::Argument { index: i },
                     },
                     ir::Stmt::DeclareMutable {
                         target: arg,
@@ -767,7 +761,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             });
             let mut block = ir::Block::with_children(params.into_iter().chain(children).collect());
             if let Some(recursive_ref) = recursive_ref {
-                let desugar_ref = ir::Ref::new("curfn_");
+                let desugar_ref = ir::Ref::new(recursive_ref.name_hint());
                 block.children.insert(
                     0,
                     ir::Stmt::Expr {
@@ -789,7 +783,6 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     is_async,
                     is_generator,
                 },
-                name: sym,
                 body: P(block),
             };
             (vec![], func)
