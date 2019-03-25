@@ -30,10 +30,8 @@ pub fn parse(_: &swc_globals::Initialized, js: impl Into<String>) -> Result<ast:
         None,
     );
 
-    let ast = parser.parse_script().map_err(|mut e| {
+    parser.parse_script().map_err(|mut e| {
         e.emit();
         unimplemented!("proper error reporting");
-    });
-
-    ast
+    })
 }
