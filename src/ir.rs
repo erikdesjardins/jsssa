@@ -61,7 +61,6 @@ pub enum Stmt {
     },
     ForEach {
         kind: ForKind,
-        var: Ref<Mutable>,
         init: Ref<SSA>,
         body: Box<Block>,
     },
@@ -72,7 +71,7 @@ pub enum Stmt {
     },
     Try {
         body: Box<Block>,
-        catch: Option<(Ref<Mutable>, Box<Block>)>,
+        catch: Option<Box<Block>>,
         finally: Option<Box<Block>>,
     },
 }
@@ -144,10 +143,12 @@ pub enum Expr {
     Function {
         kind: FnKind,
         name: Option<JsWord>,
-        params: Vec<Ref<Mutable>>,
         body: Box<Block>,
     },
     CurrentFunction,
+    Argument {
+        index: u64,
+    },
 }
 
 #[derive(Debug)]

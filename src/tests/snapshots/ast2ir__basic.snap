@@ -1,5 +1,5 @@
 ---
-created: "2019-03-15T23:32:23.050137500Z"
+created: "2019-03-25T21:56:45.374674200Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
 expression: "ast.map(ast2ir::convert)"
@@ -8,7 +8,7 @@ Ok(
     Block {
         children: [
             Expr {
-                target: Ref(34 'fn_'),
+                target: Ref(35 'fn_'),
                 expr: Function {
                     kind: Func {
                         is_async: false,
@@ -17,18 +17,25 @@ Ok(
                     name: Some(
                         Atom('f' type=inline)
                     ),
-                    params: [
-                        Ref(1 'x')
-                    ],
                     body: Block {
                         children: [
                             Expr {
                                 target: Ref(33 'curfn_'),
                                 expr: CurrentFunction
                             },
-                            WriteBinding {
+                            DeclareMutable {
                                 target: Ref(2 'f'),
                                 val: Ref(33 'curfn_')
+                            },
+                            Expr {
+                                target: Ref(34 'x'),
+                                expr: Argument {
+                                    index: 0
+                                }
+                            },
+                            DeclareMutable {
+                                target: Ref(1 'x'),
+                                val: Ref(34 'x')
                             },
                             Loop {
                                 body: Block {
@@ -72,7 +79,7 @@ Ok(
                                     prop: Ref(6 'prop_')
                                 }
                             },
-                            WriteBinding {
+                            WriteMutable {
                                 target: Ref(1 'x'),
                                 val: Ref(4 'val_')
                             },
@@ -96,7 +103,7 @@ Ok(
                             },
                             Expr {
                                 target: Ref(11 'test_'),
-                                expr: ReadBinding {
+                                expr: ReadMutable {
                                     source: Ref(1 'x')
                                 }
                             },
@@ -104,7 +111,7 @@ Ok(
                                 target: Ref(12 'undef_'),
                                 expr: Undefined
                             },
-                            WriteBinding {
+                            DeclareMutable {
                                 target: Ref(13 'value_'),
                                 val: Ref(12 'undef_')
                             },
@@ -115,10 +122,11 @@ Ok(
                                         Expr {
                                             target: Ref(14 'cons_'),
                                             expr: String {
-                                                value: Atom('hi' type=inline)
+                                                value: Atom('hi' type=inline),
+                                                has_escape: false
                                             }
                                         },
-                                        WriteBinding {
+                                        WriteMutable {
                                             target: Ref(13 'value_'),
                                             val: Ref(14 'cons_')
                                         }
@@ -132,7 +140,7 @@ Ok(
                                                 value: true
                                             }
                                         },
-                                        WriteBinding {
+                                        WriteMutable {
                                             target: Ref(13 'value_'),
                                             val: Ref(15 'alt_')
                                         }
@@ -141,7 +149,7 @@ Ok(
                             },
                             Expr {
                                 target: Ref(8 'val_'),
-                                expr: ReadBinding {
+                                expr: ReadMutable {
                                     source: Ref(13 'value_')
                                 }
                             },
@@ -162,7 +170,7 @@ Ok(
                                     value: 1.0
                                 }
                             },
-                            WriteBinding {
+                            DeclareMutable {
                                 target: Ref(21 'logi_'),
                                 val: Ref(20 'pred_')
                             },
@@ -175,11 +183,11 @@ Ok(
                                     children: [
                                         Expr {
                                             target: Ref(22 'cons_'),
-                                            expr: ReadBinding {
+                                            expr: ReadMutable {
                                                 source: Ref(1 'x')
                                             }
                                         },
-                                        WriteBinding {
+                                        WriteMutable {
                                             target: Ref(21 'logi_'),
                                             val: Ref(22 'cons_')
                                         }
@@ -188,19 +196,20 @@ Ok(
                             },
                             Expr {
                                 target: Ref(19 'ele_'),
-                                expr: ReadBinding {
+                                expr: ReadMutable {
                                     source: Ref(21 'logi_')
                                 }
                             },
                             Expr {
                                 target: Ref(24 'key_'),
                                 expr: String {
-                                    value: Atom('x' type=inline)
+                                    value: Atom('x' type=inline),
+                                    has_escape: false
                                 }
                             },
                             Expr {
                                 target: Ref(25 'value_'),
-                                expr: ReadBinding {
+                                expr: ReadMutable {
                                     source: Ref(1 'x')
                                 }
                             },
@@ -218,7 +227,7 @@ Ok(
                             },
                             Expr {
                                 target: Ref(27 'left_'),
-                                expr: ReadBinding {
+                                expr: ReadMutable {
                                     source: Ref(2 'f')
                                 }
                             },
@@ -311,18 +320,18 @@ Ok(
                     }
                 }
             },
-            WriteBinding {
-                target: Ref(<dead>),
-                val: Ref(34 'fn_')
+            DeclareMutable {
+                target: Ref(36 'f'),
+                val: Ref(35 'fn_')
             },
             Expr {
-                target: Ref(36 'fn_'),
-                expr: ReadGlobal {
-                    source: Atom('f' type=inline)
+                target: Ref(37 'fn_'),
+                expr: ReadMutable {
+                    source: Ref(36 'f')
                 }
             },
             Expr {
-                target: Ref(37 'arg_'),
+                target: Ref(38 'arg_'),
                 expr: Number {
                     value: 1.0
                 }
@@ -331,11 +340,11 @@ Ok(
                 target: Ref(<dead>),
                 expr: Call {
                     kind: Call,
-                    func: Ref(36 'fn_'),
+                    func: Ref(37 'fn_'),
                     args: [
                         (
                             Single,
-                            Ref(37 'arg_')
+                            Ref(38 'arg_')
                         )
                     ]
                 }

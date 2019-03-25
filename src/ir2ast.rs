@@ -147,11 +147,22 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
         }),
         ir::Stmt::ForEach {
             kind,
-            var,
             init,
-            body,
+            mut body,
         } => {
-            let var_name = scope.declare_mutable(var);
+            let mut for_scope = scope.clone();
+            let var_name = match body.children.get(0) {
+                Some(ir::Stmt::Expr {
+                    target,
+                    expr: ir::Expr::Argument { index: 0 },
+                }) => {
+                    let name = for_scope.declare_ssa(target.clone());
+                    // drop this expr
+                    body.children.remove(0);
+                    name
+                }
+                _ => for_scope.declare_ssa(ir::Ref::dead()),
+            };
             let left = ast::VarDeclOrPat::VarDecl(ast::VarDecl {
                 span: span(),
                 kind: ast::VarDeclKind::Var,
@@ -171,7 +182,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
             let right = P(read_ssa_to_expr(init, scope));
             let body = P(ast::Stmt::Block(ast::BlockStmt {
                 span: span(),
-                stmts: convert_block(*body, scope),
+                stmts: convert_block(*body, &for_scope),
             }));
             match kind {
                 ir::ForKind::In => ast::Stmt::ForIn(ast::ForInStmt {
@@ -211,20 +222,33 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 span: span(),
                 stmts: convert_block(*body, scope),
             },
-            handler: catch.map(|(param, body)| {
-                let mut body_scope = scope.clone();
-                let param_name = body_scope.declare_mutable(param);
+            handler: catch.map(|mut body| {
+                let mut catch_scope = scope.clone();
+                let param_name = match body.children.get(0) {
+                    Some(ir::Stmt::Expr {
+                        target,
+                        expr: ir::Expr::Argument { index: 0 },
+                    }) => {
+                        let name = catch_scope.declare_ssa(target.clone());
+                        // drop this expr
+                        body.children.remove(0);
+                        Some(name)
+                    }
+                    _ => None,
+                };
                 ast::CatchClause {
                     span: span(),
-                    param: Some(ast::Pat::Ident(ast::Ident {
-                        span: span(),
-                        sym: param_name,
-                        type_ann: None,
-                        optional: false,
-                    })),
+                    param: param_name.map(|param_name| {
+                        ast::Pat::Ident(ast::Ident {
+                            span: span(),
+                            sym: param_name,
+                            type_ann: None,
+                            optional: false,
+                        })
+                    }),
                     body: ast::BlockStmt {
                         span: span(),
-                        stmts: convert_block(*body, &body_scope),
+                        stmts: convert_block(*body, &catch_scope),
                     },
                 }
             }),
@@ -425,13 +449,10 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
                 }),
             }
         }
-        ir::Expr::Function {
-            kind,
-            name,
-            params,
-            body,
-        } => unimplemented!(),
-        ir::Expr::CurrentFunction => unimplemented!(),
+        ir::Expr::Function { kind, name, body } => unimplemented!(),
+        ir::Expr::CurrentFunction | ir::Expr::Argument { .. } => {
+            unreachable!("CurrentFunction and Argument should be removed by convert_stmt")
+        }
     }
 }
 

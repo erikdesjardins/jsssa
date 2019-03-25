@@ -137,7 +137,23 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                             None => unimplemented!("omitted catch binding not yet supported"),
                         };
                         let ref_ = convert_pattern(param, &mut catch_scope);
-                        (ref_, P(convert_block(stmts, &catch_scope)))
+                        let mut block = convert_block(stmts, &catch_scope);
+                        let desugar_param_ref = ir::Ref::new("catch_");
+                        block.children.insert(
+                            0,
+                            ir::Stmt::Expr {
+                                target: desugar_param_ref.clone(),
+                                expr: ir::Expr::Argument { index: 0 },
+                            },
+                        );
+                        block.children.insert(
+                            1,
+                            ir::Stmt::DeclareMutable {
+                                target: ref_,
+                                val: desugar_param_ref,
+                            },
+                        );
+                        P(block)
                     },
                 ),
                 finally: finalizer.map(|finalizer| {
@@ -277,10 +293,24 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                     unimplemented!("for in/of statements with complex initializers not supported");
                 }
             };
-            let body_stmts = convert_statement(*body, &mut body_scope);
+            let mut body_stmts = convert_statement(*body, &mut body_scope);
+            let desugar_param_ref = ir::Ref::new("for_");
+            body_stmts.insert(
+                0,
+                ir::Stmt::Expr {
+                    target: desugar_param_ref.clone(),
+                    expr: ir::Expr::Argument { index: 0 },
+                },
+            );
+            body_stmts.insert(
+                1,
+                ir::Stmt::DeclareMutable {
+                    target: ele_binding,
+                    val: desugar_param_ref,
+                },
+            );
             stmts.push(ir::Stmt::ForEach {
                 kind,
-                var: ele_binding,
                 init: right_ref,
                 body: P(ir::Block::with_children(body_stmts)),
             });
@@ -309,33 +339,43 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                     optional: _,
                 } = ident;
                 let mut fn_scope = scope.clone();
-                let refs = params
+                let param_refs = params
                     .into_iter()
                     .map(|param| convert_pattern(param, &mut fn_scope))
-                    .collect();
+                    .collect::<Vec<_>>();
                 let recursive_ref = ir::Ref::new(sym.clone());
                 fn_scope.declare_mutable(sym.clone(), recursive_ref.clone());
                 let body = match body {
                     Some(ast::BlockStmt { stmts, span: _ }) => stmts,
                     None => unreachable!("bodyless function type declaration"),
                 };
-                let mut block = convert_block(body, &fn_scope);
+                let ir::Block { children } = convert_block(body, &fn_scope);
                 let desugar_ref = ir::Ref::new("curfn_");
-                // todo this double writing (and below for FnExpr) may be unnecessary with improved binding support,
-                // since it can be brought into scope
-                block.children.insert(
-                    0,
+                let cur_fn = vec![
                     ir::Stmt::Expr {
                         target: desugar_ref.clone(),
                         expr: ir::Expr::CurrentFunction,
                     },
-                );
-                block.children.insert(
-                    1,
                     ir::Stmt::DeclareMutable {
                         target: recursive_ref,
                         val: desugar_ref,
                     },
+                ];
+                let params = param_refs.into_iter().enumerate().flat_map(|(i, arg)| {
+                    let param_ref = ir::Ref::new(arg.name_hint());
+                    vec![
+                        ir::Stmt::Expr {
+                            target: param_ref.clone(),
+                            expr: ir::Expr::Argument { index: i as u64 },
+                        },
+                        ir::Stmt::DeclareMutable {
+                            target: arg,
+                            val: param_ref,
+                        },
+                    ]
+                });
+                let block = ir::Block::with_children(
+                    cur_fn.into_iter().chain(params).chain(children).collect(),
                 );
                 let fn_ref = ir::Ref::new("fn_");
                 let fn_binding = ir::Ref::new(sym.clone());
@@ -349,7 +389,6 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                                 is_generator,
                             },
                             name: Some(sym),
-                            params: refs,
                             body: P(block),
                         },
                     },
@@ -424,11 +463,11 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             return_type: _,
         }) => {
             let mut fn_scope = scope.clone();
-            let refs = params
+            let param_refs = params
                 .into_iter()
                 .map(|param| convert_pattern(param, &mut fn_scope))
-                .collect();
-            let body = match body {
+                .collect::<Vec<_>>();
+            let ir::Block { children } = match body {
                 ast::BlockStmtOrExpr::BlockStmt(block) => {
                     let ast::BlockStmt { stmts, span: _ } = block;
                     convert_block(stmts, &fn_scope)
@@ -444,11 +483,24 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     ir::Block::with_children(stmts)
                 }
             };
+            let params = param_refs.into_iter().enumerate().flat_map(|(i, arg)| {
+                let param_ref = ir::Ref::new(arg.name_hint());
+                vec![
+                    ir::Stmt::Expr {
+                        target: param_ref.clone(),
+                        expr: ir::Expr::Argument { index: i as u64 },
+                    },
+                    ir::Stmt::DeclareMutable {
+                        target: arg,
+                        val: param_ref,
+                    },
+                ]
+            });
+            let body = ir::Block::with_children(params.chain(children).collect());
             assert!(!is_generator, "generator arrow function");
             let func = ir::Expr::Function {
                 kind: ir::FnKind::Arrow { is_async },
                 name: None,
-                params: refs,
                 body: P(body),
             };
             (vec![], func)
@@ -615,19 +667,34 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                             let param_refs = params
                                 .into_iter()
                                 .map(|param| convert_pattern(param, &mut fn_scope))
-                                .collect();
+                                .collect::<Vec<_>>();
                             let body = match block {
                                 Some(ast::BlockStmt { stmts, span: _ }) => stmts,
                                 None => unreachable!("object method/accessor without body"),
                             };
-                            let body = convert_block(body, &fn_scope);
+                            let ir::Block { children } = convert_block(body, &fn_scope);
+                            let params = param_refs.into_iter().enumerate().flat_map(|(i, arg)| {
+                                let param_ref = ir::Ref::new(arg.name_hint());
+                                vec![
+                                    ir::Stmt::Expr {
+                                        target: param_ref.clone(),
+                                        expr: ir::Expr::Argument { index: i as u64 },
+                                    },
+                                    ir::Stmt::DeclareMutable {
+                                        target: arg,
+                                        val: param_ref,
+                                    },
+                                ]
+                            });
+                            let body = ir::Block::with_children(
+                                params.into_iter().chain(children).collect(),
+                            );
                             let fn_value = ir::Expr::Function {
                                 kind: ir::FnKind::Func {
                                     is_async,
                                     is_generator,
                                 },
                                 name: None,
-                                params: param_refs,
                                 body: P(body),
                             };
                             let ref_value = ir::Ref::new("value_");
@@ -668,10 +735,10 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                  }| sym,
             );
             let mut fn_scope = scope.clone();
-            let refs = params
+            let param_refs = params
                 .into_iter()
                 .map(|param| convert_pattern(param, &mut fn_scope))
-                .collect();
+                .collect::<Vec<_>>();
             let recursive_ref = match &sym {
                 Some(sym) => {
                     let recursive_ref = ir::Ref::new(sym.clone());
@@ -684,7 +751,21 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 Some(ast::BlockStmt { stmts, span: _ }) => stmts,
                 None => unreachable!("bodyless function type declaration"),
             };
-            let mut block = convert_block(body, &fn_scope);
+            let ir::Block { children } = convert_block(body, &fn_scope);
+            let params = param_refs.into_iter().enumerate().flat_map(|(i, arg)| {
+                let param_ref = ir::Ref::new(arg.name_hint());
+                vec![
+                    ir::Stmt::Expr {
+                        target: param_ref.clone(),
+                        expr: ir::Expr::Argument { index: i as u64 },
+                    },
+                    ir::Stmt::DeclareMutable {
+                        target: arg,
+                        val: param_ref,
+                    },
+                ]
+            });
+            let mut block = ir::Block::with_children(params.into_iter().chain(children).collect());
             if let Some(recursive_ref) = recursive_ref {
                 let desugar_ref = ir::Ref::new("curfn_");
                 block.children.insert(
@@ -709,7 +790,6 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     is_generator,
                 },
                 name: sym,
-                params: refs,
                 body: P(block),
             };
             (vec![], func)
