@@ -20,6 +20,7 @@ fn main() {
     swc_globals::with(|g| {
         let ast = parse::parse(g, s).unwrap();
         let ir = ast2ir::convert(g, ast);
-        println!("{:#?}", ir);
+        let ast2 = ir2ast::convert(g, ir);
+        println!("{:#?}", ast2);
     });
 }
