@@ -1,357 +1,355 @@
 ---
-created: "2019-03-25T22:58:21.115956Z"
+created: "2019-03-25T23:45:43.236031500Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
-expression: "ast.map(ast2ir::convert)"
+expression: ir
 ---
-Ok(
-    Block {
-        children: [
-            Expr {
-                target: Ref(35 'fn_'),
-                expr: Function {
-                    kind: Func {
-                        is_async: false,
-                        is_generator: false
-                    },
-                    body: Block {
-                        children: [
-                            Expr {
-                                target: Ref(33 'f'),
-                                expr: CurrentFunction
-                            },
-                            DeclareMutable {
-                                target: Ref(2 'f'),
-                                val: Ref(33 'f')
-                            },
-                            Expr {
-                                target: Ref(34 'x'),
-                                expr: Argument {
-                                    index: 0
-                                }
-                            },
-                            DeclareMutable {
-                                target: Ref(1 'x'),
-                                val: Ref(34 'x')
-                            },
-                            Loop {
-                                body: Block {
-                                    children: [
-                                        Expr {
-                                            target: Ref(3 'while_'),
-                                            expr: Bool {
-                                                value: true
-                                            }
-                                        },
-                                        IfElse {
-                                            cond: Ref(3 'while_'),
-                                            cons: Block {
-                                                children: []
-                                            },
-                                            alt: Block {
-                                                children: [
-                                                    Break
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            Expr {
-                                target: Ref(5 'obj_'),
-                                expr: ReadGlobal {
-                                    source: Atom('y' type=inline)
-                                }
-                            },
-                            Expr {
-                                target: Ref(6 'prop_'),
-                                expr: ReadGlobal {
-                                    source: Atom('bar' type=inline)
-                                }
-                            },
-                            Expr {
-                                target: Ref(4 'val_'),
-                                expr: ReadMember {
-                                    obj: Ref(5 'obj_'),
-                                    prop: Ref(6 'prop_')
-                                }
-                            },
-                            WriteMutable {
-                                target: Ref(1 'x'),
-                                val: Ref(4 'val_')
-                            },
-                            Expr {
-                                target: Ref(<dead>),
-                                expr: Read {
-                                    source: Ref(4 'val_')
-                                }
-                            },
-                            Expr {
-                                target: Ref(9 'obj_'),
-                                expr: ReadGlobal {
-                                    source: Atom('z' type=inline)
-                                }
-                            },
-                            Expr {
-                                target: Ref(10 'prop_'),
-                                expr: ReadGlobal {
-                                    source: Atom('foo' type=inline)
-                                }
-                            },
-                            Expr {
-                                target: Ref(11 'test_'),
-                                expr: ReadMutable {
-                                    source: Ref(1 'x')
-                                }
-                            },
-                            Expr {
-                                target: Ref(12 'undef_'),
-                                expr: Undefined
-                            },
-                            DeclareMutable {
-                                target: Ref(13 'value_'),
-                                val: Ref(12 'undef_')
-                            },
-                            IfElse {
-                                cond: Ref(11 'test_'),
-                                cons: Block {
-                                    children: [
-                                        Expr {
-                                            target: Ref(14 'cons_'),
-                                            expr: String {
-                                                value: Atom('hi' type=inline),
-                                                has_escape: false
-                                            }
-                                        },
-                                        WriteMutable {
-                                            target: Ref(13 'value_'),
-                                            val: Ref(14 'cons_')
-                                        }
-                                    ]
-                                },
-                                alt: Block {
-                                    children: [
-                                        Expr {
-                                            target: Ref(15 'alt_'),
-                                            expr: Bool {
-                                                value: true
-                                            }
-                                        },
-                                        WriteMutable {
-                                            target: Ref(13 'value_'),
-                                            val: Ref(15 'alt_')
-                                        }
-                                    ]
-                                }
-                            },
-                            Expr {
-                                target: Ref(8 'val_'),
-                                expr: ReadMutable {
-                                    source: Ref(13 'value_')
-                                }
-                            },
-                            WriteMember {
-                                obj: Ref(9 'obj_'),
-                                prop: Ref(10 'prop_'),
-                                val: Ref(8 'val_')
-                            },
-                            Expr {
-                                target: Ref(<dead>),
-                                expr: Read {
-                                    source: Ref(8 'val_')
-                                }
-                            },
-                            Expr {
-                                target: Ref(20 'pred_'),
-                                expr: Number {
-                                    value: 1.0
-                                }
-                            },
-                            DeclareMutable {
-                                target: Ref(21 'logi_'),
-                                val: Ref(20 'pred_')
-                            },
-                            IfElse {
-                                cond: Ref(20 'pred_'),
-                                cons: Block {
-                                    children: []
-                                },
-                                alt: Block {
-                                    children: [
-                                        Expr {
-                                            target: Ref(22 'cons_'),
-                                            expr: ReadMutable {
-                                                source: Ref(1 'x')
-                                            }
-                                        },
-                                        WriteMutable {
-                                            target: Ref(21 'logi_'),
-                                            val: Ref(22 'cons_')
-                                        }
-                                    ]
-                                }
-                            },
-                            Expr {
-                                target: Ref(19 'ele_'),
-                                expr: ReadMutable {
-                                    source: Ref(21 'logi_')
-                                }
-                            },
-                            Expr {
-                                target: Ref(24 'key_'),
-                                expr: String {
-                                    value: Atom('x' type=inline),
-                                    has_escape: false
-                                }
-                            },
-                            Expr {
-                                target: Ref(25 'value_'),
-                                expr: ReadMutable {
-                                    source: Ref(1 'x')
-                                }
-                            },
-                            Expr {
-                                target: Ref(23 'ele_'),
-                                expr: Object {
-                                    props: [
-                                        (
-                                            Simple,
-                                            Ref(24 'key_'),
-                                            Ref(25 'value_')
-                                        )
-                                    ]
-                                }
-                            },
-                            Expr {
-                                target: Ref(27 'left_'),
-                                expr: ReadMutable {
-                                    source: Ref(2 'f')
-                                }
-                            },
-                            Expr {
-                                target: Ref(28 'right_'),
-                                expr: Number {
-                                    value: 1.0
-                                }
-                            },
-                            Expr {
-                                target: Ref(26 'ele_'),
-                                expr: Binary {
-                                    op: Add,
-                                    left: Ref(27 'left_'),
-                                    right: Ref(28 'right_')
-                                }
-                            },
-                            Expr {
-                                target: Ref(31 'read_'),
-                                expr: ReadGlobal {
-                                    source: Atom('g' type=inline)
-                                }
-                            },
-                            Expr {
-                                target: Ref(30 'one_'),
-                                expr: Number {
-                                    value: 1.0
-                                }
-                            },
-                            Expr {
-                                target: Ref(32 'write_'),
-                                expr: Binary {
-                                    op: Add,
-                                    left: Ref(31 'read_'),
-                                    right: Ref(30 'one_')
-                                }
-                            },
-                            WriteGlobal {
-                                target: Atom('g' type=inline),
-                                val: Ref(32 'write_')
-                            },
-                            Expr {
-                                target: Ref(29 'ele_'),
-                                expr: Read {
-                                    source: Ref(32 'write_')
-                                }
-                            },
-                            Expr {
-                                target: Ref(18 'unary_'),
-                                expr: Array {
-                                    elems: [
-                                        Some(
-                                            (
-                                                Single,
-                                                Ref(19 'ele_')
-                                            )
-                                        ),
-                                        Some(
-                                            (
-                                                Single,
-                                                Ref(23 'ele_')
-                                            )
-                                        ),
-                                        Some(
-                                            (
-                                                Single,
-                                                Ref(26 'ele_')
-                                            )
-                                        ),
-                                        Some(
-                                            (
-                                                Single,
-                                                Ref(29 'ele_')
-                                            )
-                                        )
-                                    ]
-                                }
-                            },
-                            Expr {
-                                target: Ref(17 'return_'),
-                                expr: Unary {
-                                    op: Plus,
-                                    val: Ref(18 'unary_')
-                                }
-                            },
-                            Return {
-                                val: Ref(17 'return_')
+Block {
+    children: [
+        Expr {
+            target: Ref(35 'fn_'),
+            expr: Function {
+                kind: Func {
+                    is_async: false,
+                    is_generator: false
+                },
+                body: Block {
+                    children: [
+                        Expr {
+                            target: Ref(33 'f'),
+                            expr: CurrentFunction
+                        },
+                        DeclareMutable {
+                            target: Ref(2 'f'),
+                            val: Ref(33 'f')
+                        },
+                        Expr {
+                            target: Ref(34 'x'),
+                            expr: Argument {
+                                index: 0
                             }
-                        ]
-                    }
-                }
-            },
-            DeclareMutable {
-                target: Ref(36 'f'),
-                val: Ref(35 'fn_')
-            },
-            Expr {
-                target: Ref(37 'fn_'),
-                expr: ReadMutable {
-                    source: Ref(36 'f')
-                }
-            },
-            Expr {
-                target: Ref(38 'arg_'),
-                expr: Number {
-                    value: 1.0
-                }
-            },
-            Expr {
-                target: Ref(<dead>),
-                expr: Call {
-                    kind: Call,
-                    func: Ref(37 'fn_'),
-                    args: [
-                        (
-                            Single,
-                            Ref(38 'arg_')
-                        )
+                        },
+                        DeclareMutable {
+                            target: Ref(1 'x'),
+                            val: Ref(34 'x')
+                        },
+                        Loop {
+                            body: Block {
+                                children: [
+                                    Expr {
+                                        target: Ref(3 'while_'),
+                                        expr: Bool {
+                                            value: true
+                                        }
+                                    },
+                                    IfElse {
+                                        cond: Ref(3 'while_'),
+                                        cons: Block {
+                                            children: []
+                                        },
+                                        alt: Block {
+                                            children: [
+                                                Break
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        Expr {
+                            target: Ref(5 'obj_'),
+                            expr: ReadGlobal {
+                                source: Atom('y' type=inline)
+                            }
+                        },
+                        Expr {
+                            target: Ref(6 'prop_'),
+                            expr: ReadGlobal {
+                                source: Atom('bar' type=inline)
+                            }
+                        },
+                        Expr {
+                            target: Ref(4 'val_'),
+                            expr: ReadMember {
+                                obj: Ref(5 'obj_'),
+                                prop: Ref(6 'prop_')
+                            }
+                        },
+                        WriteMutable {
+                            target: Ref(1 'x'),
+                            val: Ref(4 'val_')
+                        },
+                        Expr {
+                            target: Ref(<dead>),
+                            expr: Read {
+                                source: Ref(4 'val_')
+                            }
+                        },
+                        Expr {
+                            target: Ref(9 'obj_'),
+                            expr: ReadGlobal {
+                                source: Atom('z' type=inline)
+                            }
+                        },
+                        Expr {
+                            target: Ref(10 'prop_'),
+                            expr: ReadGlobal {
+                                source: Atom('foo' type=inline)
+                            }
+                        },
+                        Expr {
+                            target: Ref(11 'test_'),
+                            expr: ReadMutable {
+                                source: Ref(1 'x')
+                            }
+                        },
+                        Expr {
+                            target: Ref(12 'undef_'),
+                            expr: Undefined
+                        },
+                        DeclareMutable {
+                            target: Ref(13 'value_'),
+                            val: Ref(12 'undef_')
+                        },
+                        IfElse {
+                            cond: Ref(11 'test_'),
+                            cons: Block {
+                                children: [
+                                    Expr {
+                                        target: Ref(14 'cons_'),
+                                        expr: String {
+                                            value: Atom('hi' type=inline),
+                                            has_escape: false
+                                        }
+                                    },
+                                    WriteMutable {
+                                        target: Ref(13 'value_'),
+                                        val: Ref(14 'cons_')
+                                    }
+                                ]
+                            },
+                            alt: Block {
+                                children: [
+                                    Expr {
+                                        target: Ref(15 'alt_'),
+                                        expr: Bool {
+                                            value: true
+                                        }
+                                    },
+                                    WriteMutable {
+                                        target: Ref(13 'value_'),
+                                        val: Ref(15 'alt_')
+                                    }
+                                ]
+                            }
+                        },
+                        Expr {
+                            target: Ref(8 'val_'),
+                            expr: ReadMutable {
+                                source: Ref(13 'value_')
+                            }
+                        },
+                        WriteMember {
+                            obj: Ref(9 'obj_'),
+                            prop: Ref(10 'prop_'),
+                            val: Ref(8 'val_')
+                        },
+                        Expr {
+                            target: Ref(<dead>),
+                            expr: Read {
+                                source: Ref(8 'val_')
+                            }
+                        },
+                        Expr {
+                            target: Ref(20 'pred_'),
+                            expr: Number {
+                                value: 1.0
+                            }
+                        },
+                        DeclareMutable {
+                            target: Ref(21 'logi_'),
+                            val: Ref(20 'pred_')
+                        },
+                        IfElse {
+                            cond: Ref(20 'pred_'),
+                            cons: Block {
+                                children: []
+                            },
+                            alt: Block {
+                                children: [
+                                    Expr {
+                                        target: Ref(22 'cons_'),
+                                        expr: ReadMutable {
+                                            source: Ref(1 'x')
+                                        }
+                                    },
+                                    WriteMutable {
+                                        target: Ref(21 'logi_'),
+                                        val: Ref(22 'cons_')
+                                    }
+                                ]
+                            }
+                        },
+                        Expr {
+                            target: Ref(19 'ele_'),
+                            expr: ReadMutable {
+                                source: Ref(21 'logi_')
+                            }
+                        },
+                        Expr {
+                            target: Ref(24 'key_'),
+                            expr: String {
+                                value: Atom('x' type=inline),
+                                has_escape: false
+                            }
+                        },
+                        Expr {
+                            target: Ref(25 'value_'),
+                            expr: ReadMutable {
+                                source: Ref(1 'x')
+                            }
+                        },
+                        Expr {
+                            target: Ref(23 'ele_'),
+                            expr: Object {
+                                props: [
+                                    (
+                                        Simple,
+                                        Ref(24 'key_'),
+                                        Ref(25 'value_')
+                                    )
+                                ]
+                            }
+                        },
+                        Expr {
+                            target: Ref(27 'left_'),
+                            expr: ReadMutable {
+                                source: Ref(2 'f')
+                            }
+                        },
+                        Expr {
+                            target: Ref(28 'right_'),
+                            expr: Number {
+                                value: 1.0
+                            }
+                        },
+                        Expr {
+                            target: Ref(26 'ele_'),
+                            expr: Binary {
+                                op: Add,
+                                left: Ref(27 'left_'),
+                                right: Ref(28 'right_')
+                            }
+                        },
+                        Expr {
+                            target: Ref(31 'read_'),
+                            expr: ReadGlobal {
+                                source: Atom('g' type=inline)
+                            }
+                        },
+                        Expr {
+                            target: Ref(30 'one_'),
+                            expr: Number {
+                                value: 1.0
+                            }
+                        },
+                        Expr {
+                            target: Ref(32 'write_'),
+                            expr: Binary {
+                                op: Add,
+                                left: Ref(31 'read_'),
+                                right: Ref(30 'one_')
+                            }
+                        },
+                        WriteGlobal {
+                            target: Atom('g' type=inline),
+                            val: Ref(32 'write_')
+                        },
+                        Expr {
+                            target: Ref(29 'ele_'),
+                            expr: Read {
+                                source: Ref(32 'write_')
+                            }
+                        },
+                        Expr {
+                            target: Ref(18 'unary_'),
+                            expr: Array {
+                                elems: [
+                                    Some(
+                                        (
+                                            Single,
+                                            Ref(19 'ele_')
+                                        )
+                                    ),
+                                    Some(
+                                        (
+                                            Single,
+                                            Ref(23 'ele_')
+                                        )
+                                    ),
+                                    Some(
+                                        (
+                                            Single,
+                                            Ref(26 'ele_')
+                                        )
+                                    ),
+                                    Some(
+                                        (
+                                            Single,
+                                            Ref(29 'ele_')
+                                        )
+                                    )
+                                ]
+                            }
+                        },
+                        Expr {
+                            target: Ref(17 'return_'),
+                            expr: Unary {
+                                op: Plus,
+                                val: Ref(18 'unary_')
+                            }
+                        },
+                        Return {
+                            val: Ref(17 'return_')
+                        }
                     ]
                 }
-            },
-            Expr {
-                target: Ref(<dead>),
-                expr: Bool {
-                    value: true
-                }
             }
-        ]
-    }
-)
+        },
+        DeclareMutable {
+            target: Ref(36 'f'),
+            val: Ref(35 'fn_')
+        },
+        Expr {
+            target: Ref(37 'fn_'),
+            expr: ReadMutable {
+                source: Ref(36 'f')
+            }
+        },
+        Expr {
+            target: Ref(38 'arg_'),
+            expr: Number {
+                value: 1.0
+            }
+        },
+        Expr {
+            target: Ref(<dead>),
+            expr: Call {
+                kind: Call,
+                func: Ref(37 'fn_'),
+                args: [
+                    (
+                        Single,
+                        Ref(38 'arg_')
+                    )
+                ]
+            }
+        },
+        Expr {
+            target: Ref(<dead>),
+            expr: Bool {
+                value: true
+            }
+        }
+    ]
+}

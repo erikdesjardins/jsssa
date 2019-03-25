@@ -3,9 +3,10 @@ use swc_ecma_ast as ast;
 
 use crate::ir;
 use crate::ir::scope;
+use crate::swc_globals;
 use crate::utils::P;
 
-pub fn convert(ast: ast::Script) -> ir::Block {
+pub fn convert(_: &swc_globals::Initialized, ast: ast::Script) -> ir::Block {
     let ast::Script {
         shebang: _,
         body,
