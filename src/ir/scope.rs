@@ -52,6 +52,11 @@ impl Ir {
     }
 
     fn unique_name(&mut self, prefix: &str) -> JsWord {
+        let prefix = match prefix {
+            "" => "_",
+            _ => prefix,
+        };
+
         let mut hasher = DefaultHasher::new();
         prefix.hash(&mut hasher);
         let hash = hasher.finish();
@@ -100,5 +105,12 @@ mod tests {
         assert_eq!(p.unique_name("foo").as_ref(), "foo");
         assert_eq!(p.unique_name("foo").as_ref(), "foo$1");
         assert_eq!(p.unique_name("foo$1").as_ref(), "foo$1$0");
+    }
+
+    #[test]
+    fn empty_string() {
+        let mut p = Ir::default();
+        assert_eq!(p.unique_name("").as_ref(), "_");
+        assert_eq!(p.unique_name("").as_ref(), "_$1");
     }
 }
