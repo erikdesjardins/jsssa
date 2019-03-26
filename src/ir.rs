@@ -7,6 +7,7 @@ mod print;
 mod ref_;
 pub mod scope;
 
+#[derive(Debug)]
 pub struct Block {
     pub children: Vec<Stmt>,
 }
@@ -22,6 +23,7 @@ impl Block {
 }
 
 // todo allow inlined IR via Stmt<T> { ... val: T } and ssa ir is Stmt<Ref<SSA>>
+#[derive(Debug)]
 pub enum Stmt {
     Expr {
         target: Ref<SSA>,
@@ -76,6 +78,7 @@ pub enum Stmt {
     },
 }
 
+#[derive(Debug)]
 pub enum Expr {
     Bool {
         value: bool,
@@ -149,6 +152,7 @@ pub enum Expr {
     },
 }
 
+#[derive(Debug)]
 pub enum UnaryOp {
     Plus,
     Minus,
@@ -158,6 +162,7 @@ pub enum UnaryOp {
     Void,
 }
 
+#[derive(Debug)]
 pub enum BinaryOp {
     EqEq,
     NotEq,
@@ -183,32 +188,38 @@ pub enum BinaryOp {
     Instanceof,
 }
 
+#[derive(Debug)]
 pub enum ForKind {
     In,
     Of,
 }
 
+#[derive(Debug)]
 pub enum EleKind {
     Single,
     Spread,
 }
 
+#[derive(Debug)]
 pub enum PropKind {
     Simple,
     Get,
     Set,
 }
 
+#[derive(Debug)]
 pub enum CallKind {
     Call,
     New,
 }
 
+#[derive(Debug)]
 pub enum FnKind {
     Func { is_async: bool, is_generator: bool },
     Arrow { is_async: bool },
 }
 
+#[derive(Debug)]
 pub enum YieldKind {
     Single,
     Delegate,
