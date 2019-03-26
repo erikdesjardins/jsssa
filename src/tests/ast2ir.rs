@@ -1,4 +1,5 @@
 use crate::ast2ir;
+use crate::ir;
 use crate::parse;
 use crate::swc_globals;
 
@@ -9,7 +10,8 @@ macro_rules! case {
             swc_globals::with(|g| {
                 let (ast, _) = parse::parse(g, $string).unwrap();
                 let ir = ast2ir::convert(g, ast);
-                insta::assert_debug_snapshot_matches!(stringify!($name), ir);
+                let ppr = ir::print(g, &ir);
+                insta::assert_snapshot_matches!(stringify!($name), ppr);
             });
         }
     };

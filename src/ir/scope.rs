@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 
 use swc_atoms::JsWord;
 
-use super::{Mutable, Ref, SSA};
+use crate::ir::{Mutable, Ref, SSA};
 
 #[derive(Default, Clone)]
 pub struct Ast {
