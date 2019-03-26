@@ -338,7 +338,9 @@ impl<'b> WriteIndent<'b> {
     }
 
     fn start_line(&mut self) {
-        self.string.push('\n');
+        if !self.string.is_empty() {
+            self.string.push('\n');
+        }
         for _ in 0..self.spaces {
             self.string.push(' ');
         }

@@ -1,10 +1,9 @@
 ---
-created: "2019-03-26T05:52:02.211057700Z"
+created: "2019-03-26T21:14:10.912658500Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
 expression: ppr
 ---
-
 _fun = <function>:
     f = <current function>
     f$1 :- f
