@@ -1,4 +1,5 @@
 use if_chain::if_chain;
+use swc_atoms::JsWord;
 use swc_ecma_ast as ast;
 
 use crate::ir;
@@ -125,12 +126,12 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                     let ast::BlockStmt { stmts, span: _ } = block;
                     P(convert_block(stmts, scope))
                 },
-                catch: handler.map(
-                    |ast::CatchClause {
-                         param,
-                         body,
-                         span: _,
-                     }| {
+                catch: match handler {
+                    Some(ast::CatchClause {
+                        param,
+                        body,
+                        span: _,
+                    }) => {
                         let ast::BlockStmt { stmts, span: _ } = body;
                         let mut catch_scope = scope.clone();
                         let param = match param {
@@ -155,12 +156,13 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                             },
                         );
                         P(block)
-                    },
-                ),
-                finally: finalizer.map(|finalizer| {
-                    let ast::BlockStmt { stmts, span: _ } = finalizer;
-                    P(convert_block(stmts, scope))
-                }),
+                    }
+                    None => P(ir::Block::empty()),
+                },
+                finally: match finalizer {
+                    Some(ast::BlockStmt { stmts, span: _ }) => P(convert_block(stmts, scope)),
+                    None => P(ir::Block::empty()),
+                },
             };
             vec![try_]
         }
@@ -439,7 +441,17 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 ir::Expr::RegExp {
                     regex: value,
                     has_escape,
-                    flags: flags.map(|s| s.value),
+                    flags: match flags {
+                        Some(ast::Str {
+                            value,
+                            has_escape,
+                            span: _,
+                        }) => {
+                            assert!(!has_escape);
+                            value
+                        }
+                        None => JsWord::from(""),
+                    },
                 },
             ),
             ast::Lit::Null(ast::Null { span: _ }) => (vec![], ir::Expr::Null),

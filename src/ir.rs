@@ -71,8 +71,8 @@ pub enum Stmt {
     },
     Try {
         body: Box<Block>,
-        catch: Option<Box<Block>>,
-        finally: Option<Box<Block>>,
+        catch: Box<Block>,
+        finally: Box<Block>,
     },
 }
 
@@ -112,7 +112,7 @@ pub enum Expr {
     RegExp {
         regex: JsWord,
         has_escape: bool,
-        flags: Option<JsWord>,
+        flags: JsWord,
     },
     Unary {
         op: UnaryOp,

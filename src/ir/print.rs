@@ -114,16 +114,12 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
         } => {
             w.write_str("<try>:");
             print_block(&body, scope, &mut w.indented());
-            if let Some(catch) = catch {
-                w.start_line();
-                w.write_str("<catch>:");
-                print_block(&catch, scope, &mut w.indented());
-            }
-            if let Some(finally) = finally {
-                w.start_line();
-                w.write_str("<finally>:");
-                print_block(&finally, scope, &mut w.indented());
-            }
+            w.start_line();
+            w.write_str("<catch>:");
+            print_block(&catch, scope, &mut w.indented());
+            w.start_line();
+            w.write_str("<finally>:");
+            print_block(&finally, scope, &mut w.indented());
         }
     }
 }
@@ -203,9 +199,7 @@ fn print_expr<'a, 'b: 'a>(expr: &ir::Expr, scope: &scope::Ir, w: &'a mut WriteIn
             w.write_str("/");
             w.write_str(regex);
             w.write_str("/");
-            if let Some(flags) = flags {
-                w.write_str(flags);
-            }
+            w.write_str(flags);
         }
         ir::Expr::Unary { op, val } => {
             w.write_str(match op {

@@ -217,7 +217,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
         }),
         ir::Stmt::Try {
             body,
-            catch,
+            mut catch,
             finally,
         } => ast::Stmt::Try(ast::TryStmt {
             span: span(),
@@ -225,10 +225,11 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 span: span(),
                 stmts: convert_block(*body, scope),
             },
-            handler: catch.map(|mut body| {
+            handler: Some({
                 let mut catch_scope = scope.clone();
                 let mut param_name = None;
-                body.children
+                catch
+                    .children
                     .drain_filter(|stmt| match stmt {
                         ir::Stmt::Expr {
                             target,
@@ -253,13 +254,13 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                     }),
                     body: ast::BlockStmt {
                         span: span(),
-                        stmts: convert_block(*body, &catch_scope),
+                        stmts: convert_block(*catch, &catch_scope),
                     },
                 }
             }),
-            finalizer: finally.map(|body| ast::BlockStmt {
+            finalizer: Some(ast::BlockStmt {
                 span: span(),
-                stmts: convert_block(*body, scope),
+                stmts: convert_block(*finally, scope),
             }),
         }),
     }
@@ -358,9 +359,9 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
                 value: regex,
                 has_escape,
             },
-            flags: flags.map(|f| ast::Str {
+            flags: Some(ast::Str {
                 span: span(),
-                value: f,
+                value: flags,
                 has_escape: false,
             }),
         })),
