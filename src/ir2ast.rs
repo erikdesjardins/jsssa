@@ -7,7 +7,6 @@ use crate::swc_globals;
 use crate::utils::P;
 
 pub fn convert(_: &swc_globals::Initialized, ir: ir::Block) -> ast::Script {
-    // todo perform inlining at this stage? (i.e. scan backwards for all usages)
     let body = convert_block(ir, &scope::Ir::default());
     ast::Script {
         span: span(),
