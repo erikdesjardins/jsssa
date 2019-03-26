@@ -512,7 +512,7 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
 
             let body = ast::BlockStmt {
                 span: span(),
-                stmts: convert_block(*body, &scope),
+                stmts: convert_block(*body, &fn_scope),
             };
 
             match kind {
