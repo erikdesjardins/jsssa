@@ -19,10 +19,10 @@ fn main() {
     let mut js = String::new();
     io::stdin().read_to_string(&mut js).unwrap();
     swc_globals::with(|g| {
-        let ast = parse::parse(g, js).unwrap();
+        let (ast, files) = parse::parse(g, js).unwrap();
         let ir = ast2ir::convert(g, ast);
         let ast2 = ir2ast::convert(g, ir);
-        let js2 = emit::emit(g, ast2).unwrap();
+        let js2 = emit::emit(g, ast2, files).unwrap();
         println!("{}", js2);
     });
 }

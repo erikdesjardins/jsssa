@@ -6,7 +6,7 @@ macro_rules! case {
         #[test]
         fn $name() {
             swc_globals::with(|g| {
-                let ast = parse::parse(g, $string);
+                let (ast, _) = parse::parse(g, $string).unwrap();
                 insta::assert_debug_snapshot_matches!(stringify!($name), ast);
             });
         }

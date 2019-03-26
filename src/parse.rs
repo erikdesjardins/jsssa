@@ -11,7 +11,10 @@ use swc_ecma_parser::{Parser, Session, SourceFileInput, Syntax};
 use crate::swc_globals;
 
 /// Parse a given ES6+ script into SWC's AST.
-pub fn parse(_: &swc_globals::Initialized, js: impl Into<String>) -> Result<ast::Script, Error> {
+pub fn parse(
+    _: &swc_globals::Initialized,
+    js: impl Into<String>,
+) -> Result<(ast::Script, Arc<SourceMap>), Error> {
     let files = Arc::new(SourceMap::new(FilePathMapping::empty()));
 
     let session = Session {
@@ -30,8 +33,13 @@ pub fn parse(_: &swc_globals::Initialized, js: impl Into<String>) -> Result<ast:
         None,
     );
 
-    parser.parse_script().map_err(|mut e| {
-        e.emit();
-        unimplemented!("proper error reporting");
-    })
+    let ast = parser
+        .parse_script()
+        .map_err(|mut e| {
+            e.emit();
+            unimplemented!("proper error reporting")
+        })
+        .unwrap();
+
+    Ok((ast, files))
 }

@@ -1,4 +1,4 @@
-use crate::ast2ir;
+use crate::emit;
 use crate::parse;
 use crate::swc_globals;
 
@@ -7,9 +7,9 @@ macro_rules! case {
         #[test]
         fn $name() {
             swc_globals::with(|g| {
-                let (ast, _) = parse::parse(g, $string).unwrap();
-                let ir = ast2ir::convert(g, ast);
-                insta::assert_debug_snapshot_matches!(stringify!($name), ir);
+                let (ast, files) = parse::parse(g, $string).unwrap();
+                let js = emit::emit(g, ast, files).unwrap();
+                insta::assert_snapshot_matches!(stringify!($name), js);
             });
         }
     };
