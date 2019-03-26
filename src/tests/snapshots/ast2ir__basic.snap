@@ -1,62 +1,62 @@
 ---
-created: "2019-03-26T05:15:04.529519400Z"
+created: "2019-03-26T05:49:37.108566Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
 expression: ppr
 ---
 
-fn_ = <function>:
+_fun = <function>:
     f = <current function>
     f$1 :- f
     x = <argument 0>
     x$1 :- x
     <loop>:
-        while_ = true
-        <if> while_:
+        _whl = true
+        <if> _whl:
         <else>:
             <break>
-    obj_ = <global y>
-    prop_ = <global bar>
-    val_ = obj_[prop_]
-    x$1 <- val_
-    <dead> = val_
-    obj_$1 = <global z>
-    prop_$1 = <global foo>
-    test_ = x$1
-    undef_ = <void>
-    value_ :- undef_
-    <if> test_:
-        cons_ = "hi"
-        value_ <- cons_
+    _obj = <global y>
+    _prp = <global bar>
+    _val = _obj[_prp]
+    x$1 <- _val
+    <dead> = _val
+    _obj$1 = <global z>
+    _prp$1 = <global foo>
+    _tst = x$1
+    _udf = <void>
+    _val$1 :- _udf
+    <if> _tst:
+        _cns = "hi"
+        _val$1 <- _cns
     <else>:
-        alt_ = true
-        value_ <- alt_
-    val_$1 = value_
-    obj_$1[prop_$1] <- val_$1
-    <dead> = val_$1
-    pred_ = 1
-    logi_ :- pred_
-    <if> pred_:
+        _alt = true
+        _val$1 <- _alt
+    _val$2 = _val$1
+    _obj$1[_prp$1] <- _val$2
+    <dead> = _val$2
+    _prd = 1
+    _log :- _prd
+    <if> _prd:
     <else>:
-        cons_ = x$1
-        logi_ <- cons_
-    ele_ = logi_
-    key_ = "x"
-    value_$1 = x$1
-    ele_$1 = { [key_]: value_$1 }
-    left_ = f$1
-    right_ = 1
-    ele_$2 = left_ + right_
-    read_ = <global g>
-    one_ = 1
-    write_ = read_ + one_
-    <global g> <- write_
-    ele_$3 = write_
-    unary_ = [ele_, ele_$1, ele_$2, ele_$3]
-    return_ = +unary_
-    <return> return_
-f :- fn_
-fn_$1 = f
-arg_ = 1
-<dead> = fn_$1(arg_)
+        _cns = x$1
+        _log <- _cns
+    _ele = _log
+    _key = "x"
+    _val$3 = x$1
+    _ele$1 = { [_key]: _val$3 }
+    _lhs = f$1
+    _rhs = 1
+    _ele$2 = _lhs + _rhs
+    _rdr = <global g>
+    _one = 1
+    _wri = _rdr + _one
+    <global g> <- _wri
+    _ele$3 = _wri
+    _una = [_ele, _ele$1, _ele$2, _ele$3]
+    _ret = +_una
+    <return> _ret
+f :- _fun
+_fun$1 = f
+_arg = 1
+<dead> = _fun$1(_arg)
 <dead> = true

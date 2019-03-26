@@ -35,7 +35,7 @@ impl<T: RefType> Ref<T> {
     }
 
     pub fn dead() -> Self {
-        Self::new("")
+        Self::new("_")
     }
 
     pub fn name_hint(&self) -> &JsWord {

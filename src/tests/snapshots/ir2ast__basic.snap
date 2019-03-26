@@ -1,67 +1,67 @@
 ---
-created: "2019-03-26T05:41:29.303135700Z"
+created: "2019-03-26T05:49:37.108566Z"
 creator: insta@0.7.1
 source: src/tests/ir2ast.rs
 expression: js
 ---
-var fn_ = function f(x) {
+var _fun = function f(x) {
     var f$1 = f;
     var x$1 = x;
     while(true){
-        var while_ = true;
-        if (while_) {
+        var _whl = true;
+        if (_whl) {
         } else {
             break;
         }
     }
-    var obj_ = y;
-    var prop_ = bar;
-    var val_ = obj_[prop_];
-    x$1 = val_;
-    val_;
-    var obj_$1 = z;
-    var prop_$1 = foo;
-    var test_ = x$1;
-    var undef_ = void 0;
-    var value_ = undef_;
-    if (test_) {
-        var cons_ = 'hi';
-        value_ = cons_;
+    var _obj = y;
+    var _prp = bar;
+    var _val = _obj[_prp];
+    x$1 = _val;
+    _val;
+    var _obj$1 = z;
+    var _prp$1 = foo;
+    var _tst = x$1;
+    var _udf = void 0;
+    var _val$1 = _udf;
+    if (_tst) {
+        var _cns = 'hi';
+        _val$1 = _cns;
     } else {
-        var alt_ = true;
-        value_ = alt_;
+        var _alt = true;
+        _val$1 = _alt;
     }
-    var val_$1 = value_;
-    obj_$1[prop_$1] = val_$1;
-    val_$1;
-    var pred_ = 1;
-    var logi_ = pred_;
-    if (pred_) {
+    var _val$2 = _val$1;
+    _obj$1[_prp$1] = _val$2;
+    _val$2;
+    var _prd = 1;
+    var _log = _prd;
+    if (_prd) {
     } else {
-        var cons_ = x$1;
-        logi_ = cons_;
+        var _cns = x$1;
+        _log = _cns;
     }
-    var ele_ = logi_;
-    var key_ = 'x';
-    var value_$1 = x$1;
-    var ele_$1 = {
-        [key_]: value_$1
+    var _ele = _log;
+    var _key = 'x';
+    var _val$3 = x$1;
+    var _ele$1 = {
+        [_key]: _val$3
     };
-    var left_ = f$1;
-    var right_ = 1;
-    var ele_$2 = left_ + right_;
-    var read_ = g;
-    var one_ = 1;
-    var write_ = read_ + one_;
-    g = write_;
-    var ele_$3 = write_;
-    var unary_ = [ele_, ele_$1, ele_$2, ele_$3];
-    var return_ = +unary_;
-    return return_;
+    var _lhs = f$1;
+    var _rhs = 1;
+    var _ele$2 = _lhs + _rhs;
+    var _rdr = g;
+    var _one = 1;
+    var _wri = _rdr + _one;
+    g = _wri;
+    var _ele$3 = _wri;
+    var _una = [_ele, _ele$1, _ele$2, _ele$3];
+    var _ret = +_una;
+    return _ret;
 };
-var f = fn_;
-var fn_$1 = f;
-var arg_ = 1;
-fn_$1(arg_);
+var f = _fun;
+var _fun$1 = f;
+var _arg = 1;
+_fun$1(_arg);
 true;
 
