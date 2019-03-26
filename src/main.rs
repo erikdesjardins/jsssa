@@ -5,6 +5,7 @@ use std::io;
 use std::io::Read;
 
 mod ast2ir;
+mod emit;
 mod ir;
 mod ir2ast;
 mod parse;
@@ -15,12 +16,13 @@ mod utils;
 mod tests;
 
 fn main() {
-    let mut s = String::new();
-    io::stdin().read_to_string(&mut s).unwrap();
+    let mut js = String::new();
+    io::stdin().read_to_string(&mut js).unwrap();
     swc_globals::with(|g| {
-        let ast = parse::parse(g, s).unwrap();
+        let ast = parse::parse(g, js).unwrap();
         let ir = ast2ir::convert(g, ast);
         let ast2 = ir2ast::convert(g, ir);
-        println!("{:#?}", ast2);
+        let js2 = emit::emit(g, ast2).unwrap();
+        println!("{}", js2);
     });
 }
