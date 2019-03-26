@@ -84,7 +84,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 }))),
                 right: P(read_ssa_to_expr(val, scope)),
             }))),
-            None => unreachable!("writing to undeclared mutable ref"),
+            None => unreachable!("writing to undeclared mutable ref: {:?}", target),
         },
         ir::Stmt::WriteGlobal { target, val } => {
             ast::Stmt::Expr(P(ast::Expr::Assign(ast::AssignExpr {
@@ -295,7 +295,7 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
         ir::Expr::ReadMutable { source } => {
             let name = match scope.get_mutable(&source) {
                 Some(name) => name,
-                None => unreachable!("reading from undeclared mutable ref"),
+                None => unreachable!("reading from undeclared mutable ref: {:?}", source),
             };
             ast::Expr::Ident(ast::Ident {
                 span: span(),
@@ -560,7 +560,7 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
 fn read_ssa_to_expr(ssa_ref: ir::Ref<ir::SSA>, scope: &scope::Ir) -> ast::Expr {
     let name = match scope.get_ssa(&ssa_ref) {
         Some(name) => name,
-        None => unreachable!("reading from undeclared SSA ref"),
+        None => unreachable!("reading from undeclared SSA ref: {:?}", ssa_ref),
     };
     ast::Expr::Ident(ast::Ident {
         span: span(),
