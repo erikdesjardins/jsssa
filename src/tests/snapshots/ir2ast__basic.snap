@@ -1,5 +1,5 @@
 ---
-created: "2019-03-26T05:49:37.108566Z"
+created: "2019-03-26T21:25:00.601152600Z"
 creator: insta@0.7.1
 source: src/tests/ir2ast.rs
 expression: js
@@ -15,12 +15,12 @@ var _fun = function f(x) {
         }
     }
     var _obj = y;
-    var _prp = bar;
+    var _prp = 'bar';
     var _val = _obj[_prp];
     x$1 = _val;
     _val;
     var _obj$1 = z;
-    var _prp$1 = foo;
+    var _prp$1 = 'foo';
     var _tst = x$1;
     var _udf = void 0;
     var _val$1 = _udf;

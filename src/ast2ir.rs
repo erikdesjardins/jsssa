@@ -812,8 +812,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         let ast::MemberExpr {
                             obj,
                             prop,
-                            // todo we need to use this to avoid `foo.prop` becoming `foo[prop]`
-                            computed: _,
+                            computed,
                             span: _,
                         } = expr;
                         let obj_ref = ir::Ref::new("_obj");
@@ -823,7 +822,25 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                             expr: obj_value,
                         });
                         let prop_ref = ir::Ref::new("_prp");
-                        let (prop_stmts, prop_value) = convert_expression(*prop, scope);
+                        let (prop_stmts, prop_value) = if computed {
+                            convert_expression(*prop, scope)
+                        } else {
+                            match *prop {
+                                ast::Expr::Ident(ast::Ident {
+                                    sym,
+                                    span: _,
+                                    type_ann: _,
+                                    optional: _,
+                                }) => (
+                                    vec![],
+                                    ir::Expr::String {
+                                        value: sym,
+                                        has_escape: false,
+                                    },
+                                ),
+                                e => unreachable!("non-computed property is not an ident: {:?}", e),
+                            }
+                        };
                         stmts.extend(prop_stmts);
                         stmts.push(ir::Stmt::Expr {
                             target: prop_ref.clone(),
@@ -1047,8 +1064,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         ast::Expr::Member(ast::MemberExpr {
                             obj,
                             prop,
-                            // todo we need to use this to avoid `foo.prop` becoming `foo[prop]`
-                            computed: _,
+                            computed,
                             span: _,
                         }) => {
                             let obj_ref = ir::Ref::new("_obj");
@@ -1058,7 +1074,28 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                 target: obj_ref.clone(),
                                 expr: obj_value,
                             });
-                            let (prop_stmts, prop_value) = convert_expression(*prop, scope);
+                            let (prop_stmts, prop_value) = if computed {
+                                convert_expression(*prop, scope)
+                            } else {
+                                match *prop {
+                                    ast::Expr::Ident(ast::Ident {
+                                        sym,
+                                        span: _,
+                                        type_ann: _,
+                                        optional: _,
+                                    }) => (
+                                        vec![],
+                                        ir::Expr::String {
+                                            value: sym,
+                                            has_escape: false,
+                                        },
+                                    ),
+                                    e => unreachable!(
+                                        "non-computed property is not an ident: {:?}",
+                                        e
+                                    ),
+                                }
+                            };
                             stmts.extend(prop_stmts);
                             stmts.push(ir::Stmt::Expr {
                                 target: prop_ref.clone(),
@@ -1154,8 +1191,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
         ast::Expr::Member(ast::MemberExpr {
             obj,
             prop,
-            // todo we need to use this to avoid `foo.prop` becoming `foo[prop]`
-            computed: _,
+            computed,
             span: _,
         }) => {
             let obj_ref = ir::Ref::new("_obj");
@@ -1165,7 +1201,25 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 expr: obj_value,
             });
             let prop_ref = ir::Ref::new("_prp");
-            let (prop_stmts, prop_value) = convert_expression(*prop, scope);
+            let (prop_stmts, prop_value) = if computed {
+                convert_expression(*prop, scope)
+            } else {
+                match *prop {
+                    ast::Expr::Ident(ast::Ident {
+                        sym,
+                        span: _,
+                        type_ann: _,
+                        optional: _,
+                    }) => (
+                        vec![],
+                        ir::Expr::String {
+                            value: sym,
+                            has_escape: false,
+                        },
+                    ),
+                    e => unreachable!("non-computed property is not an ident: {:?}", e),
+                }
+            };
             stmts.extend(prop_stmts);
             stmts.push(ir::Stmt::Expr {
                 target: prop_ref.clone(),

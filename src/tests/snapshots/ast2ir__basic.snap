@@ -1,5 +1,5 @@
 ---
-created: "2019-03-26T21:14:10.912658500Z"
+created: "2019-03-26T21:25:00.601152600Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
 expression: ppr
@@ -15,12 +15,12 @@ _fun = <function>:
         <else>:
             <break>
     _obj = <global y>
-    _prp = <global bar>
+    _prp = "bar"
     _val = _obj[_prp]
     x$1 <- _val
     <dead> = _val
     _obj$1 = <global z>
-    _prp$1 = <global foo>
+    _prp$1 = "foo"
     _tst = x$1
     _udf = <void>
     _val$1 :- _udf

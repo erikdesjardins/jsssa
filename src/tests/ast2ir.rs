@@ -29,3 +29,15 @@ case!(
     f(1), true;
 "#
 );
+
+case!(
+    object_props,
+    r#"
+    o.x;
+    o[x];
+    o.x = 1;
+    o[x] = 1;
+    delete o.x;
+    delete o[x];
+"#
+);
