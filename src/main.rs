@@ -21,6 +21,10 @@ fn main() {
     swc_globals::with(|g| {
         let (ast, files) = parse::parse(g, js).unwrap();
         let ir = ast2ir::convert(g, ast);
+        println!("----------");
+        let ppr = ir::print(g, &ir);
+        println!("{}", ppr);
+        println!("----------");
         let ast2 = ir2ast::convert(g, ir);
         let js2 = emit::emit(g, ast2, files).unwrap();
         println!("{}", js2);

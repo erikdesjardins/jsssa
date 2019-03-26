@@ -2,7 +2,6 @@ use crate::ir;
 use crate::ir::scope;
 use crate::swc_globals;
 
-#[allow(dead_code)]
 pub fn print(_: &swc_globals::Initialized, ir: &ir::Block) -> String {
     let mut s = String::new();
     print_block(ir, &scope::Ir::default(), &mut WriteIndent::new(&mut s));
