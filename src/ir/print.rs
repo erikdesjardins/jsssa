@@ -203,10 +203,10 @@ fn print_expr<'a, 'b: 'a>(expr: &ir::Expr, scope: &scope::Ir, w: &'a mut WriteIn
         }
         ir::Expr::Unary { op, val } => {
             w.write_str(match op {
-                ir::UnaryOp::Plus => "+",
-                ir::UnaryOp::Minus => "-",
-                ir::UnaryOp::Not => "!",
-                ir::UnaryOp::Tilde => "!",
+                ir::UnaryOp::Plus => "+ ",
+                ir::UnaryOp::Minus => "- ",
+                ir::UnaryOp::Not => "! ",
+                ir::UnaryOp::Tilde => "! ",
                 ir::UnaryOp::Typeof => "<typeof> ",
                 ir::UnaryOp::Void => "<void> ",
             });

@@ -1,5 +1,5 @@
 ---
-created: "2019-03-26T05:49:37.108566Z"
+created: "2019-03-26T05:52:02.211057700Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
 expression: ppr
@@ -53,7 +53,7 @@ _fun = <function>:
     <global g> <- _wri
     _ele$3 = _wri
     _una = [_ele, _ele$1, _ele$2, _ele$3]
-    _ret = +_una
+    _ret = + _una
     <return> _ret
 f :- _fun
 _fun$1 = f
