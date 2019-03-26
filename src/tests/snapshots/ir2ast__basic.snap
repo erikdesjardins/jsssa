@@ -1,0 +1,67 @@
+---
+created: "2019-03-26T05:41:29.303135700Z"
+creator: insta@0.7.1
+source: src/tests/ir2ast.rs
+expression: js
+---
+var fn_ = function f(x) {
+    var f$1 = f;
+    var x$1 = x;
+    while(true){
+        var while_ = true;
+        if (while_) {
+        } else {
+            break;
+        }
+    }
+    var obj_ = y;
+    var prop_ = bar;
+    var val_ = obj_[prop_];
+    x$1 = val_;
+    val_;
+    var obj_$1 = z;
+    var prop_$1 = foo;
+    var test_ = x$1;
+    var undef_ = void 0;
+    var value_ = undef_;
+    if (test_) {
+        var cons_ = 'hi';
+        value_ = cons_;
+    } else {
+        var alt_ = true;
+        value_ = alt_;
+    }
+    var val_$1 = value_;
+    obj_$1[prop_$1] = val_$1;
+    val_$1;
+    var pred_ = 1;
+    var logi_ = pred_;
+    if (pred_) {
+    } else {
+        var cons_ = x$1;
+        logi_ = cons_;
+    }
+    var ele_ = logi_;
+    var key_ = 'x';
+    var value_$1 = x$1;
+    var ele_$1 = {
+        [key_]: value_$1
+    };
+    var left_ = f$1;
+    var right_ = 1;
+    var ele_$2 = left_ + right_;
+    var read_ = g;
+    var one_ = 1;
+    var write_ = read_ + one_;
+    g = write_;
+    var ele_$3 = write_;
+    var unary_ = [ele_, ele_$1, ele_$2, ele_$3];
+    var return_ = +unary_;
+    return return_;
+};
+var f = fn_;
+var fn_$1 = f;
+var arg_ = 1;
+fn_$1(arg_);
+true;
+
