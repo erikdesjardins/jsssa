@@ -13,12 +13,12 @@ pub struct Block {
 }
 
 impl Block {
-    pub fn empty() -> Self {
-        Self { children: vec![] }
+    pub fn new(children: Vec<Stmt>) -> Self {
+        Self { children }
     }
 
-    pub fn with_children(children: Vec<Stmt>) -> Self {
-        Self { children }
+    pub fn empty() -> Self {
+        Self { children: vec![] }
     }
 }
 
