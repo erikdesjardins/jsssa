@@ -3,11 +3,29 @@ use swc_ecma_ast as ast;
 
 use crate::ir;
 use crate::ir::scope;
+use crate::ir::visit;
+use crate::ir::visit::VisitorRun;
 use crate::swc_globals;
 use crate::utils::P;
 
 pub fn convert(_: &swc_globals::Initialized, ir: ir::Block) -> ast::Script {
-    let body = convert_block(ir, &scope::Ir::default());
+    let mut scope = scope::Ir::default();
+
+    visit::visitor_fn(|stmt| match stmt {
+        ir::Stmt::Expr {
+            target: _,
+            expr: ir::Expr::ReadGlobal { source: global },
+        }
+        | ir::Stmt::WriteGlobal {
+            target: global,
+            val: _,
+        } => scope.register_global(global),
+        _ => {}
+    })
+    .run_visitor(&ir);
+
+    let body = convert_block(ir, &scope);
+
     ast::Script {
         span: span(),
         body,

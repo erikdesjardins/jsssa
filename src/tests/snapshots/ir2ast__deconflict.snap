@@ -1,0 +1,15 @@
+---
+created: "2019-03-28T00:09:17.600301800Z"
+creator: insta@0.7.1
+source: src/tests/ir2ast.rs
+expression: js
+---
+var _ini = 1;
+var x = _ini;
+var _ini$1 = 1;
+var x$1 = _ini$1;
+function() {
+    var _ini$2 = 1;
+    var x$1$1 = _ini$2;
+};
+

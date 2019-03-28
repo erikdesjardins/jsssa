@@ -29,6 +29,13 @@ pub struct Ir {
 }
 
 impl Ir {
+    pub fn register_global(&mut self, name: &str) {
+        *self
+            .seen_prefix_hashes
+            .entry(self.hash_prefix(name))
+            .or_default() += 1;
+    }
+
     pub fn get_mutable(&self, ref_: &Ref<Mutable>) -> Option<JsWord> {
         self.mutable_names.get(ref_).cloned()
     }
@@ -51,29 +58,34 @@ impl Ir {
         name
     }
 
+    fn hash_prefix(&self, prefix: &str) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        prefix.hash(&mut hasher);
+        hasher.finish()
+    }
+
     fn unique_name(&mut self, prefix: &str) -> JsWord {
         let prefix = match prefix {
             "" => "_",
             _ => prefix,
         };
 
-        let mut hasher = DefaultHasher::new();
-        prefix.hash(&mut hasher);
-        let hash = hasher.finish();
-
         let suffix_counter = {
             // hash collisions are fine; we'll just end up being overly conservative
-            let counter = self.seen_prefix_hashes.entry(hash).or_default();
+            let counter = self
+                .seen_prefix_hashes
+                .entry(self.hash_prefix(prefix))
+                .or_default();
             let old_value = *counter;
             *counter += 1;
             old_value
         };
 
-        if suffix_counter == 0 && !prefix.contains('$') {
-            // if this prefix has never been seen and cannot conflict with a suffix, emit it directly
+        if suffix_counter == 0 {
+            // if this prefix has never been seen, emit it directly
             JsWord::from(prefix)
         } else {
-            JsWord::from(format!("{}${}", prefix, suffix_counter).as_str())
+            self.unique_name(&format!("{}${}", prefix, suffix_counter))
         }
     }
 }
@@ -95,8 +107,8 @@ mod tests {
     fn replacement_overlap1() {
         let mut p = Ir::default();
         assert_eq!(p.unique_name("foo").as_ref(), "foo");
-        assert_eq!(p.unique_name("foo$1").as_ref(), "foo$1$0");
-        assert_eq!(p.unique_name("foo").as_ref(), "foo$1");
+        assert_eq!(p.unique_name("foo$1").as_ref(), "foo$1");
+        assert_eq!(p.unique_name("foo").as_ref(), "foo$1$1");
     }
 
     #[test]
@@ -104,7 +116,7 @@ mod tests {
         let mut p = Ir::default();
         assert_eq!(p.unique_name("foo").as_ref(), "foo");
         assert_eq!(p.unique_name("foo").as_ref(), "foo$1");
-        assert_eq!(p.unique_name("foo$1").as_ref(), "foo$1$0");
+        assert_eq!(p.unique_name("foo$1").as_ref(), "foo$1$1");
     }
 
     #[test]

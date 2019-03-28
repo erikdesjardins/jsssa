@@ -31,3 +31,26 @@ case!(
     f(1), true;
 "#
 );
+
+case!(
+    deconflict,
+    r#"
+    var x = 1;
+    var x$1 = 1;
+    (function() {
+        var x = 1;
+    })
+"#
+);
+
+case!(
+    deconflict_globals,
+    r#"
+    var x = 1;
+    (function() {
+        var x = 1;
+        x$1;
+        x$2;
+    })
+"#
+);
