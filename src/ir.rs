@@ -6,6 +6,7 @@ pub use self::ref_::{Mutable, Ref, RefType, SSA};
 mod print;
 mod ref_;
 pub mod scope;
+pub mod visit;
 
 #[derive(Debug)]
 pub struct Block {
