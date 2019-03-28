@@ -6,12 +6,18 @@ use swc_atoms::JsWord;
 
 use crate::ir::{Mutable, Ref, SSA};
 
-#[derive(Default, Clone)]
+#[derive(Default)]
 pub struct Ast {
     ident_to_mut_ref: HashMap<JsWord, Ref<Mutable>>,
 }
 
 impl Ast {
+    pub fn nested(&self) -> Self {
+        Self {
+            ident_to_mut_ref: self.ident_to_mut_ref.clone(),
+        }
+    }
+
     pub fn get_mutable(&self, ident: &JsWord) -> Option<&Ref<Mutable>> {
         self.ident_to_mut_ref.get(ident)
     }
@@ -21,7 +27,7 @@ impl Ast {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Default)]
 pub struct Ir {
     seen_prefix_hashes: HashMap<u64, u64>,
     mutable_names: HashMap<Ref<Mutable>, JsWord>,
@@ -29,6 +35,14 @@ pub struct Ir {
 }
 
 impl Ir {
+    pub fn nested(&self) -> Self {
+        Self {
+            seen_prefix_hashes: self.seen_prefix_hashes.clone(),
+            mutable_names: self.mutable_names.clone(),
+            ssa_names: self.ssa_names.clone(),
+        }
+    }
+
     pub fn register_global(&mut self, name: &str) {
         *self
             .seen_prefix_hashes

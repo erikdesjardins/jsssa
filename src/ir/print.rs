@@ -13,7 +13,7 @@ fn print_block<'a, 'b: 'a>(
     parent_scope: &scope::Ir,
     w: &'a mut WriteIndent<'b>,
 ) {
-    let mut scope = parent_scope.clone();
+    let mut scope = parent_scope.nested();
 
     let ir::Block { children } = block;
 

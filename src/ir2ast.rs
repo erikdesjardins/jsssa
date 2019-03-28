@@ -34,7 +34,7 @@ pub fn convert(_: &swc_globals::Initialized, ir: ir::Block) -> ast::Script {
 }
 
 fn convert_block(block: ir::Block, parent_scope: &scope::Ir) -> Vec<ast::Stmt> {
-    let mut scope = parent_scope.clone();
+    let mut scope = parent_scope.nested();
 
     let ir::Block { children } = block;
 
@@ -168,7 +168,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
             init,
             mut body,
         } => {
-            let mut for_scope = scope.clone();
+            let mut for_scope = scope.nested();
             let mut var_name = None;
             body.children
                 .drain_filter(|stmt| match stmt {
@@ -243,7 +243,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 stmts: convert_block(*body, scope),
             },
             handler: Some({
-                let mut catch_scope = scope.clone();
+                let mut catch_scope = scope.nested();
                 let mut param_name = None;
                 catch
                     .children
@@ -473,7 +473,7 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
             }
         }
         ir::Expr::Function { kind, mut body } => {
-            let mut fn_scope = scope.clone();
+            let mut fn_scope = scope.nested();
 
             let mut fn_name = None;
             body.children

@@ -17,7 +17,7 @@ pub fn convert(_: &swc_globals::Initialized, ast: ast::Script) -> ir::Block {
 }
 
 fn convert_block(body: Vec<ast::Stmt>, parent_scope: &scope::Ast) -> ir::Block {
-    let mut scope = parent_scope.clone();
+    let mut scope = parent_scope.nested();
 
     let children = body
         .into_iter()
@@ -88,12 +88,12 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             stmts.push(ir::Stmt::IfElse {
                 cond: ref_,
                 cons: {
-                    let children = convert_statement(*cons, &mut scope.clone());
+                    let children = convert_statement(*cons, &mut scope.nested());
                     P(ir::Block::new(children))
                 },
                 alt: match alt {
                     Some(alternate) => {
-                        let children = convert_statement(*alternate, &mut scope.clone());
+                        let children = convert_statement(*alternate, &mut scope.nested());
                         P(ir::Block::new(children))
                     }
                     None => P(ir::Block::empty()),
@@ -133,7 +133,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                         span: _,
                     }) => {
                         let ast::BlockStmt { stmts, span: _ } = body;
-                        let mut catch_scope = scope.clone();
+                        let mut catch_scope = scope.nested();
                         let param = match param {
                             Some(param) => param,
                             None => unimplemented!("omitted catch binding not yet supported"),
@@ -191,7 +191,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 cons: P(ir::Block::empty()),
                 alt: P(ir::Block::new(vec![ir::Stmt::Break])),
             });
-            let body_stmts = convert_statement(*body, &mut scope.clone());
+            let body_stmts = convert_statement(*body, &mut scope.nested());
             let stmts = if prefix {
                 test_stmts.into_iter().chain(body_stmts)
             } else {
@@ -242,7 +242,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                         }
                         None => vec![],
                     };
-                    stmts.extend(convert_statement(*body, &mut scope.clone()));
+                    stmts.extend(convert_statement(*body, &mut scope.nested()));
                     if let Some(update) = update {
                         let (update_stmts, update_value) = convert_expression(*update, scope);
                         stmts.extend(update_stmts);
@@ -284,7 +284,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 target: right_ref.clone(),
                 expr: right_value,
             });
-            let mut body_scope = scope.clone();
+            let mut body_scope = scope.nested();
             let ele_binding = if_chain! {
                 // todo we're definitely gonna need to use `kind`
                 if let ast::VarDeclOrPat::VarDecl(ast::VarDecl { kind: _, decls, span: _, declare: _ }) = left;
@@ -341,7 +341,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                     type_ann: _,
                     optional: _,
                 } = ident;
-                let mut fn_scope = scope.clone();
+                let mut fn_scope = scope.nested();
                 let param_refs = params
                     .into_iter()
                     .map(|param| convert_pattern(param, &mut fn_scope))
@@ -473,7 +473,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             type_params: _,
             return_type: _,
         }) => {
-            let mut fn_scope = scope.clone();
+            let mut fn_scope = scope.nested();
             let param_refs = params
                 .into_iter()
                 .map(|param| convert_pattern(param, &mut fn_scope))
@@ -673,7 +673,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                 expr: key_value,
                             });
 
-                            let mut fn_scope = scope.clone();
+                            let mut fn_scope = scope.nested();
                             let param_refs = params
                                 .into_iter()
                                 .map(|param| convert_pattern(param, &mut fn_scope))
@@ -733,7 +733,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     return_type: _,
                 },
         }) => {
-            let mut fn_scope = scope.clone();
+            let mut fn_scope = scope.nested();
             let param_refs = params
                 .into_iter()
                 .map(|param| convert_pattern(param, &mut fn_scope))
