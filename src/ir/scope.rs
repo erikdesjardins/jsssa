@@ -22,8 +22,10 @@ impl Ast {
         self.ident_to_mut_ref.get(ident)
     }
 
-    pub fn declare_mutable(&mut self, ident: JsWord, ref_: Ref<Mutable>) {
-        self.ident_to_mut_ref.insert(ident, ref_);
+    pub fn declare_mutable(&mut self, ident: JsWord) -> Ref<Mutable> {
+        let ref_ = Ref::new(&ident);
+        self.ident_to_mut_ref.insert(ident, ref_.clone());
+        ref_
     }
 }
 

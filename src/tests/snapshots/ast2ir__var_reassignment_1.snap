@@ -1,0 +1,15 @@
+---
+created: "2019-03-29T05:36:34.963916800Z"
+creator: insta@0.7.1
+source: src/tests/ast2ir.rs
+expression: ppr
+---
+_ini = 1
+x :- _ini
+_ini$1 = 1
+y :- _ini$1
+<block>:
+    _ini$2 = 2
+    x <- _ini$2
+    _ini$3 = 2
+    y$1 :- _ini$3

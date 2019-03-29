@@ -41,3 +41,15 @@ case!(
     delete o[x];
 "#
 );
+
+case!(
+    var_reassignment_1,
+    r#"
+    var x = 1;
+    const y = 1;
+    {
+        var x = 2;
+        const y = 2;
+    }
+"#
+);
