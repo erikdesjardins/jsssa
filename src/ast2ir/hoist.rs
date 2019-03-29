@@ -149,18 +149,23 @@ fn hoist_variable_declaration(var_decl: &ast::VarDecl, scope: &mut scope::Ast) -
                      definite: _,
                  }| {
                     let name = pat_to_ident(name);
-                    let var_ref = scope.declare_mutable(name.clone());
-                    let init_ref = ir::Ref::new("_ini");
-                    vec![
-                        ir::Stmt::Expr {
-                            target: init_ref.clone(),
-                            expr: ir::Expr::Undefined,
-                        },
-                        ir::Stmt::DeclareMutable {
-                            target: var_ref,
-                            val: init_ref,
-                        },
-                    ]
+                    match scope.get_mutable_in_current(name) {
+                        None => {
+                            let var_ref = scope.declare_mutable(name.clone());
+                            let init_ref = ir::Ref::new("_ini");
+                            vec![
+                                ir::Stmt::Expr {
+                                    target: init_ref.clone(),
+                                    expr: ir::Expr::Undefined,
+                                },
+                                ir::Stmt::DeclareMutable {
+                                    target: var_ref,
+                                    val: init_ref,
+                                },
+                            ]
+                        }
+                        Some(_) => vec![],
+                    }
                 },
             )
             .collect(),

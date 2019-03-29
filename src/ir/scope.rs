@@ -10,18 +10,23 @@ use crate::ir::{Mutable, Ref, SSA};
 #[derive(Default)]
 pub struct Ast<'a> {
     ident_to_mut_ref: HashMap<JsWord, Ref<Mutable>>,
-    _freeze_parent_while_nested: PhantomData<&'a ()>,
+    parent: Option<&'a Ast<'a>>,
 }
 
-impl Ast<'_> {
-    pub fn nested(&self) -> Ast<'_> {
+impl<'a> Ast<'a> {
+    pub fn nested(&'a self) -> Ast<'a> {
         Self {
-            ident_to_mut_ref: self.ident_to_mut_ref.clone(),
-            _freeze_parent_while_nested: PhantomData,
+            ident_to_mut_ref: Default::default(),
+            parent: Some(self),
         }
     }
 
     pub fn get_mutable(&self, ident: &JsWord) -> Option<&Ref<Mutable>> {
+        self.get_mutable_in_current(ident)
+            .or_else(|| self.parent.and_then(|p| p.get_mutable_in_current(ident)))
+    }
+
+    pub fn get_mutable_in_current(&self, ident: &JsWord) -> Option<&Ref<Mutable>> {
         self.ident_to_mut_ref.get(ident)
     }
 

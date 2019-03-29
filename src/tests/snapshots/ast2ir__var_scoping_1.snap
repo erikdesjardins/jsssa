@@ -1,22 +1,18 @@
 ---
-created: "2019-03-29T07:15:11.879629600Z"
+created: "2019-03-29T07:31:26.646665700Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
 expression: "\n    var x = 1;\n    {\n        var x = 2;\n    }\n    x = 3;\n    var x = 4;\n"
 ---
 _ini = <void>
 x :- _ini
-_ini$1 = <void>
-x$1 :- _ini$1
-_ini$2 = <void>
-x$2 :- _ini$2
-_ini$3 = 1
-x$2 <- _ini$3
+_ini$1 = 1
+x <- _ini$1
 <block>:
-    _ini$4 = 2
-    x$2 <- _ini$4
+    _ini$2 = 2
+    x <- _ini$2
 _val = 3
-x$2 <- _val
+x <- _val
 <dead> = _val
-_ini$4 = 4
-x$2 <- _ini$4
+_ini$2 = 4
+x <- _ini$2
