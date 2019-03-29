@@ -24,7 +24,7 @@ pub fn parse(
         },
     };
 
-    let file = files.new_source_file(FileName::Custom("jsssa_filename.js".to_string()), js.into());
+    let file = files.new_source_file(FileName::Anon, js.into());
 
     let mut parser = Parser::new(
         session,
