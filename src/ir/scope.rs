@@ -1,7 +1,6 @@
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use std::marker::PhantomData;
 
 use swc_atoms::JsWord;
 
@@ -9,21 +8,21 @@ use crate::ir::{Mutable, Ref, SSA};
 
 #[derive(Default)]
 pub struct Ast<'a> {
-    ident_to_mut_ref: HashMap<JsWord, Ref<Mutable>>,
     parent: Option<&'a Ast<'a>>,
+    ident_to_mut_ref: HashMap<JsWord, Ref<Mutable>>,
 }
 
 impl<'a> Ast<'a> {
     pub fn nested(&'a self) -> Ast<'a> {
         Self {
-            ident_to_mut_ref: Default::default(),
             parent: Some(self),
+            ident_to_mut_ref: Default::default(),
         }
     }
 
     pub fn get_mutable(&self, ident: &JsWord) -> Option<&Ref<Mutable>> {
         self.get_mutable_in_current(ident)
-            .or_else(|| self.parent.and_then(|p| p.get_mutable_in_current(ident)))
+            .or_else(|| self.parent.and_then(|p| p.get_mutable(ident)))
     }
 
     pub fn get_mutable_in_current(&self, ident: &JsWord) -> Option<&Ref<Mutable>> {
@@ -39,19 +38,19 @@ impl<'a> Ast<'a> {
 
 #[derive(Default)]
 pub struct Ir<'a> {
+    parent: Option<&'a Ir<'a>>,
     seen_prefix_hashes: HashMap<u64, u64>,
     mutable_names: HashMap<Ref<Mutable>, JsWord>,
     ssa_names: HashMap<Ref<SSA>, JsWord>,
-    _freeze_parent_while_nested: PhantomData<&'a ()>,
 }
 
-impl Ir<'_> {
-    pub fn nested(&self) -> Ir<'_> {
+impl<'a> Ir<'a> {
+    pub fn nested(&'a self) -> Ir<'a> {
         Self {
-            seen_prefix_hashes: self.seen_prefix_hashes.clone(),
-            mutable_names: self.mutable_names.clone(),
-            ssa_names: self.ssa_names.clone(),
-            _freeze_parent_while_nested: PhantomData,
+            parent: Some(self),
+            seen_prefix_hashes: Default::default(),
+            mutable_names: Default::default(),
+            ssa_names: Default::default(),
         }
     }
 
@@ -63,7 +62,10 @@ impl Ir<'_> {
     }
 
     pub fn get_mutable(&self, ref_: &Ref<Mutable>) -> Option<JsWord> {
-        self.mutable_names.get(ref_).cloned()
+        self.mutable_names
+            .get(ref_)
+            .cloned()
+            .or_else(|| self.parent.and_then(|p| p.get_mutable(ref_)))
     }
 
     pub fn declare_mutable(&mut self, ref_: Ref<Mutable>) -> JsWord {
@@ -74,7 +76,10 @@ impl Ir<'_> {
     }
 
     pub fn get_ssa(&self, ref_: &Ref<SSA>) -> Option<JsWord> {
-        self.ssa_names.get(ref_).cloned()
+        self.ssa_names
+            .get(ref_)
+            .cloned()
+            .or_else(|| self.parent.and_then(|p| p.get_ssa(ref_)))
     }
 
     pub fn declare_ssa(&mut self, ref_: Ref<SSA>) -> JsWord {
@@ -90,6 +95,13 @@ impl Ir<'_> {
         hasher.finish()
     }
 
+    fn get_prefix_hash_count(&self, hash: u64) -> Option<u64> {
+        self.seen_prefix_hashes
+            .get(&hash)
+            .cloned()
+            .or_else(|| self.parent.and_then(|p| p.get_prefix_hash_count(hash)))
+    }
+
     fn unique_name(&mut self, prefix: &str) -> JsWord {
         let prefix = match prefix {
             "" => "_",
@@ -98,12 +110,9 @@ impl Ir<'_> {
 
         let suffix_counter = {
             // hash collisions are fine; we'll just end up being overly conservative
-            let counter = self
-                .seen_prefix_hashes
-                .entry(self.hash_prefix(prefix))
-                .or_default();
-            let old_value = *counter;
-            *counter += 1;
+            let hash = self.hash_prefix(prefix);
+            let old_value = self.get_prefix_hash_count(hash).unwrap_or(0);
+            self.seen_prefix_hashes.insert(hash, old_value + 1);
             old_value
         };
 

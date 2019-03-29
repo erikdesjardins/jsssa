@@ -43,6 +43,18 @@ case!(
 );
 
 case!(
+    deep_scopes,
+    r#"
+    var x = 1;
+    (function() {
+        (function() {
+            x = 2;
+        });
+    });
+"#
+);
+
+case!(
     var_reassignment_1,
     r#"
     var x = 1;

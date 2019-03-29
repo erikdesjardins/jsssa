@@ -33,6 +33,18 @@ case!(
 );
 
 case!(
+    deep_scopes,
+    r#"
+    var x = 1;
+    (function() {
+        (function() {
+            x = 2;
+        });
+    });
+"#
+);
+
+case!(
     deconflict,
     r#"
     var x = 1;
