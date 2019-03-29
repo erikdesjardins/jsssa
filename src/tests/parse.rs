@@ -25,3 +25,11 @@ case!(
     f(1), true;
 "#
 );
+
+#[test]
+fn parse_error() {
+    swc_globals::with(|g| {
+        let err = parse::parse(g, "var ab-cd = 1;").err().unwrap();
+        insta::assert_display_snapshot_matches!("parse error", err);
+    });
+}

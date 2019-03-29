@@ -1,0 +1,13 @@
+---
+created: "2019-03-29T22:18:49.230981900Z"
+creator: insta@0.7.1
+source: src/tests/parse.rs
+expression: err
+---
+error: Expected Semi, got Some(BinOp(Sub))
+ --> <anon>:1:7
+  |
+1 | var ab-cd = 1;
+  |       ^
+
+
