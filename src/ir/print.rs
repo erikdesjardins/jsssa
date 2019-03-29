@@ -88,10 +88,10 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
             print_block(&body, scope, &mut w.indented());
         }
         ir::Stmt::ForEach { kind, init, body } => {
-            w.write_str("<foreach>");
+            w.write_str("<foreach");
             w.write_str(match kind {
-                ir::ForKind::In => " <in> ",
-                ir::ForKind::Of => " <of> ",
+                ir::ForKind::In => " in> ",
+                ir::ForKind::Of => " of> ",
             });
             print_ssa(init, scope, w);
             w.write_str(":");
