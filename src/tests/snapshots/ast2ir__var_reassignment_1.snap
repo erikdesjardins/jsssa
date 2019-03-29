@@ -1,15 +1,19 @@
 ---
-created: "2019-03-29T05:36:34.963916800Z"
+created: "2019-03-29T07:15:11.879629600Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
-expression: ppr
+expression: "\n    var x = 1;\n    const y = 1;\n    {\n        var x = 2;\n        const y = 2;\n    }\n"
 ---
-_ini = 1
+_ini = <void>
 x :- _ini
-_ini$1 = 1
-y :- _ini$1
+_ini$1 = <void>
+x$1 :- _ini$1
+_ini$2 = 1
+x$1 <- _ini$2
+_ini$3 = 1
+y :- _ini$3
 <block>:
-    _ini$2 = 2
-    x <- _ini$2
-    _ini$3 = 2
-    y$1 :- _ini$3
+    _ini$4 = 2
+    x$1 <- _ini$4
+    _ini$5 = 2
+    y$1 :- _ini$5

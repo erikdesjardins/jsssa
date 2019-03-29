@@ -7,24 +7,34 @@ use crate::ir::scope;
 use crate::swc_globals;
 use crate::utils::P;
 
+use self::hoist::ShouldHoist;
+
+mod hoist;
+
 pub fn convert(_: &swc_globals::Initialized, ast: ast::Script) -> ir::Block {
     let ast::Script {
         shebang: _,
         body,
         span: _,
     } = ast;
-    convert_block(body, &scope::Ast::default())
+    convert_block(body, &scope::Ast::default(), ShouldHoist::Yes)
 }
 
-fn convert_block(body: Vec<ast::Stmt>, parent_scope: &scope::Ast) -> ir::Block {
+fn convert_block(body: Vec<ast::Stmt>, parent_scope: &scope::Ast, hoist: ShouldHoist) -> ir::Block {
     let mut scope = parent_scope.nested();
 
-    let children = body
-        .into_iter()
-        .flat_map(|stmt| convert_statement(stmt, &mut scope))
-        .collect();
+    let mut stmts = match hoist {
+        ShouldHoist::Yes => hoist::hoist_block(&body, &mut scope),
+        ShouldHoist::No => vec![],
+    };
 
-    ir::Block { children }
+    let body_stmts = body
+        .into_iter()
+        .flat_map(|stmt| convert_statement(stmt, &mut scope));
+
+    stmts.extend(body_stmts);
+
+    ir::Block::new(stmts)
 }
 
 fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
@@ -38,7 +48,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             stmts
         }
         ast::Stmt::Block(ast::BlockStmt { stmts, span: _ }) => vec![ir::Stmt::Block {
-            body: P(convert_block(stmts, scope)),
+            body: P(convert_block(stmts, scope, ShouldHoist::No)),
         }],
         ast::Stmt::Empty(ast::EmptyStmt { span: _ }) => vec![],
         ast::Stmt::Debugger(ast::DebuggerStmt { span: _ }) => vec![ir::Stmt::Debugger],
@@ -124,7 +134,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             let try_ = ir::Stmt::Try {
                 body: {
                     let ast::BlockStmt { stmts, span: _ } = block;
-                    P(convert_block(stmts, scope))
+                    P(convert_block(stmts, scope, ShouldHoist::No))
                 },
                 catch: match handler {
                     Some(ast::CatchClause {
@@ -151,14 +161,17 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                                 val: arg_ref,
                             },
                         ];
-                        let ir::Block { children } = convert_block(stmts, &catch_scope);
+                        let ir::Block { children } =
+                            convert_block(stmts, &catch_scope, ShouldHoist::No);
                         let body = args.into_iter().chain(children).collect();
                         P(ir::Block::new(body))
                     }
                     None => P(ir::Block::empty()),
                 },
                 finally: match finalizer {
-                    Some(ast::BlockStmt { stmts, span: _ }) => P(convert_block(stmts, scope)),
+                    Some(ast::BlockStmt { stmts, span: _ }) => {
+                        P(convert_block(stmts, scope, ShouldHoist::No))
+                    }
                     None => P(ir::Block::empty()),
                 },
             };
@@ -301,22 +314,13 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                     expr: ir::Expr::Argument { index: 0 },
                 },
                 match ele_kind {
-                    ast::VarDeclKind::Var => {
-                        match for_scope.get_mutable(&ele_name) {
-                            Some(binding) => ir::Stmt::WriteMutable {
-                                target: binding.clone(),
-                                val: arg_ref,
-                            },
-                            None => {
-                                // todo this will become unreachable
-                                let var_ref = for_scope.declare_mutable(ele_name);
-                                ir::Stmt::DeclareMutable {
-                                    target: var_ref,
-                                    val: arg_ref,
-                                }
-                            }
-                        }
-                    }
+                    ast::VarDeclKind::Var => match for_scope.get_mutable(&ele_name) {
+                        Some(binding) => ir::Stmt::WriteMutable {
+                            target: binding.clone(),
+                            val: arg_ref,
+                        },
+                        None => unreachable!("foreach var not hoisted: {:?}", ele_name),
+                    },
                     ast::VarDeclKind::Let | ast::VarDeclKind::Const => {
                         let ele_ref = for_scope.declare_mutable(ele_name);
                         ir::Stmt::DeclareMutable {
@@ -393,7 +397,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                     Some(ast::BlockStmt { stmts, span: _ }) => stmts,
                     None => unreachable!("bodyless function type declaration"),
                 };
-                let ir::Block { children } = convert_block(body, &fn_scope);
+                let ir::Block { children } = convert_block(body, &fn_scope, ShouldHoist::Yes);
                 let block = cur_fn.into_iter().chain(params).chain(children).collect();
                 let fn_ref = ir::Ref::new("_fun");
                 let fn_binding = scope.declare_mutable(sym);
@@ -532,7 +536,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             let ir::Block { children } = match body {
                 ast::BlockStmtOrExpr::BlockStmt(block) => {
                     let ast::BlockStmt { stmts, span: _ } = block;
-                    convert_block(stmts, &fn_scope)
+                    convert_block(stmts, &fn_scope, ShouldHoist::Yes)
                 }
                 ast::BlockStmtOrExpr::Expr(expr) => {
                     let ref_ = ir::Ref::new("_arr");
@@ -714,7 +718,8 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                 Some(ast::BlockStmt { stmts, span: _ }) => stmts,
                                 None => unreachable!("object method/accessor without body"),
                             };
-                            let ir::Block { children } = convert_block(body, &fn_scope);
+                            let ir::Block { children } =
+                                convert_block(body, &fn_scope, ShouldHoist::Yes);
                             let block = params.into_iter().chain(children).collect();
                             let fn_value = ir::Expr::Function {
                                 kind: ir::FnKind::Func {
@@ -798,7 +803,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 Some(ast::BlockStmt { stmts, span: _ }) => stmts,
                 None => unreachable!("bodyless function type declaration"),
             };
-            let ir::Block { children } = convert_block(body, &fn_scope);
+            let ir::Block { children } = convert_block(body, &fn_scope, ShouldHoist::Yes);
             let block = cur_fn.into_iter().chain(params).chain(children).collect();
             let func = ir::Expr::Function {
                 kind: ir::FnKind::Func {
@@ -1422,22 +1427,13 @@ fn convert_variable_declaration(var_decl: ast::VarDecl, scope: &mut scope::Ast) 
         }
         let name = pat_to_ident(name);
         match kind {
-            ast::VarDeclKind::Var => {
-                match scope.get_mutable(&name) {
-                    Some(binding) => stmts.push(ir::Stmt::WriteMutable {
-                        target: binding.clone(),
-                        val: init_ref,
-                    }),
-                    None => {
-                        // todo this will become unreachable
-                        let var_ref = scope.declare_mutable(name);
-                        stmts.push(ir::Stmt::DeclareMutable {
-                            target: var_ref,
-                            val: init_ref,
-                        });
-                    }
-                }
-            }
+            ast::VarDeclKind::Var => match scope.get_mutable(&name) {
+                Some(binding) => stmts.push(ir::Stmt::WriteMutable {
+                    target: binding.clone(),
+                    val: init_ref,
+                }),
+                None => unreachable!("var not hoisted: {:?}", name),
+            },
             ast::VarDeclKind::Let | ast::VarDeclKind::Const => {
                 let var_ref = scope.declare_mutable(name);
                 stmts.push(ir::Stmt::DeclareMutable {

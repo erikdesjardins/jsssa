@@ -53,3 +53,61 @@ case!(
     }
 "#
 );
+
+case!(
+    var_reassignment_2,
+    r#"
+    var x = 1;
+    const y = 1;
+    (function() {
+        var x = 2;
+        const y = 2;
+    });
+"#
+);
+
+case!(
+    var_scoping_1,
+    r#"
+    var x = 1;
+    {
+        var x = 2;
+    }
+    x = 3;
+    var x = 4;
+"#
+);
+
+case!(
+    var_scoping_2,
+    r#"
+    var x = 1;
+    {
+        let x = 2;
+        x = 3;
+    }
+    x = 4;
+"#
+);
+
+case!(
+    var_hoisting_1,
+    r#"
+    x = 1;
+    {
+        var x = 2;
+    }
+    x = 3;
+"#
+);
+
+case!(
+    var_hoisting_2,
+    r#"
+    x = 1;
+    {
+        for (var x of 2);
+    }
+    x = 3;
+"#
+);

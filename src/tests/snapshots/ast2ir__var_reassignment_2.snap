@@ -1,0 +1,19 @@
+---
+created: "2019-03-29T07:15:11.879629600Z"
+creator: insta@0.7.1
+source: src/tests/ast2ir.rs
+expression: "\n    var x = 1;\n    const y = 1;\n    (function() {\n        var x = 2;\n        const y = 2;\n    });\n"
+---
+_ini = <void>
+x :- _ini
+_ini$1 = 1
+x <- _ini$1
+_ini$2 = 1
+y :- _ini$2
+<dead> = <function>:
+    _ini$3 = <void>
+    x$1 :- _ini$3
+    _ini$4 = 2
+    x$1 <- _ini$4
+    _ini$5 = 2
+    y$1 :- _ini$5
