@@ -15,7 +15,7 @@ fn print_block<'a, 'b: 'a>(
 ) {
     let mut scope = parent_scope.nested();
 
-    let ir::Block { children } = block;
+    let ir::Block(children) = block;
 
     for stmt in children {
         w.start_line();

@@ -9,19 +9,7 @@ pub mod scope;
 pub mod visit;
 
 #[derive(Debug)]
-pub struct Block {
-    pub children: Vec<Stmt>,
-}
-
-impl Block {
-    pub fn new(children: Vec<Stmt>) -> Self {
-        Self { children }
-    }
-
-    pub fn empty() -> Self {
-        Self { children: vec![] }
-    }
-}
+pub struct Block(pub Vec<Stmt>);
 
 #[derive(Debug)]
 pub enum Stmt {

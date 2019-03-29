@@ -34,7 +34,7 @@ fn convert_block(body: Vec<ast::Stmt>, parent_scope: &scope::Ast, hoist: ShouldH
 
     stmts.extend(body_stmts);
 
-    ir::Block::new(stmts)
+    ir::Block(stmts)
 }
 
 fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
@@ -99,14 +99,14 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 cond: ref_,
                 cons: {
                     let children = convert_statement(*cons, &mut scope.nested());
-                    P(ir::Block::new(children))
+                    P(ir::Block(children))
                 },
                 alt: match alt {
                     Some(alternate) => {
                         let children = convert_statement(*alternate, &mut scope.nested());
-                        P(ir::Block::new(children))
+                        P(ir::Block(children))
                     }
-                    None => P(ir::Block::empty()),
+                    None => P(ir::Block(vec![])),
                 },
             });
             stmts
@@ -161,18 +161,18 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                                 val: arg_ref,
                             },
                         ];
-                        let ir::Block { children } =
+                        let ir::Block(children) =
                             convert_block(stmts, &catch_scope, ShouldHoist::No);
                         let body = args.into_iter().chain(children).collect();
-                        P(ir::Block::new(body))
+                        P(ir::Block(body))
                     }
-                    None => P(ir::Block::empty()),
+                    None => P(ir::Block(vec![])),
                 },
                 finally: match finalizer {
                     Some(ast::BlockStmt { stmts, span: _ }) => {
                         P(convert_block(stmts, scope, ShouldHoist::No))
                     }
-                    None => P(ir::Block::empty()),
+                    None => P(ir::Block(vec![])),
                 },
             };
             vec![try_]
@@ -199,8 +199,8 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             });
             test_stmts.push(ir::Stmt::IfElse {
                 cond: cond_ref,
-                cons: P(ir::Block::empty()),
-                alt: P(ir::Block::new(vec![ir::Stmt::Break])),
+                cons: P(ir::Block(vec![])),
+                alt: P(ir::Block(vec![ir::Stmt::Break])),
             });
             let body_stmts = convert_statement(*body, &mut scope.nested());
             let stmts = if prefix {
@@ -210,7 +210,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             }
             .collect();
             vec![ir::Stmt::Loop {
-                body: P(ir::Block::new(stmts)),
+                body: P(ir::Block(stmts)),
             }]
         }
         ast::Stmt::For(ast::ForStmt {
@@ -235,7 +235,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 None => vec![],
             };
             stmts.push(ir::Stmt::Loop {
-                body: P(ir::Block::new({
+                body: P(ir::Block({
                     let mut stmts = match test {
                         Some(test) => {
                             let cond_ref = ir::Ref::new("_for");
@@ -246,8 +246,8 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                             });
                             test_stmts.push(ir::Stmt::IfElse {
                                 cond: cond_ref,
-                                cons: P(ir::Block::empty()),
-                                alt: P(ir::Block::new(vec![ir::Stmt::Break])),
+                                cons: P(ir::Block(vec![])),
+                                alt: P(ir::Block(vec![ir::Stmt::Break])),
                             });
                             test_stmts
                         }
@@ -266,7 +266,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 })),
             });
             vec![ir::Stmt::Block {
-                body: P(ir::Block::new(stmts)),
+                body: P(ir::Block(stmts)),
             }]
         }
         for_stmt @ ast::Stmt::ForIn(_) | for_stmt @ ast::Stmt::ForOf(_) => {
@@ -335,7 +335,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             stmts.push(ir::Stmt::ForEach {
                 kind,
                 init: right_ref,
-                body: P(ir::Block::new(body)),
+                body: P(ir::Block(body)),
             });
             stmts
         }
@@ -397,7 +397,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                     Some(ast::BlockStmt { stmts, span: _ }) => stmts,
                     None => unreachable!("bodyless function type declaration"),
                 };
-                let ir::Block { children } = convert_block(body, &fn_scope, ShouldHoist::Yes);
+                let ir::Block(children) = convert_block(body, &fn_scope, ShouldHoist::Yes);
                 let block = cur_fn.into_iter().chain(params).chain(children).collect();
                 let fn_ref = ir::Ref::new("_fun");
                 let fn_binding = scope.declare_mutable(sym);
@@ -409,7 +409,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                                 is_async,
                                 is_generator,
                             },
-                            body: P(ir::Block::new(block)),
+                            body: P(ir::Block(block)),
                         },
                     },
                     ir::Stmt::DeclareMutable {
@@ -533,7 +533,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     ]
                 })
                 .collect::<Vec<_>>();
-            let ir::Block { children } = match body {
+            let ir::Block(children) = match body {
                 ast::BlockStmtOrExpr::BlockStmt(block) => {
                     let ast::BlockStmt { stmts, span: _ } = block;
                     convert_block(stmts, &fn_scope, ShouldHoist::Yes)
@@ -546,14 +546,14 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         expr: return_value,
                     });
                     stmts.push(ir::Stmt::Return { val: ref_ });
-                    ir::Block::new(stmts)
+                    ir::Block(stmts)
                 }
             };
             let body = params.into_iter().chain(children).collect();
             assert!(!is_generator, "generator arrow function");
             let func = ir::Expr::Function {
                 kind: ir::FnKind::Arrow { is_async },
-                body: P(ir::Block::new(body)),
+                body: P(ir::Block(body)),
             };
             (vec![], func)
         }
@@ -718,7 +718,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                 Some(ast::BlockStmt { stmts, span: _ }) => stmts,
                                 None => unreachable!("object method/accessor without body"),
                             };
-                            let ir::Block { children } =
+                            let ir::Block(children) =
                                 convert_block(body, &fn_scope, ShouldHoist::Yes);
                             let block = params.into_iter().chain(children).collect();
                             let fn_value = ir::Expr::Function {
@@ -726,7 +726,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                     is_async,
                                     is_generator,
                                 },
-                                body: P(ir::Block::new(block)),
+                                body: P(ir::Block(block)),
                             };
                             let ref_value = ir::Ref::new("_val");
                             statements.push(ir::Stmt::Expr {
@@ -803,14 +803,14 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 Some(ast::BlockStmt { stmts, span: _ }) => stmts,
                 None => unreachable!("bodyless function type declaration"),
             };
-            let ir::Block { children } = convert_block(body, &fn_scope, ShouldHoist::Yes);
+            let ir::Block(children) = convert_block(body, &fn_scope, ShouldHoist::Yes);
             let block = cur_fn.into_iter().chain(params).chain(children).collect();
             let func = ir::Expr::Function {
                 kind: ir::FnKind::Func {
                     is_async,
                     is_generator,
                 },
-                body: P(ir::Block::new(block)),
+                body: P(ir::Block(block)),
             };
             (vec![], func)
         }
@@ -975,8 +975,8 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                             target: value_ref.clone(),
                             val: right_ref,
                         });
-                        let full = ir::Block::new(right_stmts);
-                        let empty = ir::Block::empty();
+                        let full = ir::Block(right_stmts);
+                        let empty = ir::Block(vec![]);
                         match op {
                             ast::BinaryOp::LogicalOr => (empty, full),
                             ast::BinaryOp::LogicalAnd => (full, empty),
@@ -1284,7 +1284,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         target: value_ref.clone(),
                         val: alt_ref,
                     });
-                    P(ir::Block::new(alt_stmts))
+                    P(ir::Block(alt_stmts))
                 },
                 alt: {
                     let cons_ref = ir::Ref::new("_alt");
@@ -1297,7 +1297,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         target: value_ref.clone(),
                         val: cons_ref,
                     });
-                    P(ir::Block::new(cons_stmts))
+                    P(ir::Block(cons_stmts))
                 },
             });
             (stmts, ir::Expr::ReadMutable { source: value_ref })

@@ -36,7 +36,7 @@ pub fn convert(_: &swc_globals::Initialized, ir: ir::Block) -> ast::Script {
 fn convert_block(block: ir::Block, parent_scope: &scope::Ir) -> Vec<ast::Stmt> {
     let mut scope = parent_scope.nested();
 
-    let ir::Block { children } = block;
+    let ir::Block(children) = block;
 
     children
         .into_iter()
@@ -170,7 +170,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
         } => {
             let mut for_scope = scope.nested();
             let mut var_name = None;
-            body.children
+            body.0
                 .drain_filter(|stmt| match stmt {
                     ir::Stmt::Expr {
                         target,
@@ -246,7 +246,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 let mut catch_scope = scope.nested();
                 let mut param_name = None;
                 catch
-                    .children
+                    .0
                     .drain_filter(|stmt| match stmt {
                         ir::Stmt::Expr {
                             target,
@@ -476,7 +476,7 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
             let mut fn_scope = scope.nested();
 
             let mut fn_name = None;
-            body.children
+            body.0
                 .drain_filter(|stmt| match stmt {
                     ir::Stmt::Expr {
                         target,
@@ -494,7 +494,7 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
                 .for_each(drop);
 
             let params = body
-                .children
+                .0
                 .drain_filter(|stmt| match stmt {
                     ir::Stmt::Expr {
                         target: _,

@@ -27,7 +27,7 @@ impl<F: FnMut(&ir::Stmt)> Visitor for VisitFn<F> {
 impl<V: Visitor> VisitorRun for V {
     fn run_visitor(&mut self, ir: &ir::Block) {
         self.wrap_scope(|this| {
-            let ir::Block { children } = ir;
+            let ir::Block(children) = ir;
 
             for child in children {
                 this.visit(child);
