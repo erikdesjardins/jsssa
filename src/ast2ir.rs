@@ -302,14 +302,14 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 },
                 match ele_kind {
                     ast::VarDeclKind::Var => {
-                        match scope.get_mutable(&ele_name) {
+                        match for_scope.get_mutable(&ele_name) {
                             Some(binding) => ir::Stmt::WriteMutable {
                                 target: binding.clone(),
                                 val: arg_ref,
                             },
                             None => {
                                 // todo this will become unreachable
-                                let var_ref = scope.declare_mutable(ele_name);
+                                let var_ref = for_scope.declare_mutable(ele_name);
                                 ir::Stmt::DeclareMutable {
                                     target: var_ref,
                                     val: arg_ref,
@@ -318,7 +318,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                         }
                     }
                     ast::VarDeclKind::Let | ast::VarDeclKind::Const => {
-                        let ele_ref = scope.declare_mutable(ele_name);
+                        let ele_ref = for_scope.declare_mutable(ele_name);
                         ir::Stmt::DeclareMutable {
                             target: ele_ref,
                             val: arg_ref,

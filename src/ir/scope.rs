@@ -1,20 +1,23 @@
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::marker::PhantomData;
 
 use swc_atoms::JsWord;
 
 use crate::ir::{Mutable, Ref, SSA};
 
 #[derive(Default)]
-pub struct Ast {
+pub struct Ast<'a> {
     ident_to_mut_ref: HashMap<JsWord, Ref<Mutable>>,
+    _freeze_parent_while_nested: PhantomData<&'a ()>,
 }
 
-impl Ast {
-    pub fn nested(&self) -> Self {
+impl Ast<'_> {
+    pub fn nested(&self) -> Ast<'_> {
         Self {
             ident_to_mut_ref: self.ident_to_mut_ref.clone(),
+            _freeze_parent_while_nested: PhantomData,
         }
     }
 
@@ -30,18 +33,20 @@ impl Ast {
 }
 
 #[derive(Default)]
-pub struct Ir {
+pub struct Ir<'a> {
     seen_prefix_hashes: HashMap<u64, u64>,
     mutable_names: HashMap<Ref<Mutable>, JsWord>,
     ssa_names: HashMap<Ref<SSA>, JsWord>,
+    _freeze_parent_while_nested: PhantomData<&'a ()>,
 }
 
-impl Ir {
-    pub fn nested(&self) -> Self {
+impl Ir<'_> {
+    pub fn nested(&self) -> Ir<'_> {
         Self {
             seen_prefix_hashes: self.seen_prefix_hashes.clone(),
             mutable_names: self.mutable_names.clone(),
             ssa_names: self.ssa_names.clone(),
+            _freeze_parent_while_nested: PhantomData,
         }
     }
 
