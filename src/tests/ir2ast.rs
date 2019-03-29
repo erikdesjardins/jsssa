@@ -13,7 +13,7 @@ macro_rules! case {
                 let ir = ast2ir::convert(g, ast);
                 let ast2 = ir2ast::convert(g, ir);
                 let js = emit::emit(g, ast2, files).unwrap();
-                insta::assert_snapshot_matches!(stringify!($name), js);
+                insta::assert_snapshot_matches!(stringify!($name), js, $string);
             });
         }
     };

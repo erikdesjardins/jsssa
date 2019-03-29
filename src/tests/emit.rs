@@ -9,7 +9,7 @@ macro_rules! case {
             swc_globals::with(|g| {
                 let (ast, files) = parse::parse(g, $string).unwrap();
                 let js = emit::emit(g, ast, files).unwrap();
-                insta::assert_snapshot_matches!(stringify!($name), js);
+                insta::assert_snapshot_matches!(stringify!($name), js, $string);
             });
         }
     };

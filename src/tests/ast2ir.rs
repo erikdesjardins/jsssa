@@ -11,7 +11,7 @@ macro_rules! case {
                 let (ast, _) = parse::parse(g, $string).unwrap();
                 let ir = ast2ir::convert(g, ast);
                 let ppr = ir::print(g, &ir);
-                insta::assert_snapshot_matches!(stringify!($name), ppr);
+                insta::assert_snapshot_matches!(stringify!($name), ppr, $string);
             });
         }
     };
