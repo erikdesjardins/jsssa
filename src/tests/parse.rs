@@ -1,14 +1,16 @@
 use crate::parse;
 use crate::swc_globals;
+use crate::utils::DisplayError;
 
 macro_rules! case {
     ( $name:ident, $string:expr ) => {
         #[test]
-        fn $name() {
+        fn $name() -> Result<(), DisplayError> {
             swc_globals::with(|g| {
-                let (ast, _) = parse::parse(g, $string).unwrap();
+                let (ast, _) = parse::parse(g, $string)?;
                 insta::assert_debug_snapshot_matches!(stringify!($name), ast);
-            });
+                Ok(())
+            })
         }
     };
 }

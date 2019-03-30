@@ -1,16 +1,18 @@
 use crate::emit;
 use crate::parse;
 use crate::swc_globals;
+use crate::utils::DisplayError;
 
 macro_rules! case {
     ( $name:ident, $string:expr ) => {
         #[test]
-        fn $name() {
+        fn $name() -> Result<(), DisplayError> {
             swc_globals::with(|g| {
-                let (ast, files) = parse::parse(g, $string).unwrap();
-                let js = emit::emit(g, ast, files).unwrap();
+                let (ast, files) = parse::parse(g, $string)?;
+                let js = emit::emit(g, ast, files)?;
                 insta::assert_snapshot_matches!(stringify!($name), js, $string);
-            });
+                Ok(())
+            })
         }
     };
 }
