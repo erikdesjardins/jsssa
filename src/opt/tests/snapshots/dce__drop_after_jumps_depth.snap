@@ -1,0 +1,10 @@
+---
+created: "2019-03-30T23:43:17.445139100Z"
+creator: insta@0.7.1
+source: src/opt/tests/dce.rs
+expression: "\n    (function() {\n        return 2;\n        (function() { log() })();\n        if (x) {\n            log();\n        }\n        log();\n    })();\n"
+---
+_fun = <function>:
+    _ret = 2
+    <return> _ret
+<dead> = _fun()

@@ -1,0 +1,15 @@
+---
+created: "2019-03-30T23:59:25.785376900Z"
+creator: insta@0.7.1
+source: src/opt/tests/dce.rs
+expression: "\n    (function() {\n        if (x) {\n            throw 1;\n            log();\n        }\n        return 2;\n        log();\n    })();\n"
+---
+_fun = <function>:
+    _iff = <global x>
+    <if> _iff:
+        _thr = 1
+        <throw>_thr
+    <else>:
+    _ret = 2
+    <return> _ret
+<dead> = _fun()

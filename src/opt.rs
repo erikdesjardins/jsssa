@@ -10,7 +10,7 @@ mod tests;
 
 pub fn run_opts(_: &swc_globals::Initialized, ir: ir::Block) -> ir::Block {
     OptContext::new(ir)
-        .run_to_convergence(|cx| cx.run(dce::Dce))
+        .converge_with(|cx| cx.run::<dce::Dce>())
         .into_inner()
 }
 
@@ -25,11 +25,15 @@ impl OptContext {
         self.0
     }
 
-    fn run(self, mut folder: impl Folder) -> Self {
-        Self(folder.run_folder(self.0))
+    fn run<F: Folder + Default>(self) -> Self {
+        Self(F::default().run_folder(self.0))
     }
 
-    fn run_to_convergence(self, mut f: impl FnMut(Self) -> Self) -> Self {
+    fn converge<F: Folder + Default>(self) -> Self {
+        self.converge_with(|cx| cx.run::<F>())
+    }
+
+    fn converge_with(self, mut f: impl FnMut(Self) -> Self) -> Self {
         let mut this = self;
         let mut last_hash = default_hash(&this.0);
         log::debug!("Starting opt-to-convergence, initial hash {}", last_hash);

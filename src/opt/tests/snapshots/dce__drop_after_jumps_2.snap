@@ -1,0 +1,15 @@
+---
+created: "2019-03-30T23:59:25.785376900Z"
+creator: insta@0.7.1
+source: src/opt/tests/dce.rs
+expression: "\n    for (;;) {\n        if (x) {\n            continue;\n            log();\n        }\n        if (y) {\n            break;\n            log();\n        }\n    }\n"
+---
+<loop>:
+    _iff = <global x>
+    <if> _iff:
+        <continue>
+    <else>:
+    _iff$1 = <global y>
+    <if> _iff$1:
+        <break>
+    <else>:

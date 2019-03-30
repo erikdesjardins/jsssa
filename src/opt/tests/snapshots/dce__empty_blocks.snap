@@ -1,0 +1,7 @@
+---
+created: "2019-03-30T23:43:17.445139100Z"
+creator: insta@0.7.1
+source: src/opt/tests/dce.rs
+expression: "\n    if (x) {} else {}\n    try {} catch (e) { log(e); } finally {}\n"
+---
+<dead> = <global x>
