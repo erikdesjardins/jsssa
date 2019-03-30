@@ -43,6 +43,13 @@ case!(
 );
 
 case!(
+    objects,
+    r#"
+    ({ x, y: 1, [z]: 2 })
+"#
+);
+
+case!(
     deep_scopes,
     r#"
     var x = 1;

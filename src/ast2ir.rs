@@ -1473,7 +1473,16 @@ fn pat_to_ident(pat: ast::Pat) -> JsWord {
 
 fn propname_to_expr(propname: ast::PropName) -> ast::Expr {
     match propname {
-        ast::PropName::Ident(i) => ast::Expr::Ident(i),
+        ast::PropName::Ident(ast::Ident {
+            sym,
+            span,
+            type_ann: _,
+            optional: _,
+        }) => ast::Expr::Lit(ast::Lit::Str(ast::Str {
+            span,
+            value: sym,
+            has_escape: false,
+        })),
         ast::PropName::Str(s) => ast::Expr::Lit(ast::Lit::Str(s)),
         ast::PropName::Num(n) => ast::Expr::Lit(ast::Lit::Num(n)),
         ast::PropName::Computed(e) => *e,
