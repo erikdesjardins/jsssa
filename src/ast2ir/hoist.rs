@@ -105,9 +105,8 @@ fn hoist_statement(stmt: &ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
         }) => {
             let mut decls = match left {
                 ast::VarDeclOrPat::VarDecl(var_decl) => hoist_variable_declaration(var_decl, scope),
-                ast::VarDeclOrPat::Pat(_) => {
-                    unimplemented!("for in/of statements with pattern initializers not supported")
-                }
+                // bare patterns can't introduce variables
+                ast::VarDeclOrPat::Pat(_) => vec![],
             };
             decls.extend(hoist_statement(body, scope));
             decls

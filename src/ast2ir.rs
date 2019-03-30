@@ -1,4 +1,3 @@
-use if_chain::if_chain;
 use swc_atoms::JsWord;
 use swc_ecma_ast as ast;
 
@@ -281,24 +280,55 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 }
                 _ => unreachable!(),
             };
+            let mut stmts = vec![];
+            let (ele_kind, ele_name) = match left {
+                ast::VarDeclOrPat::VarDecl(ast::VarDecl {
+                    kind,
+                    decls,
+                    span: _,
+                    declare: _,
+                }) => {
+                    let mut decls_iter = decls.into_iter();
+                    match (decls_iter.next(), decls_iter.next()) {
+                        (
+                            Some(ast::VarDeclarator {
+                                name,
+                                init,
+                                span: _,
+                                definite: _,
+                            }),
+                            None,
+                        ) => {
+                            if let Some(init) = init {
+                                // for in/of var decls can have an initializer, which is pointless
+                                let (init_stmts, init_value) = convert_expression(*init, scope);
+                                stmts.extend(init_stmts);
+                                stmts.push(ir::Stmt::Expr {
+                                    target: ir::Ref::dead(),
+                                    expr: init_value,
+                                });
+                            }
+                            let name = pat_to_ident(name);
+                            (Some(kind), name)
+                        }
+                        (Some(_), Some(_)) | (None, _) => {
+                            unreachable!("for in/of binding does not have exactly 1 declaration")
+                        }
+                    }
+                }
+                ast::VarDeclOrPat::Pat(pat) => {
+                    let name = pat_to_ident(pat);
+                    (None, name)
+                }
+            };
             let right_ref = ir::Ref::new("_rhs");
-            let (mut stmts, right_value) = convert_expression(*right, scope);
+            let (right_stmts, right_value) = convert_expression(*right, scope);
+            stmts.extend(right_stmts);
             stmts.push(ir::Stmt::Expr {
                 target: right_ref.clone(),
                 expr: right_value,
             });
             let mut for_scope = scope.nested();
-            let (ele_kind, ele_name) = if_chain! {
-                if let ast::VarDeclOrPat::VarDecl(ast::VarDecl { kind, decls, span: _, declare: _ }) = left;
-                if decls.len() == 1;
-                if let Some(ast::VarDeclarator { name, init: None, span: _, definite: _ }) = decls.into_iter().next();
-                then {
-                    let name = pat_to_ident(name);
-                    (kind, name)
-                } else {
-                    unimplemented!("for in/of statements with complex initializers not supported");
-                }
-            };
             let arg_ref = ir::Ref::new("_for");
             let args = vec![
                 ir::Stmt::Expr {
@@ -306,14 +336,24 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                     expr: ir::Expr::Argument { index: 0 },
                 },
                 match ele_kind {
-                    ast::VarDeclKind::Var => match for_scope.get_mutable(&ele_name) {
+                    None => match for_scope.get_mutable(&ele_name) {
+                        Some(binding) => ir::Stmt::WriteMutable {
+                            target: binding.clone(),
+                            val: arg_ref,
+                        },
+                        None => ir::Stmt::WriteGlobal {
+                            target: ele_name,
+                            val: arg_ref,
+                        },
+                    },
+                    Some(ast::VarDeclKind::Var) => match for_scope.get_mutable(&ele_name) {
                         Some(binding) => ir::Stmt::WriteMutable {
                             target: binding.clone(),
                             val: arg_ref,
                         },
                         None => unreachable!("foreach var not hoisted: {:?}", ele_name),
                     },
-                    ast::VarDeclKind::Let | ast::VarDeclKind::Const => {
+                    Some(ast::VarDeclKind::Let) | Some(ast::VarDeclKind::Const) => {
                         let ele_ref = for_scope.declare_mutable(ele_name);
                         ir::Stmt::DeclareMutable {
                             target: ele_ref,

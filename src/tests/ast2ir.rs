@@ -132,3 +132,12 @@ case!(
     x = 3;
 "#
 );
+
+case!(
+    for_in_no_var,
+    r#"
+    var x;
+    for (x in 1);
+    for (y in 1);
+"#
+);

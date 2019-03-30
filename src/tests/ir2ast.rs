@@ -68,3 +68,13 @@ case!(
     })
 "#
 );
+
+case!(
+    deconflict_for_in,
+    r#"
+    {
+        const x;
+    }
+    for (x in 1);
+"#
+);

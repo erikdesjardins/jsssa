@@ -1,0 +1,18 @@
+---
+created: "2019-03-30T21:24:04.507475200Z"
+creator: insta@0.7.1
+source: src/tests/ast2ir.rs
+expression: "\n    var x;\n    for (x in 1);\n    for (y in 1);\n"
+---
+_ini = <void>
+x :- _ini
+_ini$1 = <void>
+x <- _ini$1
+_rhs = 1
+<foreach in> _rhs:
+    _for = <argument 0>
+    x <- _for
+_rhs$1 = 1
+<foreach in> _rhs$1:
+    _for = <argument 0>
+    <global y> <- _for

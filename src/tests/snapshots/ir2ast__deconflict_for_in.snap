@@ -1,0 +1,13 @@
+---
+created: "2019-03-30T21:24:04.523093900Z"
+creator: insta@0.7.1
+source: src/tests/ir2ast.rs
+expression: "\n    {\n        const x;\n    }\n    for (x in 1);\n"
+---
+var _ini = void 0;
+var x$1 = _ini;
+var _rhs = 1;
+for(var _for in _rhs){
+    x = _for;
+}
+
