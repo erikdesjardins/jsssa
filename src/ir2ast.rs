@@ -3,15 +3,14 @@ use swc_ecma_ast as ast;
 
 use crate::ir;
 use crate::ir::scope;
-use crate::ir::visit;
-use crate::ir::visit::VisitorRun;
+use crate::ir::visit::{visitor_fn, RunVisitor};
 use crate::swc_globals;
 use crate::utils::P;
 
 pub fn convert(_: &swc_globals::Initialized, ir: ir::Block) -> ast::Script {
     let mut scope = scope::Ir::default();
 
-    visit::visitor_fn(|stmt| match stmt {
+    visitor_fn(|stmt| match stmt {
         ir::Stmt::Expr {
             target: _,
             expr: ir::Expr::ReadGlobal { source: global },
@@ -285,7 +284,9 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
             span: span(),
             value,
         })),
-        ir::Expr::Number { value } => ast::Expr::Lit(ast::Lit::Num(ast::Number {
+        ir::Expr::Number {
+            value: ir::F64(value),
+        } => ast::Expr::Lit(ast::Lit::Num(ast::Number {
             span: span(),
             value,
         })),

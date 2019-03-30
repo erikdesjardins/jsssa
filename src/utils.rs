@@ -1,4 +1,6 @@
+use std::collections::hash_map::DefaultHasher;
 use std::fmt::{self, Debug, Display};
+use std::hash::{Hash, Hasher};
 use std::time::Duration;
 
 use failure::Error;
@@ -28,4 +30,10 @@ impl Display for Time {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}.{:0>3}s", self.0.as_secs(), self.0.subsec_millis())
     }
+}
+
+pub fn default_hash<H: Hash + ?Sized>(h: &H) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    h.hash(&mut hasher);
+    hasher.finish()
 }

@@ -1,17 +1,21 @@
+use std::f64;
+use std::hash::{Hash, Hasher};
+
 use swc_atoms::JsWord;
 
 pub use self::print::print;
 pub use self::ref_::{Mutable, Ref, RefType, SSA};
 
+pub mod fold;
 mod print;
 mod ref_;
 pub mod scope;
 pub mod visit;
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub struct Block(pub Vec<Stmt>);
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub enum Stmt {
     Expr {
         target: Ref<SSA>,
@@ -63,13 +67,13 @@ pub enum Stmt {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub enum Expr {
     Bool {
         value: bool,
     },
     Number {
-        value: f64,
+        value: F64,
     },
     String {
         value: JsWord,
@@ -137,7 +141,7 @@ pub enum Expr {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub enum UnaryOp {
     Plus,
     Minus,
@@ -147,7 +151,7 @@ pub enum UnaryOp {
     Void,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub enum BinaryOp {
     EqEq,
     NotEq,
@@ -173,41 +177,56 @@ pub enum BinaryOp {
     Instanceof,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub enum ForKind {
     In,
     Of,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub enum EleKind {
     Single,
     Spread,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub enum PropKind {
     Simple,
     Get,
     Set,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub enum CallKind {
     Call,
     New,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub enum FnKind {
     Func { is_async: bool, is_generator: bool },
     Arrow { is_async: bool },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub enum YieldKind {
     Single,
     Delegate,
+}
+
+/// f64 wrapper which allows hashing via NaN canonicalization
+#[derive(Debug)]
+pub struct F64(pub f64);
+
+impl Hash for F64 {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        if self.0.is_nan() {
+            // use one specific NaN representation
+            state.write_u64(f64::NAN.to_bits());
+        } else {
+            state.write_u64(self.0.to_bits());
+        }
+    }
 }
 
 #[cfg(test)]

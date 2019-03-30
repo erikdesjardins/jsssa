@@ -1,0 +1,7 @@
+---
+created: "2019-03-30T06:14:40.388860600Z"
+creator: insta@0.7.1
+source: src/opt/tests/dce.rs
+expression: "\n    1;\n    true;\n    (function() {});\n    [];\n    ({});\n"
+---
+

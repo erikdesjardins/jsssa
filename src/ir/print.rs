@@ -122,7 +122,9 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
 fn print_expr<'a, 'b: 'a>(expr: &ir::Expr, scope: &scope::Ir, w: &'a mut WriteIndent<'b>) {
     match expr {
         ir::Expr::Bool { value } => w.write_str(&value.to_string()),
-        ir::Expr::Number { value } => w.write_str(&value.to_string()),
+        ir::Expr::Number {
+            value: ir::F64(value),
+        } => w.write_str(&value.to_string()),
         ir::Expr::String { value, has_escape } => {
             assert!(!has_escape);
             w.write_str("\"");

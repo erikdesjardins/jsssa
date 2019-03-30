@@ -8,23 +8,31 @@ pub trait Visitor {
     fn visit(&mut self, stmt: &ir::Stmt);
 }
 
-pub trait VisitorRun: Visitor {
+pub trait RunVisitor: Visitor {
     fn run_visitor(&mut self, ir: &ir::Block);
 }
 
-pub struct VisitFn<F>(F);
+pub struct VisitFn<F>(F)
+where
+    F: FnMut(&ir::Stmt);
 
-pub fn visitor_fn<F: FnMut(&ir::Stmt)>(f: F) -> VisitFn<F> {
+pub fn visitor_fn<F>(f: F) -> VisitFn<F>
+where
+    F: FnMut(&ir::Stmt),
+{
     VisitFn(f)
 }
 
-impl<F: FnMut(&ir::Stmt)> Visitor for VisitFn<F> {
+impl<F> Visitor for VisitFn<F>
+where
+    F: FnMut(&ir::Stmt),
+{
     fn visit(&mut self, stmt: &ir::Stmt) {
         (self.0)(stmt);
     }
 }
 
-impl<V: Visitor> VisitorRun for V {
+impl<V: Visitor> RunVisitor for V {
     fn run_visitor(&mut self, ir: &ir::Block) {
         self.wrap_scope(|this| {
             let ir::Block(children) = ir;

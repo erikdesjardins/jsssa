@@ -1,10 +1,9 @@
-use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
 
 use swc_atoms::JsWord;
 
 use crate::ir::{Mutable, Ref, SSA};
+use crate::utils::default_hash;
 
 #[derive(Default)]
 pub struct Ast<'a> {
@@ -57,7 +56,7 @@ impl<'a> Ir<'a> {
     pub fn register_global(&mut self, name: &str) {
         *self
             .seen_prefix_hashes
-            .entry(self.hash_prefix(name))
+            .entry(default_hash(name))
             .or_default() += 1;
     }
 
@@ -89,12 +88,6 @@ impl<'a> Ir<'a> {
         name
     }
 
-    fn hash_prefix(&self, prefix: &str) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        prefix.hash(&mut hasher);
-        hasher.finish()
-    }
-
     fn get_prefix_hash_count(&self, hash: u64) -> Option<u64> {
         self.seen_prefix_hashes
             .get(&hash)
@@ -110,7 +103,7 @@ impl<'a> Ir<'a> {
 
         let suffix_counter = {
             // hash collisions are fine; we'll just end up being overly conservative
-            let hash = self.hash_prefix(prefix);
+            let hash = default_hash(prefix);
             let old_value = self.get_prefix_hash_count(hash).unwrap_or(0);
             self.seen_prefix_hashes.insert(hash, old_value + 1);
             old_value

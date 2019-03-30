@@ -19,6 +19,10 @@ pub struct Options {
     #[structopt(short = "o", default_value = "-")]
     pub output: String,
 
+    /// Run optimizations
+    #[structopt(short = "O", long = "optimize")]
+    pub optimize: bool,
+
     /// Output IR instead of JS
     #[structopt(long = "print-ir")]
     pub print_ir: bool,

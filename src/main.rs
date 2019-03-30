@@ -16,6 +16,7 @@ mod cli;
 mod emit;
 mod ir;
 mod ir2ast;
+mod opt;
 mod parse;
 mod swc_globals;
 mod utils;
@@ -28,6 +29,7 @@ fn main() -> Result<(), DisplayError> {
         verbose,
         input,
         output,
+        optimize,
         print_ir,
     } = cli::Options::from_args();
 
@@ -58,15 +60,23 @@ fn main() -> Result<(), DisplayError> {
         let ir = ast2ir::convert(g, ast);
         log::info!("Done ast2ir @ {}", Time(start.elapsed()));
 
+        let ir = if optimize {
+            let ir = opt::run_opts(g, ir);
+            log::info!("Done optimization @ {}", Time(start.elapsed()));
+            ir
+        } else {
+            ir
+        };
+
         let output_string = if print_ir {
             let ppr = ir::print(g, &ir);
             log::info!("Done printing @ {}", Time(start.elapsed()));
             ppr
         } else {
-            let ast2 = ir2ast::convert(g, ir);
+            let ast = ir2ast::convert(g, ir);
             log::info!("Done ir2ast @ {}", Time(start.elapsed()));
 
-            let js = emit::emit(g, ast2, files)?;
+            let js = emit::emit(g, ast, files)?;
             log::info!("Done emitting @ {}", Time(start.elapsed()));
             js
         };
