@@ -150,7 +150,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
         ir::Stmt::Debugger => ast::Stmt::Debugger(ast::DebuggerStmt { span: span() }),
         ir::Stmt::Block { body } => ast::Stmt::Block(ast::BlockStmt {
             span: span(),
-            stmts: convert_block(*body, scope),
+            stmts: convert_block(body, scope),
         }),
         ir::Stmt::Loop { body } => ast::Stmt::While(ast::WhileStmt {
             span: span(),
@@ -160,7 +160,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
             }))),
             body: P(ast::Stmt::Block(ast::BlockStmt {
                 span: span(),
-                stmts: convert_block(*body, scope),
+                stmts: convert_block(body, scope),
             })),
         }),
         ir::Stmt::ForEach {
@@ -202,7 +202,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
             let right = P(read_ssa_to_expr(init, scope));
             let body = P(ast::Stmt::Block(ast::BlockStmt {
                 span: span(),
-                stmts: convert_block(*body, &for_scope),
+                stmts: convert_block(body, &for_scope),
             }));
             match kind {
                 ir::ForKind::In => ast::Stmt::ForIn(ast::ForInStmt {
@@ -225,11 +225,11 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
             test: P(read_ssa_to_expr(cond, scope)),
             cons: P(ast::Stmt::Block(ast::BlockStmt {
                 span: span(),
-                stmts: convert_block(*cons, scope),
+                stmts: convert_block(cons, scope),
             })),
             alt: Some(P(ast::Stmt::Block(ast::BlockStmt {
                 span: span(),
-                stmts: convert_block(*alt, scope),
+                stmts: convert_block(alt, scope),
             }))),
         }),
         ir::Stmt::Try {
@@ -240,7 +240,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
             span: span(),
             block: ast::BlockStmt {
                 span: span(),
-                stmts: convert_block(*body, scope),
+                stmts: convert_block(body, scope),
             },
             handler: Some({
                 let mut catch_scope = scope.nested();
@@ -271,7 +271,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                     }),
                     body: ast::BlockStmt {
                         span: span(),
-                        stmts: convert_block(*catch, &catch_scope),
+                        stmts: convert_block(catch, &catch_scope),
                     },
                 }
             }),
@@ -529,7 +529,7 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir) -> ast::Expr {
 
             let body = ast::BlockStmt {
                 span: span(),
-                stmts: convert_block(*body, &fn_scope),
+                stmts: convert_block(body, &fn_scope),
             };
 
             match kind {

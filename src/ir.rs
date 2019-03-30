@@ -44,24 +44,24 @@ pub enum Stmt {
     Continue,
     Debugger,
     Block {
-        body: Box<Block>,
+        body: Block,
     },
     Loop {
-        body: Box<Block>,
+        body: Block,
     },
     ForEach {
         kind: ForKind,
         init: Ref<SSA>,
-        body: Box<Block>,
+        body: Block,
     },
     IfElse {
         cond: Ref<SSA>,
-        cons: Box<Block>,
-        alt: Box<Block>,
+        cons: Block,
+        alt: Block,
     },
     Try {
-        body: Box<Block>,
-        catch: Box<Block>,
+        body: Block,
+        catch: Block,
         finally: Box<Block>,
     },
 }
@@ -132,7 +132,7 @@ pub enum Expr {
     },
     Function {
         kind: FnKind,
-        body: Box<Block>,
+        body: Block,
     },
     CurrentFunction,
     Argument {
@@ -211,4 +211,14 @@ pub enum FnKind {
 pub enum YieldKind {
     Single,
     Delegate,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stmt_is_512_bits() {
+        assert_eq!(std::mem::size_of::<Stmt>(), 64);
+    }
 }

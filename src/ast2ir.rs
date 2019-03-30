@@ -5,7 +5,6 @@ use swc_ecma_ast as ast;
 use crate::ir;
 use crate::ir::scope;
 use crate::swc_globals;
-use crate::utils::P;
 
 use self::hoist::ShouldHoist;
 
@@ -48,7 +47,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             stmts
         }
         ast::Stmt::Block(ast::BlockStmt { stmts, span: _ }) => vec![ir::Stmt::Block {
-            body: P(convert_block(stmts, scope, ShouldHoist::No)),
+            body: convert_block(stmts, scope, ShouldHoist::No),
         }],
         ast::Stmt::Empty(ast::EmptyStmt { span: _ }) => vec![],
         ast::Stmt::Debugger(ast::DebuggerStmt { span: _ }) => vec![ir::Stmt::Debugger],
@@ -97,16 +96,10 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             });
             stmts.push(ir::Stmt::IfElse {
                 cond: ref_,
-                cons: {
-                    let children = convert_statement(*cons, &mut scope.nested());
-                    P(ir::Block(children))
-                },
+                cons: ir::Block(convert_statement(*cons, &mut scope.nested())),
                 alt: match alt {
-                    Some(alternate) => {
-                        let children = convert_statement(*alternate, &mut scope.nested());
-                        P(ir::Block(children))
-                    }
-                    None => P(ir::Block(vec![])),
+                    Some(alt) => ir::Block(convert_statement(*alt, &mut scope.nested())),
+                    None => ir::Block(vec![]),
                 },
             });
             stmts
@@ -134,7 +127,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             let try_ = ir::Stmt::Try {
                 body: {
                     let ast::BlockStmt { stmts, span: _ } = block;
-                    P(convert_block(stmts, scope, ShouldHoist::No))
+                    convert_block(stmts, scope, ShouldHoist::No)
                 },
                 catch: match handler {
                     Some(ast::CatchClause {
@@ -164,16 +157,16 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                         let ir::Block(children) =
                             convert_block(stmts, &catch_scope, ShouldHoist::No);
                         let body = args.into_iter().chain(children).collect();
-                        P(ir::Block(body))
+                        ir::Block(body)
                     }
-                    None => P(ir::Block(vec![])),
+                    None => ir::Block(vec![]),
                 },
-                finally: match finalizer {
+                finally: Box::new(match finalizer {
                     Some(ast::BlockStmt { stmts, span: _ }) => {
-                        P(convert_block(stmts, scope, ShouldHoist::No))
+                        convert_block(stmts, scope, ShouldHoist::No)
                     }
-                    None => P(ir::Block(vec![])),
-                },
+                    None => ir::Block(vec![]),
+                }),
             };
             vec![try_]
         }
@@ -199,8 +192,8 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             });
             test_stmts.push(ir::Stmt::IfElse {
                 cond: cond_ref,
-                cons: P(ir::Block(vec![])),
-                alt: P(ir::Block(vec![ir::Stmt::Break])),
+                cons: ir::Block(vec![]),
+                alt: ir::Block(vec![ir::Stmt::Break]),
             });
             let body_stmts = convert_statement(*body, &mut scope.nested());
             let stmts = if prefix {
@@ -210,7 +203,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             }
             .collect();
             vec![ir::Stmt::Loop {
-                body: P(ir::Block(stmts)),
+                body: ir::Block(stmts),
             }]
         }
         ast::Stmt::For(ast::ForStmt {
@@ -235,7 +228,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 None => vec![],
             };
             stmts.push(ir::Stmt::Loop {
-                body: P(ir::Block({
+                body: ir::Block({
                     let mut stmts = match test {
                         Some(test) => {
                             let cond_ref = ir::Ref::new("_for");
@@ -246,8 +239,8 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                             });
                             test_stmts.push(ir::Stmt::IfElse {
                                 cond: cond_ref,
-                                cons: P(ir::Block(vec![])),
-                                alt: P(ir::Block(vec![ir::Stmt::Break])),
+                                cons: ir::Block(vec![]),
+                                alt: ir::Block(vec![ir::Stmt::Break]),
                             });
                             test_stmts
                         }
@@ -263,10 +256,10 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                         });
                     }
                     stmts
-                })),
+                }),
             });
             vec![ir::Stmt::Block {
-                body: P(ir::Block(stmts)),
+                body: ir::Block(stmts),
             }]
         }
         for_stmt @ ast::Stmt::ForIn(_) | for_stmt @ ast::Stmt::ForOf(_) => {
@@ -335,7 +328,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             stmts.push(ir::Stmt::ForEach {
                 kind,
                 init: right_ref,
-                body: P(ir::Block(body)),
+                body: ir::Block(body),
             });
             stmts
         }
@@ -409,7 +402,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                                 is_async,
                                 is_generator,
                             },
-                            body: P(ir::Block(block)),
+                            body: ir::Block(block),
                         },
                     },
                     ir::Stmt::DeclareMutable {
@@ -553,7 +546,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             assert!(!is_generator, "generator arrow function");
             let func = ir::Expr::Function {
                 kind: ir::FnKind::Arrow { is_async },
-                body: P(ir::Block(body)),
+                body: ir::Block(body),
             };
             (vec![], func)
         }
@@ -726,7 +719,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                     is_async,
                                     is_generator,
                                 },
-                                body: P(ir::Block(block)),
+                                body: ir::Block(block),
                             };
                             let ref_value = ir::Ref::new("_val");
                             statements.push(ir::Stmt::Expr {
@@ -810,7 +803,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     is_async,
                     is_generator,
                 },
-                body: P(ir::Block(block)),
+                body: ir::Block(block),
             };
             (vec![], func)
         }
@@ -985,8 +978,8 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     };
                     stmts.push(ir::Stmt::IfElse {
                         cond: left_ref,
-                        cons: P(consequent),
-                        alt: P(alternate),
+                        cons: consequent,
+                        alt: alternate,
                     });
                     (stmts, ir::Expr::ReadMutable { source: value_ref })
                 }
@@ -1284,7 +1277,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         target: value_ref.clone(),
                         val: alt_ref,
                     });
-                    P(ir::Block(alt_stmts))
+                    ir::Block(alt_stmts)
                 },
                 alt: {
                     let cons_ref = ir::Ref::new("_alt");
@@ -1297,7 +1290,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         target: value_ref.clone(),
                         val: cons_ref,
                     });
-                    P(ir::Block(cons_stmts))
+                    ir::Block(cons_stmts)
                 },
             });
             (stmts, ir::Expr::ReadMutable { source: value_ref })
