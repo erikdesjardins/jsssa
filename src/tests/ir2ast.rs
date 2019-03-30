@@ -3,12 +3,12 @@ use crate::emit;
 use crate::ir2ast;
 use crate::parse;
 use crate::swc_globals;
-use crate::utils::DisplayError;
+use crate::utils::NiceError;
 
 macro_rules! case {
     ( $name:ident, $string:expr ) => {
         #[test]
-        fn $name() -> Result<(), DisplayError> {
+        fn $name() -> Result<(), NiceError> {
             swc_globals::with(|g| {
                 let (ast, files) = parse::parse(g, $string)?;
                 let ir = ast2ir::convert(g, ast);

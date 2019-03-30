@@ -9,7 +9,7 @@ use std::time::Instant;
 
 use structopt::StructOpt;
 
-use crate::utils::{DisplayError, Time};
+use crate::utils::{NiceError, Time};
 
 mod ast2ir;
 mod cli;
@@ -24,7 +24,7 @@ mod utils;
 #[cfg(test)]
 mod tests;
 
-fn main() -> Result<(), DisplayError> {
+fn main() -> Result<(), NiceError> {
     let cli::Options {
         verbose,
         input,
