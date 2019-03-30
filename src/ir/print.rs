@@ -79,10 +79,6 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
         ir::Stmt::Debugger => {
             w.write_str("<debugger>");
         }
-        ir::Stmt::Block { body } => {
-            w.write_str("<block>:");
-            print_block(&body, scope, &mut w.indented());
-        }
         ir::Stmt::Loop { body } => {
             w.write_str("<loop>:");
             print_block(&body, scope, &mut w.indented());

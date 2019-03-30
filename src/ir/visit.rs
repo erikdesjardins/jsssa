@@ -59,9 +59,6 @@ impl<V: Visitor> VisitorRun for V {
                         | ir::Expr::CurrentFunction
                         | ir::Expr::Argument { .. } => {}
                     },
-                    ir::Stmt::Block { body } => {
-                        this.run_visitor(body);
-                    }
                     ir::Stmt::Loop { body } => {
                         this.run_visitor(body);
                     }

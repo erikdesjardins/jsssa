@@ -43,9 +43,6 @@ pub enum Stmt {
     Break,
     Continue,
     Debugger,
-    Block {
-        body: Block,
-    },
     Loop {
         body: Block,
     },

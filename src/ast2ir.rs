@@ -46,9 +46,10 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             });
             stmts
         }
-        ast::Stmt::Block(ast::BlockStmt { stmts, span: _ }) => vec![ir::Stmt::Block {
-            body: convert_block(stmts, scope, ShouldHoist::No),
-        }],
+        ast::Stmt::Block(ast::BlockStmt { stmts, span: _ }) => {
+            let ir::Block(children) = convert_block(stmts, scope, ShouldHoist::No);
+            children
+        }
         ast::Stmt::Empty(ast::EmptyStmt { span: _ }) => vec![],
         ast::Stmt::Debugger(ast::DebuggerStmt { span: _ }) => vec![ir::Stmt::Debugger],
         ast::Stmt::With(_) => unimplemented!("with() statement not supported"),
@@ -258,9 +259,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                     stmts
                 }),
             });
-            vec![ir::Stmt::Block {
-                body: ir::Block(stmts),
-            }]
+            stmts
         }
         for_stmt @ ast::Stmt::ForIn(_) | for_stmt @ ast::Stmt::ForOf(_) => {
             let (kind, left, right, body) = match for_stmt {

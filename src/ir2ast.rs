@@ -148,10 +148,6 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
             label: None,
         }),
         ir::Stmt::Debugger => ast::Stmt::Debugger(ast::DebuggerStmt { span: span() }),
-        ir::Stmt::Block { body } => ast::Stmt::Block(ast::BlockStmt {
-            span: span(),
-            stmts: convert_block(body, scope),
-        }),
         ir::Stmt::Loop { body } => ast::Stmt::While(ast::WhileStmt {
             span: span(),
             test: P(ast::Expr::Lit(ast::Lit::Bool(ast::Bool {
