@@ -13,6 +13,7 @@ use crate::utils::{NiceError, Time};
 
 mod ast2ir;
 mod cli;
+mod collections;
 mod emit;
 mod ir;
 mod ir2ast;
