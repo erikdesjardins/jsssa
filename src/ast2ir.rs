@@ -1313,20 +1313,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             stmts.push(ir::Stmt::IfElse {
                 cond: test_ref,
                 cons: {
-                    let alt_ref = ir::Ref::new("_cns");
-                    let (mut alt_stmts, alt_value) = convert_expression(*alt, scope);
-                    alt_stmts.push(ir::Stmt::Expr {
-                        target: alt_ref.clone(),
-                        expr: alt_value,
-                    });
-                    alt_stmts.push(ir::Stmt::WriteMutable {
-                        target: value_ref.clone(),
-                        val: alt_ref,
-                    });
-                    ir::Block(alt_stmts)
-                },
-                alt: {
-                    let cons_ref = ir::Ref::new("_alt");
+                    let cons_ref = ir::Ref::new("_cns");
                     let (mut cons_stmts, cons_value) = convert_expression(*cons, scope);
                     cons_stmts.push(ir::Stmt::Expr {
                         target: cons_ref.clone(),
@@ -1337,6 +1324,19 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         val: cons_ref,
                     });
                     ir::Block(cons_stmts)
+                },
+                alt: {
+                    let alt_ref = ir::Ref::new("_alt");
+                    let (mut alt_stmts, alt_value) = convert_expression(*alt, scope);
+                    alt_stmts.push(ir::Stmt::Expr {
+                        target: alt_ref.clone(),
+                        expr: alt_value,
+                    });
+                    alt_stmts.push(ir::Stmt::WriteMutable {
+                        target: value_ref.clone(),
+                        val: alt_ref,
+                    });
+                    ir::Block(alt_stmts)
                 },
             });
             (stmts, ir::Expr::ReadMutable { source: value_ref })

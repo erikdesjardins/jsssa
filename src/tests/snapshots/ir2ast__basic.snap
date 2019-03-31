@@ -1,5 +1,5 @@
 ---
-created: "2019-03-31T23:33:24.652650400Z"
+created: "2019-03-31T23:50:50.535672300Z"
 creator: insta@0.7.1
 source: src/tests/ir2ast.rs
 expression: "\n    function f(x) {\n        while (true);\n        x = y.bar;\n        z.foo = x ? true : 'hi';\n        return +[1 || x, { x }, f + 1, ++g];\n    }\n    f(1), true;\n"
@@ -19,9 +19,9 @@ var f = function f(x) {
     var _obj = z;
     var _val$1 = void 0;
     if (x$1) {
-        _val$1 = 'hi';
-    } else {
         _val$1 = true;
+    } else {
+        _val$1 = 'hi';
     }
     var _val$2 = _val$1;
     _obj['foo'] = _val$2;

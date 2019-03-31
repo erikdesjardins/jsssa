@@ -1,0 +1,22 @@
+---
+created: "2019-03-31T23:50:50.510671300Z"
+creator: insta@0.7.1
+source: src/tests/ast2ir.rs
+expression: "\n    (foo || or_else);\n    (bar && and_then);\n"
+---
+_prd = <global foo>
+_log :- _prd
+<if> _prd:
+    <empty>
+<else>:
+    _cns = <global or_else>
+    _log <- _cns
+<dead> = _log
+_prd$1 = <global bar>
+_log$1 :- _prd$1
+<if> _prd$1:
+    _cns = <global and_then>
+    _log$1 <- _cns
+<else>:
+    <empty>
+<dead> = _log$1

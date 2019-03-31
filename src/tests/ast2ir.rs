@@ -141,3 +141,18 @@ case!(
     for (y in 1);
 "#
 );
+
+case!(
+    conditional,
+    r#"
+    (cond ? true_ : false_);
+"#
+);
+
+case!(
+    logical_op,
+    r#"
+    (foo || or_else);
+    (bar && and_then);
+"#
+);

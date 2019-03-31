@@ -1,5 +1,5 @@
 ---
-created: "2019-03-30T23:57:49.416940100Z"
+created: "2019-03-31T23:50:50.515671600Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
 expression: "\n    function f(x) {\n        while (true);\n        x = y.bar;\n        z.foo = x ? true : 'hi';\n        return +[1 || x, { x }, f + 1, ++g];\n    }\n    f(1), true;\n"
@@ -26,10 +26,10 @@ _fun = <function>:
     _udf = <void>
     _val$1 :- _udf
     <if> _tst:
-        _cns = "hi"
+        _cns = true
         _val$1 <- _cns
     <else>:
-        _alt = true
+        _alt = "hi"
         _val$1 <- _alt
     _val$2 = _val$1
     _obj$1[_prp$1] <- _val$2
