@@ -2,7 +2,7 @@ use crate::opt::dce;
 
 case!(
     basic,
-    |cx| cx.converge::<dce::Dce>(),
+    |cx| cx.converge::<dce::Dce>("dce"),
     r#"
     1;
     true;
@@ -14,7 +14,7 @@ case!(
 
 case!(
     basic_bail,
-    |cx| cx.converge::<dce::Dce>(),
+    |cx| cx.converge::<dce::Dce>("dce"),
     r#"
     x;
     const foo;
@@ -32,7 +32,7 @@ case!(
 
 case!(
     bindings,
-    |cx| cx.converge::<dce::Dce>(),
+    |cx| cx.converge::<dce::Dce>("dce"),
     r#"
     var x = 1;
     const y = 1;
@@ -42,7 +42,7 @@ case!(
 
 case!(
     nested_effects,
-    |cx| cx.converge::<dce::Dce>(),
+    |cx| cx.converge::<dce::Dce>("dce"),
     r#"
     [{ x: call() }];
 "#
@@ -50,7 +50,7 @@ case!(
 
 case!(
     drop_after_jumps_1,
-    |cx| cx.converge::<dce::Dce>(),
+    |cx| cx.converge::<dce::Dce>("dce"),
     r#"
     (function() {
         if (x) {
@@ -65,7 +65,7 @@ case!(
 
 case!(
     drop_after_jumps_2,
-    |cx| cx.converge::<dce::Dce>(),
+    |cx| cx.converge::<dce::Dce>("dce"),
     r#"
     for (;;) {
         if (x) {
@@ -82,7 +82,7 @@ case!(
 
 case!(
     drop_after_jumps_depth,
-    |cx| cx.converge::<dce::Dce>(),
+    |cx| cx.converge::<dce::Dce>("dce"),
     r#"
     (function() {
         return 2;
@@ -97,7 +97,7 @@ case!(
 
 case!(
     empty_blocks,
-    |cx| cx.converge::<dce::Dce>(),
+    |cx| cx.converge::<dce::Dce>("dce"),
     r#"
     if (x) {} else {}
     try {} catch (e) { log(e); } finally {}

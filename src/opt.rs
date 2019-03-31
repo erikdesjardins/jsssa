@@ -9,9 +9,7 @@ mod dce;
 mod tests;
 
 pub fn run_opts(_: &swc_globals::Initialized, ir: ir::Block) -> ir::Block {
-    OptContext::new(ir)
-        .converge_with(|cx| cx.run::<dce::Dce>())
-        .into_inner()
+    OptContext::new(ir).converge::<dce::Dce>("dce").into_inner()
 }
 
 struct OptContext(ir::Block);
@@ -25,28 +23,29 @@ impl OptContext {
         self.0
     }
 
-    fn run<F: Folder + Default>(self) -> Self {
+    fn run<F: Folder + Default>(self, name: &str) -> Self {
+        log::debug!("{}: running single pass", name);
         Self(F::default().run_folder(self.0))
     }
 
-    fn converge<F: Folder + Default>(self) -> Self {
-        self.converge_with(|cx| cx.run::<F>())
+    fn converge<F: Folder + Default>(self, name: &str) -> Self {
+        self.converge_with(name, |cx| cx.run::<F>(name))
     }
 
-    fn converge_with(self, mut f: impl FnMut(Self) -> Self) -> Self {
+    fn converge_with(self, name: &str, mut f: impl FnMut(Self) -> Self) -> Self {
         let mut this = self;
         let mut last_hash = default_hash(&this.0);
-        log::debug!("Starting opt-to-convergence, initial hash {}", last_hash);
-        let mut iteration = 0u64;
+        log::debug!("{}: starting opt-to-convergence, hash {}", name, last_hash);
+        let mut iter = 0u64;
         loop {
-            iteration += 1;
+            iter += 1;
             this = f(this);
             let hash = default_hash(&this.0);
             if hash == last_hash {
-                log::debug!("Stopping opt-to-convergence, iteration {}", iteration);
+                log::debug!("{}: stopping opt-to-convergence, iteration {}", name, iter);
                 return this;
             } else {
-                log::debug!("Continuing opt-to-convergence, hash {}", hash);
+                log::debug!("{}: continuing opt-to-convergence, hash {}", name, hash);
             }
             last_hash = hash;
         }
