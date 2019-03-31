@@ -17,9 +17,14 @@ fn print_block<'a, 'b: 'a>(
 
     let ir::Block(children) = block;
 
-    for stmt in children {
+    if children.is_empty() {
         w.start_line();
-        print_stmt(stmt, &mut scope, w);
+        w.write_str("<empty>");
+    } else {
+        for stmt in children {
+            w.start_line();
+            print_stmt(stmt, &mut scope, w);
+        }
     }
 }
 
@@ -67,7 +72,7 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
             print_ssa(val, scope, w);
         }
         ir::Stmt::Throw { val } => {
-            w.write_str("<throw>");
+            w.write_str("<throw> ");
             print_ssa(val, scope, w);
         }
         ir::Stmt::Break => {

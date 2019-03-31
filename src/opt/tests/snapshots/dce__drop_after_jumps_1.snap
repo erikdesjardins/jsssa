@@ -1,5 +1,5 @@
 ---
-created: "2019-03-30T23:59:25.785376900Z"
+created: "2019-03-31T00:00:00.838580700Z"
 creator: insta@0.7.1
 source: src/opt/tests/dce.rs
 expression: "\n    (function() {\n        if (x) {\n            throw 1;\n            log();\n        }\n        return 2;\n        log();\n    })();\n"
@@ -8,8 +8,9 @@ _fun = <function>:
     _iff = <global x>
     <if> _iff:
         _thr = 1
-        <throw>_thr
+        <throw> _thr
     <else>:
+        <empty>
     _ret = 2
     <return> _ret
 <dead> = _fun()

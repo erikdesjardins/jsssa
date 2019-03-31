@@ -1,8 +1,8 @@
 ---
-created: "2019-03-26T21:25:00.601152600Z"
+created: "2019-03-30T23:57:49.416940100Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
-expression: ppr
+expression: "\n    function f(x) {\n        while (true);\n        x = y.bar;\n        z.foo = x ? true : 'hi';\n        return +[1 || x, { x }, f + 1, ++g];\n    }\n    f(1), true;\n"
 ---
 _fun = <function>:
     f = <current function>
@@ -12,6 +12,7 @@ _fun = <function>:
     <loop>:
         _whl = true
         <if> _whl:
+            <empty>
         <else>:
             <break>
     _obj = <global y>
@@ -36,6 +37,7 @@ _fun = <function>:
     _prd = 1
     _log :- _prd
     <if> _prd:
+        <empty>
     <else>:
         _cns = x$1
         _log <- _cns
