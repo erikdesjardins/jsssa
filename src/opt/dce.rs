@@ -16,7 +16,7 @@ impl Folder for Dce {
         r
     }
 
-    fn fold(&mut self, stmt: ir::Stmt) -> Option<ir::Stmt> {
+    fn fold(&mut self, stmt: ir::Stmt) -> Self::Output {
         if self.dropping_after_jump {
             return None;
         }
