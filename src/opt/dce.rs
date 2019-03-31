@@ -25,7 +25,7 @@ impl Folder for Dce {
             ir::Stmt::Expr {
                 ref target,
                 ref expr,
-            } if !target.maybe_used() => match expr {
+            } if target.used().is_never() => match expr {
                 ir::Expr::Function { .. }
                 | ir::Expr::Bool { .. }
                 | ir::Expr::Number { .. }
@@ -49,7 +49,7 @@ impl Folder for Dce {
                 | ir::Expr::Await { .. }
                 | ir::Expr::Call { .. } => Some(stmt),
             },
-            ir::Stmt::DeclareMutable { ref target, val: _ } if !target.maybe_used() => None,
+            ir::Stmt::DeclareMutable { ref target, val: _ } if target.used().is_never() => None,
             ir::Stmt::Return { .. }
             | ir::Stmt::Throw { .. }
             | ir::Stmt::Break

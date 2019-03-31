@@ -9,7 +9,7 @@ mod dce;
 #[cfg(test)]
 mod tests;
 
-pub fn run_all_passes(_: &swc_globals::Initialized, ir: ir::Block) -> ir::Block {
+pub fn run_passes(_: &swc_globals::Initialized, ir: ir::Block) -> ir::Block {
     OptContext::new(ir)
         .run::<constant::Prop>("constant-prop")
         .converge::<dce::Dce>("dce")

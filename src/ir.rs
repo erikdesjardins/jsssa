@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use swc_atoms::JsWord;
 
 pub use self::print::print;
-pub use self::ref_::{Mutable, Ref, RefType, SSA};
+pub use self::ref_::{Mutable, Ref, RefType, Used, WeakRef, SSA};
 
 pub mod fold;
 mod print;

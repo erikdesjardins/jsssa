@@ -1,24 +1,19 @@
 ---
-created: "2019-03-31T01:09:26.458554500Z"
+created: "2019-03-31T23:33:24.652650400Z"
 creator: insta@0.7.1
 source: src/tests/ir2ast.rs
 expression: "\n    if (x) {\n        log();\n    } else {}\n\n    try { log() } catch {} finally {}\n\n    try { log() } catch {} finally { log() }\n"
 ---
-var _iff = x;
-if (_iff) {
-    var _fun = log;
-    _fun();
+if (x) {
+    log();
 }
 try {
-    var _fun = log;
-    _fun();
+    log();
 } catch () {
 }
 try {
-    var _fun = log;
-    _fun();
+    log();
 } finally{
-    var _fun = log;
-    _fun();
+    log();
 }
 

@@ -6,16 +6,26 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use swc_atoms::JsWord;
 
-// references can either be SSA or mutable (needed to model closures)
 pub trait RefType {}
 impl RefType for SSA {}
 impl RefType for Mutable {}
-#[derive(Clone, Debug)]
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SSA {}
-#[derive(Clone, Debug)]
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Mutable {}
 
-pub struct Ref<T: RefType>(Rc<RefInner<T>>);
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct Ref<T: RefType> {
+    inner: Rc<RefInner<T>>,
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct WeakRef<T: RefType> {
+    id: usize,
+    _t: PhantomData<T>,
+}
 
 struct RefInner<T: RefType> {
     id: usize,
@@ -27,11 +37,13 @@ impl<T: RefType> Ref<T> {
     pub fn new(name_hint: impl Into<JsWord>) -> Self {
         static ID_COUNTER: AtomicUsize = AtomicUsize::new(1);
 
-        Ref(Rc::new(RefInner {
-            id: ID_COUNTER.fetch_add(1, Ordering::Relaxed),
-            name_hint: name_hint.into(),
-            _t: PhantomData,
-        }))
+        Self {
+            inner: Rc::new(RefInner {
+                id: ID_COUNTER.fetch_add(1, Ordering::Relaxed),
+                name_hint: name_hint.into(),
+                _t: PhantomData,
+            }),
+        }
     }
 
     pub fn dead() -> Self {
@@ -39,41 +51,67 @@ impl<T: RefType> Ref<T> {
     }
 
     pub fn name_hint(&self) -> &JsWord {
-        &self.0.name_hint
+        &self.inner.name_hint
     }
 
-    pub fn maybe_used(&self) -> bool {
-        Rc::strong_count(&self.0) > 1
+    pub fn used(&self) -> Used {
+        match Rc::strong_count(&self.inner) {
+            0 /* impossible */ | 1 => Used::Never,
+            2 => Used::Once,
+            _ => Used::Mult,
+        }
+    }
+
+    pub fn weak(&self) -> WeakRef<T> {
+        WeakRef {
+            id: self.inner.id,
+            _t: PhantomData,
+        }
     }
 }
 
 impl<T: RefType> Debug for Ref<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        if self.maybe_used() {
-            write!(f, "Ref({} '{}')", self.0.id, self.0.name_hint)
-        } else {
+        if self.used().is_never() {
             write!(f, "Ref(<dead>)")
+        } else {
+            write!(f, "Ref({} '{}')", self.inner.id, self.inner.name_hint)
         }
     }
 }
 
-impl<T: RefType> Clone for Ref<T> {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
+impl<T: RefType> Debug for WeakRef<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "WeakRef({})", self.id)
     }
 }
 
-impl<T: RefType> Eq for Ref<T> {}
-
-impl<T: RefType> PartialEq for Ref<T> {
+impl<T: RefType> PartialEq for RefInner<T> {
     fn eq(&self, other: &Self) -> bool {
         // compare only by id, which is unique by construction
-        self.0.id == other.0.id
+        self.id == other.id
     }
 }
 
-impl<T: RefType> Hash for Ref<T> {
+impl<T: RefType> Eq for RefInner<T> {}
+
+impl<T: RefType> Hash for RefInner<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        state.write_usize(self.0.id)
+        state.write_usize(self.id)
+    }
+}
+
+pub enum Used {
+    Never,
+    Once,
+    Mult,
+}
+
+impl Used {
+    pub fn is_never(&self) -> bool {
+        match self {
+            Used::Never => true,
+            _ => false,
+        }
     }
 }

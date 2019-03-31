@@ -1,13 +1,11 @@
 ---
-created: "2019-03-30T21:24:04.523093900Z"
+created: "2019-03-31T23:33:24.647659100Z"
 creator: insta@0.7.1
 source: src/tests/ir2ast.rs
 expression: "\n    {\n        const x;\n    }\n    for (x in 1);\n"
 ---
-var _ini = void 0;
-var x$1 = _ini;
-var _rhs = 1;
-for(var _for in _rhs){
+var x$1 = void 0;
+for(var _for in 1){
     x = _for;
 }
 

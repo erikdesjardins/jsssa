@@ -62,7 +62,7 @@ fn main() -> Result<(), NiceError> {
         log::info!("Done ast2ir @ {}", Time(start.elapsed()));
 
         let ir = if optimize {
-            let ir = opt::run_all_passes(g, ir);
+            let ir = opt::run_passes(g, ir);
             log::info!("Done optimization @ {}", Time(start.elapsed()));
             ir
         } else {

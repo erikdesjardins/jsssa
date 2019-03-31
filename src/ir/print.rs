@@ -31,11 +31,11 @@ fn print_block<'a, 'b: 'a>(
 fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut WriteIndent<'b>) {
     match stmt {
         ir::Stmt::Expr { target, expr } => {
-            if target.maybe_used() {
+            if target.used().is_never() {
+                w.write_str("<dead>");
+            } else {
                 let name = scope.declare_ssa(target.clone());
                 w.write_str(&name);
-            } else {
-                w.write_str("<dead>");
             }
             w.write_str(" = ");
             print_expr(expr, scope, w);

@@ -1,21 +1,15 @@
 ---
-created: "2019-03-29T07:15:11.889672800Z"
+created: "2019-03-31T23:33:24.647659100Z"
 creator: insta@0.7.1
 source: src/tests/ir2ast.rs
 expression: "\n    var x = 1;\n    var x$1 = 1;\n    (function() {\n        var x = 1;\n    })\n"
 ---
-var _ini = void 0;
-var x = _ini;
-var _ini$1 = void 0;
-var x$1 = _ini$1;
-var _ini$2 = 1;
-x = _ini$2;
-var _ini$3 = 1;
-x$1 = _ini$3;
+var x = void 0;
+var x$1 = void 0;
+x = 1;
+x$1 = 1;
 function() {
-    var _ini$4 = void 0;
-    var x$1$1 = _ini$4;
-    var _ini$5 = 1;
-    x$1$1 = _ini$5;
+    var x$1$1 = void 0;
+    x$1$1 = 1;
 };
 

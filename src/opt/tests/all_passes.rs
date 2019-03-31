@@ -6,7 +6,7 @@ macro_rules! case {
             swc_globals::with(|g| {
                 let (ast, _) = parse::parse(g, $string)?;
                 let ir = ast2ir::convert(g, ast);
-                let ir = opt::run_all_passes(g, ir);
+                let ir = opt::run_passes(g, ir);
                 let ppr = ir::print(g, &ir);
                 insta::assert_snapshot_matches!(stringify!($name), ppr, $string);
                 Ok(())
