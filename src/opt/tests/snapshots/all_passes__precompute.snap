@@ -1,0 +1,10 @@
+---
+created: "2019-03-31T07:18:49.720038800Z"
+creator: insta@0.7.1
+source: src/opt/tests/all_passes.rs
+expression: "\n    x = 1 + 1 + 1 + 1;\n    y = \"foo\" + \" \" + \"bar\";\n"
+---
+_val = 4
+<global x> <- _val
+_val$1 = "foo bar"
+<global y> <- _val$1

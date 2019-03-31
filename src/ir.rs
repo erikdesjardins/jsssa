@@ -12,10 +12,10 @@ mod ref_;
 pub mod scope;
 pub mod visit;
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub struct Block(pub Vec<Stmt>);
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub enum Stmt {
     Expr {
         target: Ref<SSA>,
@@ -67,7 +67,7 @@ pub enum Stmt {
     },
 }
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub enum Expr {
     Bool {
         value: bool,
@@ -141,7 +141,7 @@ pub enum Expr {
     },
 }
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub enum UnaryOp {
     Plus,
     Minus,
@@ -151,7 +151,7 @@ pub enum UnaryOp {
     Void,
 }
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub enum BinaryOp {
     EqEq,
     NotEq,
@@ -177,45 +177,45 @@ pub enum BinaryOp {
     Instanceof,
 }
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub enum ForKind {
     In,
     Of,
 }
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub enum EleKind {
     Single,
     Spread,
 }
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub enum PropKind {
     Simple,
     Get,
     Set,
 }
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub enum CallKind {
     Call,
     New,
 }
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub enum FnKind {
     Func { is_async: bool, is_generator: bool },
     Arrow { is_async: bool },
 }
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub enum YieldKind {
     Single,
     Delegate,
 }
 
 /// f64 wrapper which allows hashing via NaN canonicalization
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct F64(pub f64);
 
 impl Hash for F64 {

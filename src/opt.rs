@@ -3,13 +3,17 @@ use crate::ir::fold::{Folder, RunFolder};
 use crate::swc_globals;
 use crate::utils::default_hash;
 
+mod constant;
 mod dce;
 
 #[cfg(test)]
 mod tests;
 
-pub fn run_opts(_: &swc_globals::Initialized, ir: ir::Block) -> ir::Block {
-    OptContext::new(ir).converge::<dce::Dce>("dce").into_inner()
+pub fn run_all_passes(_: &swc_globals::Initialized, ir: ir::Block) -> ir::Block {
+    OptContext::new(ir)
+        .run::<constant::Prop>("constant-prop")
+        .converge::<dce::Dce>("dce")
+        .into_inner()
 }
 
 struct OptContext(ir::Block);

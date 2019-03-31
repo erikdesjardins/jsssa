@@ -1,0 +1,23 @@
+---
+created: "2019-03-31T07:18:49.720038800Z"
+creator: insta@0.7.1
+source: src/opt/tests/constant.rs
+expression: "\n    for (var x in {}) bad;\n    for (var x of []) bad;\n    for (var x in { z: 1 }) good;\n    for (var x of [1]) good;\n"
+---
+_ini = <void>
+x :- _ini
+<dead> = {  }
+<dead> = []
+_key = "z"
+_val = 1
+_rhs = { [_key]: _val }
+<foreach in> _rhs:
+    _for = <argument 0>
+    x <- _for
+    <dead> = <global good>
+_ele = 1
+_rhs$1 = [_ele]
+<foreach of> _rhs$1:
+    _for = <argument 0>
+    x <- _for
+    <dead> = <global good>

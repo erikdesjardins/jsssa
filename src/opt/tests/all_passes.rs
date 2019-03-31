@@ -1,13 +1,12 @@
 macro_rules! case {
-    ( $name:ident, |$cx:ident| $cx_expr:expr, $string:expr ) => {
+    ( $name:ident, $string:expr ) => {
         #[test]
         fn $name() -> Result<(), crate::utils::NiceError> {
             use crate::{ast2ir, ir, opt, parse, swc_globals};
             swc_globals::with(|g| {
                 let (ast, _) = parse::parse(g, $string)?;
                 let ir = ast2ir::convert(g, ast);
-                let $cx = opt::OptContext::new(ir);
-                let ir = opt::OptContext::into_inner($cx_expr);
+                let ir = opt::run_all_passes(g, ir);
                 let ppr = ir::print(g, &ir);
                 insta::assert_snapshot_matches!(stringify!($name), ppr, $string);
                 Ok(())
@@ -16,6 +15,10 @@ macro_rules! case {
     };
 }
 
-mod all_passes;
-mod constant;
-mod dce;
+case!(
+    precompute,
+    r#"
+    x = 1 + 1 + 1 + 1;
+    y = "foo" + " " + "bar";
+"#
+);
