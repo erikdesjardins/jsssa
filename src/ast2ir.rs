@@ -136,24 +136,24 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                         span: _,
                     }) => {
                         let mut catch_scope = scope.nested();
-                        let catch_ref = match param {
+                        let args = match param {
                             Some(param) => {
                                 let name = pat_to_ident(param);
-                                catch_scope.declare_mutable(name)
+                                let catch_ref = catch_scope.declare_mutable(name);
+                                let arg_ref = ir::Ref::new("_cat");
+                                vec![
+                                    ir::Stmt::Expr {
+                                        target: arg_ref.clone(),
+                                        expr: ir::Expr::Argument { index: 0 },
+                                    },
+                                    ir::Stmt::DeclareMutable {
+                                        target: catch_ref,
+                                        val: arg_ref,
+                                    },
+                                ]
                             }
-                            None => ir::Ref::dead(),
+                            None => vec![],
                         };
-                        let arg_ref = ir::Ref::new("_cat");
-                        let args = vec![
-                            ir::Stmt::Expr {
-                                target: arg_ref.clone(),
-                                expr: ir::Expr::Argument { index: 0 },
-                            },
-                            ir::Stmt::DeclareMutable {
-                                target: catch_ref,
-                                val: arg_ref,
-                            },
-                        ];
                         let ir::Block(children) =
                             convert_block(stmts, &catch_scope, ShouldHoist::No);
                         let body = args.into_iter().chain(children).collect();

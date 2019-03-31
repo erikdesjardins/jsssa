@@ -78,3 +78,16 @@ case!(
     for (x in 1);
 "#
 );
+
+case!(
+    empty_blocks,
+    r#"
+    if (x) {
+        log();
+    } else {}
+
+    try { log() } catch {} finally {}
+
+    try { log() } catch {} finally { log() }
+"#
+);

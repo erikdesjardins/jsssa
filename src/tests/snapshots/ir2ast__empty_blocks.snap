@@ -1,0 +1,24 @@
+---
+created: "2019-03-31T01:09:26.458554500Z"
+creator: insta@0.7.1
+source: src/tests/ir2ast.rs
+expression: "\n    if (x) {\n        log();\n    } else {}\n\n    try { log() } catch {} finally {}\n\n    try { log() } catch {} finally { log() }\n"
+---
+var _iff = x;
+if (_iff) {
+    var _fun = log;
+    _fun();
+}
+try {
+    var _fun = log;
+    _fun();
+} catch () {
+}
+try {
+    var _fun = log;
+    _fun();
+} finally{
+    var _fun = log;
+    _fun();
+}
+

@@ -222,10 +222,14 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 span: span(),
                 stmts: convert_block(cons, scope),
             })),
-            alt: Some(P(ast::Stmt::Block(ast::BlockStmt {
-                span: span(),
-                stmts: convert_block(alt, scope),
-            }))),
+            alt: if alt.0.is_empty() {
+                None
+            } else {
+                Some(P(ast::Stmt::Block(ast::BlockStmt {
+                    span: span(),
+                    stmts: convert_block(alt, scope),
+                })))
+            },
         }),
         ir::Stmt::Try {
             body,
@@ -237,7 +241,9 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                 span: span(),
                 stmts: convert_block(body, scope),
             },
-            handler: Some({
+            handler: if catch.0.is_empty() && !finally.0.is_empty() {
+                None
+            } else {
                 let mut catch_scope = scope.nested();
                 let mut param_name = None;
                 catch
@@ -254,7 +260,7 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                         _ => false,
                     })
                     .for_each(drop);
-                ast::CatchClause {
+                Some(ast::CatchClause {
                     span: span(),
                     param: param_name.map(|param_name| {
                         ast::Pat::Ident(ast::Ident {
@@ -268,12 +274,16 @@ fn convert_stmt(stmt: ir::Stmt, scope: &mut scope::Ir) -> ast::Stmt {
                         span: span(),
                         stmts: convert_block(catch, &catch_scope),
                     },
-                }
-            }),
-            finalizer: Some(ast::BlockStmt {
-                span: span(),
-                stmts: convert_block(*finally, scope),
-            }),
+                })
+            },
+            finalizer: if finally.0.is_empty() {
+                None
+            } else {
+                Some(ast::BlockStmt {
+                    span: span(),
+                    stmts: convert_block(*finally, scope),
+                })
+            },
         }),
     }
 }
