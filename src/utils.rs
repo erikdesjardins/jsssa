@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use failure::Error;
 
+/// Shorthand for `Box::new` without `feature(box_syntax)`
 #[allow(non_snake_case)]
 pub fn P<T>(x: T) -> Box<T> {
     Box::new(x)
@@ -25,6 +26,7 @@ impl<T: Into<Error>> From<T> for NiceError {
     }
 }
 
+/// Pretty-printing wrapper for `Duration`, outputs "1.234s"
 pub struct Time(pub Duration);
 
 impl Display for Time {
@@ -33,6 +35,7 @@ impl Display for Time {
     }
 }
 
+/// Hash a value with the default hasher
 pub fn default_hash<H: Hash + ?Sized>(h: &H) -> u64 {
     let mut hasher = DefaultHasher::new();
     h.hash(&mut hasher);
