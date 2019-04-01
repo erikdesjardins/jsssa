@@ -74,15 +74,51 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 ],
             }
         }
-        ast::Stmt::Labeled(_) => unimplemented!("labels not yet supported"),
-        ast::Stmt::Break(ast::BreakStmt { label, span: _ }) => match label {
-            Some(_) => unimplemented!("labels not yet supported"),
-            None => vec![ir::Stmt::Break],
-        },
-        ast::Stmt::Continue(ast::ContinueStmt { label, span: _ }) => match label {
-            Some(_) => unimplemented!("labels not yet supported"),
-            None => vec![ir::Stmt::Continue],
-        },
+        ast::Stmt::Labeled(ast::LabeledStmt {
+            label:
+                ast::Ident {
+                    sym,
+                    span: _,
+                    type_ann: _,
+                    optional: _,
+                },
+            body,
+            span: _,
+        }) => {
+            let mut label_scope = scope.nested();
+            let label_ref = label_scope.declare_label(sym);
+            let body = convert_statement(*body, &mut label_scope);
+            vec![ir::Stmt::Label {
+                label: label_ref,
+                body: ir::Block(body),
+            }]
+        }
+        ast::Stmt::Break(ast::BreakStmt { label, span: _ }) => vec![ir::Stmt::Break {
+            label: label.map(
+                |ast::Ident {
+                     sym,
+                     span: _,
+                     type_ann: _,
+                     optional: _,
+                 }| match scope.get_label(&sym) {
+                    Some(label_ref) => label_ref.clone(),
+                    None => unreachable!("breaking from undeclared label: {:?}", sym),
+                },
+            ),
+        }],
+        ast::Stmt::Continue(ast::ContinueStmt { label, span: _ }) => vec![ir::Stmt::Continue {
+            label: label.map(
+                |ast::Ident {
+                     sym,
+                     span: _,
+                     type_ann: _,
+                     optional: _,
+                 }| match scope.get_label(&sym) {
+                    Some(label_ref) => label_ref.clone(),
+                    None => unreachable!("continuing from undeclared label: {:?}", sym),
+                },
+            ),
+        }],
         ast::Stmt::If(ast::IfStmt {
             test,
             cons,
@@ -194,7 +230,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             test_stmts.push(ir::Stmt::IfElse {
                 cond: cond_ref,
                 cons: ir::Block(vec![]),
-                alt: ir::Block(vec![ir::Stmt::Break]),
+                alt: ir::Block(vec![ir::Stmt::Break { label: None }]),
             });
             let body_stmts = convert_statement(*body, &mut scope.nested());
             let stmts = if prefix {
@@ -241,7 +277,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                             test_stmts.push(ir::Stmt::IfElse {
                                 cond: cond_ref,
                                 cons: ir::Block(vec![]),
-                                alt: ir::Block(vec![ir::Stmt::Break]),
+                                alt: ir::Block(vec![ir::Stmt::Break { label: None }]),
                             });
                             test_stmts
                         }

@@ -91,3 +91,15 @@ case!(
     try { good; } catch {} finally { good; }
 "#
 );
+
+case!(
+    labels,
+    r#"
+    outer: for (;;) {
+        inner: for (;;) {
+            if (foo) continue inner;
+            if (bar) break outer;
+        }
+    }
+"#
+);

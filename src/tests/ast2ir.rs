@@ -164,3 +164,15 @@ case!(
     foo().x |= 1;
 "#
 );
+
+case!(
+    labels,
+    r#"
+    outer: for (;;) {
+        inner: for (;;) {
+            if (foo) continue inner;
+            if (bar) break outer;
+        }
+    }
+"#
+);

@@ -2,13 +2,14 @@ use std::collections::HashMap;
 
 use swc_atoms::JsWord;
 
-use crate::ir::{Mutable, Ref, SSA};
+use crate::ir::{Label, Mutable, Ref, SSA};
 use crate::utils::default_hash;
 
 #[derive(Default)]
 pub struct Ast<'a> {
     parent: Option<&'a Ast<'a>>,
     ident_to_mut_ref: HashMap<JsWord, Ref<Mutable>>,
+    ident_to_label_ref: HashMap<JsWord, Ref<Label>>,
 }
 
 impl<'a> Ast<'a> {
@@ -16,6 +17,7 @@ impl<'a> Ast<'a> {
         Self {
             parent: Some(self),
             ident_to_mut_ref: Default::default(),
+            ident_to_label_ref: Default::default(),
         }
     }
 
@@ -33,6 +35,18 @@ impl<'a> Ast<'a> {
         self.ident_to_mut_ref.insert(ident, ref_.clone());
         ref_
     }
+
+    pub fn get_label(&self, ident: &JsWord) -> Option<&Ref<Label>> {
+        self.ident_to_label_ref
+            .get(ident)
+            .or_else(|| self.parent.and_then(|p| p.get_label(ident)))
+    }
+
+    pub fn declare_label(&mut self, ident: JsWord) -> Ref<Label> {
+        let ref_ = Ref::new(&ident);
+        self.ident_to_label_ref.insert(ident, ref_.clone());
+        ref_
+    }
 }
 
 #[derive(Default)]
@@ -40,6 +54,7 @@ pub struct Ir<'a> {
     parent: Option<&'a Ir<'a>>,
     seen_prefix_hashes: HashMap<u64, u64>,
     mutable_names: HashMap<Ref<Mutable>, JsWord>,
+    label_names: HashMap<Ref<Label>, JsWord>,
     ssa_names: HashMap<Ref<SSA>, JsWord>,
 }
 
@@ -49,6 +64,7 @@ impl<'a> Ir<'a> {
             parent: Some(self),
             seen_prefix_hashes: Default::default(),
             mutable_names: Default::default(),
+            label_names: Default::default(),
             ssa_names: Default::default(),
         }
     }
@@ -71,6 +87,20 @@ impl<'a> Ir<'a> {
         let name = self.unique_name(ref_.name_hint());
         let old_name = self.mutable_names.insert(ref_, name.clone());
         assert!(old_name.is_none(), "mutable vars can only be declared once");
+        name
+    }
+
+    pub fn get_label(&self, ref_: &Ref<Label>) -> Option<JsWord> {
+        self.label_names
+            .get(ref_)
+            .cloned()
+            .or_else(|| self.parent.and_then(|p| p.get_label(ref_)))
+    }
+
+    pub fn declare_label(&mut self, ref_: Ref<Label>) -> JsWord {
+        let name = self.unique_name(ref_.name_hint());
+        let old_name = self.label_names.insert(ref_, name.clone());
+        assert!(old_name.is_none(), "labels can only be declared once");
         name
     }
 

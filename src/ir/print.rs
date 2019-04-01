@@ -52,7 +52,7 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
                 w.write_str(" <- ");
                 print_ssa(val, scope, w);
             }
-            None => unreachable!("writing to undeclared mutable ref"),
+            None => w.write_str(&format!("<BAD MUT {:?}>", target)),
         },
         ir::Stmt::WriteGlobal { target, val } => {
             w.write_str("<global ");
@@ -75,14 +75,42 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
             w.write_str("<throw> ");
             print_ssa(val, scope, w);
         }
-        ir::Stmt::Break => {
-            w.write_str("<break>");
+        ir::Stmt::Break { label } => {
+            w.write_str("<break");
+            if let Some(label) = label {
+                match scope.get_label(label) {
+                    Some(name) => {
+                        w.write_str(" ");
+                        w.write_str(&name);
+                    }
+                    None => w.write_str(&format!(" BAD LBL {:?}", label)),
+                }
+            }
+            w.write_str(">");
         }
-        ir::Stmt::Continue => {
-            w.write_str("<continue>");
+        ir::Stmt::Continue { label } => {
+            w.write_str("<continue");
+            if let Some(label) = label {
+                match scope.get_label(label) {
+                    Some(name) => {
+                        w.write_str(" ");
+                        w.write_str(&name);
+                    }
+                    None => w.write_str(&format!(" BAD LBL {:?}", label)),
+                }
+            }
+            w.write_str(">");
         }
         ir::Stmt::Debugger => {
             w.write_str("<debugger>");
+        }
+        ir::Stmt::Label { label, body } => {
+            let mut label_scope = scope.nested();
+            let name = label_scope.declare_label(label.clone());
+            w.write_str("<label ");
+            w.write_str(&name);
+            w.write_str(">:");
+            print_block(&body, &mut label_scope, &mut w.indented());
         }
         ir::Stmt::Loop { body } => {
             w.write_str("<loop>:");
@@ -140,13 +168,10 @@ fn print_expr<'a, 'b: 'a>(expr: &ir::Expr, scope: &scope::Ir, w: &'a mut WriteIn
         ir::Expr::Undefined => w.write_str("<void>"),
         ir::Expr::This => w.write_str("<this>"),
         ir::Expr::Read { source } => print_ssa(source, scope, w),
-        ir::Expr::ReadMutable { source } => {
-            let name = match scope.get_mutable(&source) {
-                Some(name) => name,
-                None => unreachable!("reading from undeclared mutable ref"),
-            };
-            w.write_str(&name);
-        }
+        ir::Expr::ReadMutable { source } => match scope.get_mutable(&source) {
+            Some(name) => w.write_str(&name),
+            None => w.write_str(&format!("<BAD MUT {:?}>", source)),
+        },
         ir::Expr::ReadGlobal { source } => {
             w.write_str("<global ");
             w.write_str(source);
@@ -316,11 +341,10 @@ fn print_expr<'a, 'b: 'a>(expr: &ir::Expr, scope: &scope::Ir, w: &'a mut WriteIn
 }
 
 fn print_ssa(ssa_ref: &ir::Ref<ir::SSA>, scope: &scope::Ir, w: &mut WriteIndent<'_>) {
-    let name = match scope.get_ssa(ssa_ref) {
-        Some(name) => name,
-        None => unreachable!("reading from undeclared SSA ref"),
-    };
-    w.write_str(&name);
+    match scope.get_ssa(ssa_ref) {
+        Some(name) => w.write_str(&name),
+        None => w.write_str(&format!("<BAD SSA {:?}>", ssa_ref)),
+    }
 }
 
 struct WriteIndent<'a> {

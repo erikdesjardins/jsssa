@@ -52,8 +52,8 @@ impl Folder for Dce {
             ir::Stmt::DeclareMutable { ref target, val: _ } if target.used().is_never() => None,
             ir::Stmt::Return { .. }
             | ir::Stmt::Throw { .. }
-            | ir::Stmt::Break
-            | ir::Stmt::Continue => {
+            | ir::Stmt::Break { .. }
+            | ir::Stmt::Continue { .. } => {
                 self.dropping_after_jump = true;
                 Some(stmt)
             }

@@ -1,0 +1,21 @@
+---
+created: "2019-04-01T04:53:24.833451900Z"
+creator: insta@0.7.1
+source: src/tests/all_phases.rs
+expression: "\n    outer: for (;;) {\n        inner: for (;;) {\n            if (foo) continue inner;\n            if (bar) break outer;\n        }\n    }\n"
+---
+outer: {
+    while(true){
+        inner: {
+            while(true){
+                if (foo) {
+                    continue inner;
+                }
+                if (bar) {
+                    break outer;
+                }
+            }
+        }
+    }
+}
+

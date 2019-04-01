@@ -171,10 +171,13 @@ impl Visitor for CollectSingleUseInliningInfo {
                 self.use_ref(val);
                 self.side_effect();
             }
-            ir::Stmt::Break | ir::Stmt::Continue => {
+            ir::Stmt::Break { .. } | ir::Stmt::Continue { .. } => {
                 self.side_effect();
             }
             ir::Stmt::Debugger => {
+                self.side_effect();
+            }
+            ir::Stmt::Label { label: _, body: _ } => {
                 self.side_effect();
             }
             ir::Stmt::Loop { body: _ } => {

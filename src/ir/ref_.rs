@@ -10,11 +10,15 @@ pub trait RefType {}
 impl RefType for SSA {}
 impl RefType for Mutable {}
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum SSA {}
+impl RefType for Label {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum SSA {}
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Mutable {}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Label {}
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Ref<T: RefType> {

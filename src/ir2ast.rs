@@ -129,15 +129,48 @@ fn convert_stmt(
             span: span(),
             arg: P(read_ssa_to_expr(val, scope, ssa_cache)),
         }),
-        ir::Stmt::Break => ast::Stmt::Break(ast::BreakStmt {
+        ir::Stmt::Break { label } => ast::Stmt::Break(ast::BreakStmt {
             span: span(),
-            label: None,
+            label: label.map(|label| match scope.get_label(&label) {
+                Some(name) => ast::Ident {
+                    span: span(),
+                    sym: name,
+                    type_ann: None,
+                    optional: false,
+                },
+                None => unreachable!("breaking from undeclared label: {:?}", label),
+            }),
         }),
-        ir::Stmt::Continue => ast::Stmt::Continue(ast::ContinueStmt {
+        ir::Stmt::Continue { label } => ast::Stmt::Continue(ast::ContinueStmt {
             span: span(),
-            label: None,
+            label: label.map(|label| match scope.get_label(&label) {
+                Some(name) => ast::Ident {
+                    span: span(),
+                    sym: name,
+                    type_ann: None,
+                    optional: false,
+                },
+                None => unreachable!("continuing from undeclared label: {:?}", label),
+            }),
         }),
         ir::Stmt::Debugger => ast::Stmt::Debugger(ast::DebuggerStmt { span: span() }),
+        ir::Stmt::Label { label, body } => {
+            let mut label_scope = scope.nested();
+            let name = label_scope.declare_label(label);
+            ast::Stmt::Labeled(ast::LabeledStmt {
+                span: span(),
+                label: ast::Ident {
+                    span: span(),
+                    sym: name,
+                    type_ann: None,
+                    optional: false,
+                },
+                body: P(ast::Stmt::Block(ast::BlockStmt {
+                    span: span(),
+                    stmts: convert_block(body, &mut label_scope, ssa_cache),
+                })),
+            })
+        }
         ir::Stmt::Loop { body } => ast::Stmt::While(ast::WhileStmt {
             span: span(),
             test: P(ast::Expr::Lit(ast::Lit::Bool(ast::Bool {

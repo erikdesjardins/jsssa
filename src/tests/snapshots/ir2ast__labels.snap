@@ -1,0 +1,21 @@
+---
+created: "2019-04-01T04:51:10.998309100Z"
+creator: insta@0.7.1
+source: src/tests/ir2ast.rs
+expression: "\n    outer: for (;;) {\n        inner: for (;;) {\n            if (foo) continue inner;\n            if (bar) break outer;\n        }\n    }\n"
+---
+outer: {
+    while(true){
+        inner: {
+            while(true){
+                if (foo) {
+                    continue inner;
+                }
+                if (bar) {
+                    break outer;
+                }
+            }
+        }
+    }
+}
+

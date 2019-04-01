@@ -55,6 +55,10 @@ impl<F: Folder> RunFolder for F {
                                     | ir::Expr::Argument { .. } => expr,
                                 },
                             },
+                            ir::Stmt::Label { label, body } => ir::Stmt::Label {
+                                label,
+                                body: this.run_folder(body),
+                            },
                             ir::Stmt::Loop { body } => ir::Stmt::Loop {
                                 body: this.run_folder(body),
                             },
@@ -83,8 +87,8 @@ impl<F: Folder> RunFolder for F {
                             | ir::Stmt::WriteMember { .. }
                             | ir::Stmt::Return { .. }
                             | ir::Stmt::Throw { .. }
-                            | ir::Stmt::Break
-                            | ir::Stmt::Continue
+                            | ir::Stmt::Break { .. }
+                            | ir::Stmt::Continue { .. }
                             | ir::Stmt::Debugger => stmt,
                         })
                         .collect::<Vec<_>>()

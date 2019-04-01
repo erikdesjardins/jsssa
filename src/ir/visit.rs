@@ -67,6 +67,9 @@ impl<V: Visitor> RunVisitor for V {
                         | ir::Expr::CurrentFunction
                         | ir::Expr::Argument { .. } => {}
                     },
+                    ir::Stmt::Label { label: _, body } => {
+                        this.run_visitor(body);
+                    }
                     ir::Stmt::Loop { body } => {
                         this.run_visitor(body);
                     }
@@ -96,8 +99,8 @@ impl<V: Visitor> RunVisitor for V {
                     | ir::Stmt::WriteMember { .. }
                     | ir::Stmt::Return { .. }
                     | ir::Stmt::Throw { .. }
-                    | ir::Stmt::Break
-                    | ir::Stmt::Continue
+                    | ir::Stmt::Break { .. }
+                    | ir::Stmt::Continue { .. }
                     | ir::Stmt::Debugger => {}
                 }
             }

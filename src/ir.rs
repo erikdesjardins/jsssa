@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use swc_atoms::JsWord;
 
 pub use self::print::print;
-pub use self::ref_::{Mutable, Ref, RefType, Used, WeakRef, SSA};
+pub use self::ref_::{Label, Mutable, Ref, RefType, Used, WeakRef, SSA};
 
 pub mod fold;
 mod print;
@@ -44,9 +44,17 @@ pub enum Stmt {
     Throw {
         val: Ref<SSA>,
     },
-    Break,
-    Continue,
+    Break {
+        label: Option<Ref<Label>>,
+    },
+    Continue {
+        label: Option<Ref<Label>>,
+    },
     Debugger,
+    Label {
+        label: Ref<Label>,
+        body: Block,
+    },
     Loop {
         body: Block,
     },
