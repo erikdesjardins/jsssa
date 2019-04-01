@@ -1169,9 +1169,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                 },
                             )
                         }
-                        _ => {
-                            unimplemented!("assigning to non member-expression expression pattern")
-                        }
+                        e => unimplemented!("assigning to non member-expression pattern: {:?}", e),
                     },
                     pat => {
                         unimplemented!("assigning to complex patterns not yet supported: {:?}", pat)
