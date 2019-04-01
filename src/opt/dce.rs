@@ -1,12 +1,13 @@
 use crate::ir;
 use crate::ir::fold::Folder;
 
+/// Dead code elimination
 #[derive(Default)]
-pub struct Dce {
+pub struct Eliminate {
     dropping_after_jump: bool,
 }
 
-impl Folder for Dce {
+impl Folder for Eliminate {
     type Output = Option<ir::Stmt>;
 
     fn wrap_scope<R>(&mut self, enter: impl FnOnce(&mut Self) -> R) -> R {

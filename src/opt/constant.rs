@@ -4,6 +4,7 @@ use crate::collections::ZeroOneMany::{self, Many, One, Zero};
 use crate::ir;
 use crate::ir::fold::Folder;
 
+/// Constant propagation / precompute
 #[derive(Default)]
 pub struct Prop {
     known_values: HashMap<ir::Ref<ir::Ssa>, ir::Expr>,

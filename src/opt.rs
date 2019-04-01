@@ -12,7 +12,7 @@ mod tests;
 pub fn run_passes(_: &swc_globals::Initialized, ir: ir::Block) -> ir::Block {
     OptContext::new(ir)
         .run::<constant::Prop>("constant-prop")
-        .converge::<dce::Dce>("dce")
+        .converge::<dce::Eliminate>("dce")
         .into_inner()
 }
 
