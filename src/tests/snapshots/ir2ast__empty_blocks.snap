@@ -1,19 +1,19 @@
 ---
-created: "2019-03-31T23:33:24.652650400Z"
+created: "2019-04-01T02:57:49.832743600Z"
 creator: insta@0.7.1
 source: src/tests/ir2ast.rs
-expression: "\n    if (x) {\n        log();\n    } else {}\n\n    try { log() } catch {} finally {}\n\n    try { log() } catch {} finally { log() }\n"
+expression: "\n    if (x) {\n        good;\n    } else {}\n\n    try { good; } catch {} finally {}\n\n    try { good; } catch {} finally { good; }\n"
 ---
 if (x) {
-    log();
+    good;
 }
 try {
-    log();
+    good;
 } catch () {
 }
 try {
-    log();
+    good;
 } finally{
-    log();
+    good;
 }
 

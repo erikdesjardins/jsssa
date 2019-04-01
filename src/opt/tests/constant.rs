@@ -9,6 +9,14 @@ case!(
 );
 
 case!(
+    basic_bail,
+    |cx| cx.run::<constant::Prop>("const-prop"),
+    r#"
+    (typeof (1 + 1 + null + 1));
+"#
+);
+
+case!(
     empty_for,
     |cx| cx.run::<constant::Prop>("const-prop"),
     r#"

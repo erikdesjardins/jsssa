@@ -53,12 +53,15 @@ case!(
     |cx| cx.converge::<dce::Dce>("dce"),
     r#"
     (function() {
+        good;
         if (x) {
+            good;
             throw 1;
-            log();
+            bad;
         }
+        good;
         return 2;
-        log();
+        bad;
     })();
 "#
 );
@@ -68,14 +71,19 @@ case!(
     |cx| cx.converge::<dce::Dce>("dce"),
     r#"
     for (;;) {
+        good;
         if (x) {
+            good;
             continue;
-            log();
+            bad;
         }
+        good;
         if (y) {
+            good;
             break;
-            log();
+            bad;
         }
+        good;
     }
 "#
 );
@@ -85,12 +93,13 @@ case!(
     |cx| cx.converge::<dce::Dce>("dce"),
     r#"
     (function() {
+        good;
         return 2;
-        (function() { log() })();
+        (function() { bad; })();
         if (x) {
-            log();
+            bad;
         }
-        log();
+        bad;
     })();
 "#
 );
@@ -100,6 +109,6 @@ case!(
     |cx| cx.converge::<dce::Dce>("dce"),
     r#"
     if (x) {} else {}
-    try {} catch (e) { log(e); } finally {}
+    try {} catch (e) { bad(e); } finally {}
 "#
 );

@@ -1,0 +1,14 @@
+---
+created: "2019-04-01T02:57:49.782221100Z"
+creator: insta@0.7.1
+source: src/opt/tests/constant.rs
+expression: "\n    (typeof (1 + 1 + null + 1));\n"
+---
+<dead> = 1
+<dead> = 1
+_lhs = 2
+_rhs = <null>
+_lhs$1 = _lhs + _rhs
+_rhs$1 = 1
+_una = _lhs$1 + _rhs$1
+<dead> = <typeof> _una

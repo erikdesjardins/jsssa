@@ -83,11 +83,11 @@ case!(
     empty_blocks,
     r#"
     if (x) {
-        log();
+        good;
     } else {}
 
-    try { log() } catch {} finally {}
+    try { good; } catch {} finally {}
 
-    try { log() } catch {} finally { log() }
+    try { good; } catch {} finally { good; }
 "#
 );
