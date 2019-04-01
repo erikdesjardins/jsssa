@@ -20,6 +20,7 @@ impl Folder for Prop {
         use ir::UnaryOp::*;
         use ir::F64;
 
+        #[allow(clippy::cast_lossless, clippy::float_cmp)]
         match stmt {
             ir::Stmt::Expr {
                 target,

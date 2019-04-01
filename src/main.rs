@@ -1,6 +1,10 @@
 #![feature(drain_filter)]
 #![warn(clippy::print_stdout)]
-#![allow(clippy::unneeded_field_pattern, clippy::cognitive_complexity)]
+#![allow(
+    clippy::unneeded_field_pattern,
+    clippy::cognitive_complexity,
+    clippy::map_clone
+)]
 
 use std::fs;
 use std::io;

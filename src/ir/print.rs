@@ -110,7 +110,7 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
             w.write_str("<label ");
             w.write_str(&name);
             w.write_str(">:");
-            print_block(&body, &mut label_scope, &mut w.indented());
+            print_block(&body, &label_scope, &mut w.indented());
         }
         ir::Stmt::Loop { body } => {
             w.write_str("<loop>:");

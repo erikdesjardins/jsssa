@@ -167,7 +167,7 @@ fn convert_stmt(
                 },
                 body: P(ast::Stmt::Block(ast::BlockStmt {
                     span: span(),
-                    stmts: convert_block(body, &mut label_scope, ssa_cache),
+                    stmts: convert_block(body, &label_scope, ssa_cache),
                 })),
             })
         }
