@@ -32,7 +32,8 @@ impl<'a> Ast<'a> {
 
     pub fn declare_mutable(&mut self, ident: JsWord) -> Ref<Mutable> {
         let ref_ = Ref::new(&ident);
-        self.ident_to_mut_ref.insert(ident, ref_.clone());
+        let old_ref = self.ident_to_mut_ref.insert(ident, ref_.clone());
+        assert!(old_ref.is_none(), "mutable vars can only be declared once");
         ref_
     }
 
@@ -44,7 +45,8 @@ impl<'a> Ast<'a> {
 
     pub fn declare_label(&mut self, ident: JsWord) -> Ref<Label> {
         let ref_ = Ref::new(&ident);
-        self.ident_to_label_ref.insert(ident, ref_.clone());
+        let old_ref = self.ident_to_label_ref.insert(ident, ref_.clone());
+        assert!(old_ref.is_none(), "labels can only be declared once");
         ref_
     }
 }
