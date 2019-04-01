@@ -156,3 +156,11 @@ case!(
     (bar && and_then);
 "#
 );
+
+case!(
+    assign_to_expr,
+    r#"
+    e |= 0;
+    foo().x |= 1;
+"#
+);

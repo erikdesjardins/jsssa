@@ -1,0 +1,10 @@
+---
+created: "2019-04-01T03:53:50.345155400Z"
+creator: insta@0.7.1
+source: src/tests/all_phases.rs
+expression: "\n    e |= 0;\n    foo().x |= 1;\n"
+---
+e = e | 0;
+var _obj = foo();
+_obj['x'] = _obj['x'] | 1;
+

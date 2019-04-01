@@ -57,3 +57,9 @@ impl<T> DoubleEndedIterator for ZeroOneManyIter<T> {
 impl<T> ExactSizeIterator for ZeroOneManyIter<T> {}
 
 impl<T> FusedIterator for ZeroOneManyIter<T> {}
+
+/// The fundamental sum type
+pub enum Either<A, B> {
+    A(A),
+    B(B),
+}

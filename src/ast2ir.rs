@@ -1,6 +1,7 @@
 use swc_atoms::JsWord;
 use swc_ecma_ast as ast;
 
+use crate::collections::Either;
 use crate::ir;
 use crate::ir::scope;
 use crate::swc_globals;
@@ -1085,98 +1086,100 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             right,
             span: _,
         }) => {
-            let value_ref = ir::Ref::new("_val");
-            let (mut stmts, read_expr, write_stmt) = match left {
+            let ident_or_member = match left {
                 ast::PatOrExpr::Pat(pat) => match *pat {
-                    ast::Pat::Ident(ast::Ident {
-                        sym,
-                        span: _,
-                        type_ann: _,
-                        optional: _,
-                    }) => match scope.get_mutable(&sym) {
-                        Some(binding) => (
-                            vec![],
-                            ir::Expr::ReadMutable {
-                                source: binding.clone(),
-                            },
-                            ir::Stmt::WriteMutable {
-                                target: binding.clone(),
-                                val: value_ref.clone(),
-                            },
-                        ),
-                        None => (
-                            vec![],
-                            ir::Expr::ReadGlobal {
-                                source: sym.clone(),
-                            },
-                            ir::Stmt::WriteGlobal {
-                                target: sym.clone(),
-                                val: value_ref.clone(),
-                            },
-                        ),
-                    },
+                    ast::Pat::Ident(ident) => Either::A(ident),
                     ast::Pat::Expr(expr) => match *expr {
-                        ast::Expr::Member(ast::MemberExpr {
-                            obj,
-                            prop,
-                            computed,
-                            span: _,
-                        }) => {
-                            let obj_ref = ir::Ref::new("_obj");
-                            let prop_ref = ir::Ref::new("_prp");
-                            let (mut stmts, obj_value) = convert_expr_or_super(obj, scope);
-                            stmts.push(ir::Stmt::Expr {
-                                target: obj_ref.clone(),
-                                expr: obj_value,
-                            });
-                            let (prop_stmts, prop_value) = if computed {
-                                convert_expression(*prop, scope)
-                            } else {
-                                match *prop {
-                                    ast::Expr::Ident(ast::Ident {
-                                        sym,
-                                        span: _,
-                                        type_ann: _,
-                                        optional: _,
-                                    }) => (
-                                        vec![],
-                                        ir::Expr::String {
-                                            value: sym,
-                                            has_escape: false,
-                                        },
-                                    ),
-                                    e => unreachable!(
-                                        "non-computed property is not an ident: {:?}",
-                                        e
-                                    ),
-                                }
-                            };
-                            stmts.extend(prop_stmts);
-                            stmts.push(ir::Stmt::Expr {
-                                target: prop_ref.clone(),
-                                expr: prop_value,
-                            });
-                            (
-                                stmts,
-                                ir::Expr::ReadMember {
-                                    obj: obj_ref.clone(),
-                                    prop: prop_ref.clone(),
-                                },
-                                ir::Stmt::WriteMember {
-                                    obj: obj_ref,
-                                    prop: prop_ref,
-                                    val: value_ref.clone(),
-                                },
-                            )
-                        }
+                        ast::Expr::Ident(ident) => Either::A(ident),
+                        ast::Expr::Member(member) => Either::B(member),
                         e => unimplemented!("assigning to non member-expression pattern: {:?}", e),
                     },
-                    pat => {
-                        unimplemented!("assigning to complex patterns not yet supported: {:?}", pat)
-                    }
+                    p => unimplemented!("assigning to complex pattern: {:?}", p),
                 },
-                ast::PatOrExpr::Expr(_) => {
-                    unreachable!("assigning to expression");
+                ast::PatOrExpr::Expr(expr) => match *expr {
+                    ast::Expr::Ident(ident) => Either::A(ident),
+                    ast::Expr::Member(member) => Either::B(member),
+                    e => unreachable!("assigning to unsupported expression: {:?}", e),
+                },
+            };
+            let value_ref = ir::Ref::new("_val");
+            let (mut stmts, read_expr, write_stmt) = match ident_or_member {
+                Either::A(ast::Ident {
+                    sym,
+                    span: _,
+                    type_ann: _,
+                    optional: _,
+                }) => match scope.get_mutable(&sym) {
+                    Some(binding) => (
+                        vec![],
+                        ir::Expr::ReadMutable {
+                            source: binding.clone(),
+                        },
+                        ir::Stmt::WriteMutable {
+                            target: binding.clone(),
+                            val: value_ref.clone(),
+                        },
+                    ),
+                    None => (
+                        vec![],
+                        ir::Expr::ReadGlobal {
+                            source: sym.clone(),
+                        },
+                        ir::Stmt::WriteGlobal {
+                            target: sym.clone(),
+                            val: value_ref.clone(),
+                        },
+                    ),
+                },
+                Either::B(ast::MemberExpr {
+                    obj,
+                    prop,
+                    computed,
+                    span: _,
+                }) => {
+                    let obj_ref = ir::Ref::new("_obj");
+                    let prop_ref = ir::Ref::new("_prp");
+                    let (mut stmts, obj_value) = convert_expr_or_super(obj, scope);
+                    stmts.push(ir::Stmt::Expr {
+                        target: obj_ref.clone(),
+                        expr: obj_value,
+                    });
+                    let (prop_stmts, prop_value) = if computed {
+                        convert_expression(*prop, scope)
+                    } else {
+                        match *prop {
+                            ast::Expr::Ident(ast::Ident {
+                                sym,
+                                span: _,
+                                type_ann: _,
+                                optional: _,
+                            }) => (
+                                vec![],
+                                ir::Expr::String {
+                                    value: sym,
+                                    has_escape: false,
+                                },
+                            ),
+                            e => unreachable!("non-computed property is not an ident: {:?}", e),
+                        }
+                    };
+                    stmts.extend(prop_stmts);
+                    stmts.push(ir::Stmt::Expr {
+                        target: prop_ref.clone(),
+                        expr: prop_value,
+                    });
+                    (
+                        stmts,
+                        ir::Expr::ReadMember {
+                            obj: obj_ref.clone(),
+                            prop: prop_ref.clone(),
+                        },
+                        ir::Stmt::WriteMember {
+                            obj: obj_ref,
+                            prop: prop_ref,
+                            val: value_ref.clone(),
+                        },
+                    )
                 }
             };
             match op {
