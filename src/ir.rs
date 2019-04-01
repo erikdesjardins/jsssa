@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 use swc_atoms::JsWord;
 
 pub use self::print::print;
-pub use self::ref_::{Label, Mutable, Ref, RefType, Used, WeakRef, SSA};
+pub use self::ref_::{Lbl, Mut, Ref, RefType, Ssa, Used, WeakRef};
 
 pub mod fold;
 mod print;
@@ -18,41 +18,41 @@ pub struct Block(pub Vec<Stmt>);
 #[derive(Debug, Clone, Hash)]
 pub enum Stmt {
     Expr {
-        target: Ref<SSA>,
+        target: Ref<Ssa>,
         expr: Expr,
     },
     DeclareMutable {
-        target: Ref<Mutable>,
-        val: Ref<SSA>,
+        target: Ref<Mut>,
+        val: Ref<Ssa>,
     },
     WriteMutable {
-        target: Ref<Mutable>,
-        val: Ref<SSA>,
+        target: Ref<Mut>,
+        val: Ref<Ssa>,
     },
     WriteGlobal {
         target: JsWord,
-        val: Ref<SSA>,
+        val: Ref<Ssa>,
     },
     WriteMember {
-        obj: Ref<SSA>,
-        prop: Ref<SSA>,
-        val: Ref<SSA>,
+        obj: Ref<Ssa>,
+        prop: Ref<Ssa>,
+        val: Ref<Ssa>,
     },
     Return {
-        val: Ref<SSA>,
+        val: Ref<Ssa>,
     },
     Throw {
-        val: Ref<SSA>,
+        val: Ref<Ssa>,
     },
     Break {
-        label: Option<Ref<Label>>,
+        label: Option<Ref<Lbl>>,
     },
     Continue {
-        label: Option<Ref<Label>>,
+        label: Option<Ref<Lbl>>,
     },
     Debugger,
     Label {
-        label: Ref<Label>,
+        label: Ref<Lbl>,
         body: Block,
     },
     Loop {
@@ -60,11 +60,11 @@ pub enum Stmt {
     },
     ForEach {
         kind: ForKind,
-        init: Ref<SSA>,
+        init: Ref<Ssa>,
         body: Block,
     },
     IfElse {
-        cond: Ref<SSA>,
+        cond: Ref<Ssa>,
         cons: Block,
         alt: Block,
     },
@@ -91,23 +91,23 @@ pub enum Expr {
     Undefined,
     This,
     Read {
-        source: Ref<SSA>,
+        source: Ref<Ssa>,
     },
     ReadMutable {
-        source: Ref<Mutable>,
+        source: Ref<Mut>,
     },
     ReadGlobal {
         source: JsWord,
     },
     ReadMember {
-        obj: Ref<SSA>,
-        prop: Ref<SSA>,
+        obj: Ref<Ssa>,
+        prop: Ref<Ssa>,
     },
     Array {
-        elems: Vec<Option<(EleKind, Ref<SSA>)>>,
+        elems: Vec<Option<(EleKind, Ref<Ssa>)>>,
     },
     Object {
-        props: Vec<(PropKind, Ref<SSA>, Ref<SSA>)>,
+        props: Vec<(PropKind, Ref<Ssa>, Ref<Ssa>)>,
     },
     RegExp {
         regex: JsWord,
@@ -116,28 +116,28 @@ pub enum Expr {
     },
     Unary {
         op: UnaryOp,
-        val: Ref<SSA>,
+        val: Ref<Ssa>,
     },
     Binary {
         op: BinaryOp,
-        left: Ref<SSA>,
-        right: Ref<SSA>,
+        left: Ref<Ssa>,
+        right: Ref<Ssa>,
     },
     Delete {
-        obj: Ref<SSA>,
-        prop: Ref<SSA>,
+        obj: Ref<Ssa>,
+        prop: Ref<Ssa>,
     },
     Yield {
         kind: YieldKind,
-        val: Ref<SSA>,
+        val: Ref<Ssa>,
     },
     Await {
-        val: Ref<SSA>,
+        val: Ref<Ssa>,
     },
     Call {
         kind: CallKind,
-        func: Ref<SSA>,
-        args: Vec<(EleKind, Ref<SSA>)>,
+        func: Ref<Ssa>,
+        args: Vec<(EleKind, Ref<Ssa>)>,
     },
     Function {
         kind: FnKind,

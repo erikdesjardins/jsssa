@@ -608,7 +608,7 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
 }
 
 fn write_ssa_to_stmt(
-    ssa_ref: ir::Ref<ir::SSA>,
+    ssa_ref: ir::Ref<ir::Ssa>,
     expr: ir::Expr,
     scope: &mut scope::Ir,
     ssa_cache: &mut ssa::Cache,
@@ -659,7 +659,7 @@ fn write_ssa_to_stmt(
 }
 
 fn read_ssa_to_expr(
-    ssa_ref: ir::Ref<ir::SSA>,
+    ssa_ref: ir::Ref<ir::Ssa>,
     scope: &scope::Ir,
     ssa_cache: &ssa::Cache,
 ) -> ast::Expr {
@@ -668,7 +668,7 @@ fn read_ssa_to_expr(
         None => {
             let name = match scope.get_ssa(&ssa_ref) {
                 Some(name) => name,
-                None => unreachable!("reading from undeclared SSA ref: {:?}", ssa_ref),
+                None => unreachable!("reading from undeclared ssa ref: {:?}", ssa_ref),
             };
             ast::Expr::Ident(ast::Ident {
                 span: span(),

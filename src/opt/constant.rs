@@ -6,7 +6,7 @@ use crate::ir::fold::Folder;
 
 #[derive(Default)]
 pub struct Prop {
-    known_values: HashMap<ir::Ref<ir::SSA>, ir::Expr>,
+    known_values: HashMap<ir::Ref<ir::Ssa>, ir::Expr>,
 }
 
 impl Folder for Prop {

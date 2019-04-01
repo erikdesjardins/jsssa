@@ -7,19 +7,23 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use swc_atoms::JsWord;
 
 pub trait RefType {}
-impl RefType for SSA {}
-impl RefType for Mutable {}
+impl RefType for Ssa {}
+impl RefType for Mut {}
+impl RefType for Lbl {}
 
-impl RefType for Label {}
-
+/// SSA references
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum SSA {}
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Mutable {}
+pub enum Ssa {}
 
+/// Mutable references
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Label {}
+pub enum Mut {}
 
+/// Labels
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Lbl {}
+
+/// A unique, statically-resolved reference
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Ref<T: RefType> {
     inner: Rc<RefInner<T>>,

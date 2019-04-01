@@ -340,7 +340,7 @@ fn print_expr<'a, 'b: 'a>(expr: &ir::Expr, scope: &scope::Ir, w: &'a mut WriteIn
     }
 }
 
-fn print_ssa(ssa_ref: &ir::Ref<ir::SSA>, scope: &scope::Ir, w: &mut WriteIndent<'_>) {
+fn print_ssa(ssa_ref: &ir::Ref<ir::Ssa>, scope: &scope::Ir, w: &mut WriteIndent<'_>) {
     match scope.get_ssa(ssa_ref) {
         Some(name) => w.write_str(&name),
         None => w.write_str(&format!("<BAD SSA {:?}>", ssa_ref)),

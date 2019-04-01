@@ -7,8 +7,8 @@ use crate::ir;
 use crate::ir::visit::{RunVisitor, Visitor};
 
 pub struct Cache {
-    no_side_effects_between_def_and_use: HashSet<ir::WeakRef<ir::SSA>>,
-    expr_cache: HashMap<ir::Ref<ir::SSA>, ast::Expr>,
+    no_side_effects_between_def_and_use: HashSet<ir::WeakRef<ir::Ssa>>,
+    expr_cache: HashMap<ir::Ref<ir::Ssa>, ast::Expr>,
 }
 
 impl Cache {
@@ -21,29 +21,29 @@ impl Cache {
         }
     }
 
-    pub fn can_be_freely_inlined(&self, ssa_ref: &ir::Ref<ir::SSA>) -> bool {
+    pub fn can_be_freely_inlined(&self, ssa_ref: &ir::Ref<ir::Ssa>) -> bool {
         self.no_side_effects_between_def_and_use
             .contains(&ssa_ref.weak())
     }
 
-    pub fn cache(&mut self, ssa_ref: ir::Ref<ir::SSA>, expr: ast::Expr) {
+    pub fn cache(&mut self, ssa_ref: ir::Ref<ir::Ssa>, expr: ast::Expr) {
         let old_value = self.expr_cache.insert(ssa_ref, expr);
-        assert!(old_value.is_none(), "SSA var cached multiple times");
+        assert!(old_value.is_none(), "ssa var cached multiple times");
     }
 
-    pub fn get_cached(&self, ssa_ref: &ir::Ref<ir::SSA>) -> Option<&ast::Expr> {
+    pub fn get_cached(&self, ssa_ref: &ir::Ref<ir::Ssa>) -> Option<&ast::Expr> {
         self.expr_cache.get(ssa_ref)
     }
 }
 
 #[derive(Default)]
 struct CollectSingleUseInliningInfo {
-    no_side_effects_between_def_and_use: HashSet<ir::WeakRef<ir::SSA>>,
-    active_single_use_refs: HashSet<ir::WeakRef<ir::SSA>>,
+    no_side_effects_between_def_and_use: HashSet<ir::WeakRef<ir::Ssa>>,
+    active_single_use_refs: HashSet<ir::WeakRef<ir::Ssa>>,
 }
 
 impl CollectSingleUseInliningInfo {
-    fn use_ref(&mut self, ssa_ref: &ir::Ref<ir::SSA>) {
+    fn use_ref(&mut self, ssa_ref: &ir::Ref<ir::Ssa>) {
         if self.active_single_use_refs.remove(&ssa_ref.weak()) {
             self.no_side_effects_between_def_and_use
                 .insert(ssa_ref.weak());
