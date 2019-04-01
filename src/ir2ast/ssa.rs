@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::iter;
 use std::mem;
 
 use swc_ecma_ast as ast;
@@ -7,7 +8,7 @@ use crate::ir;
 use crate::ir::visit::{RunVisitor, Visitor};
 
 pub struct Cache {
-    no_side_effects_between_def_and_use: HashSet<ir::WeakRef<ir::Ssa>>,
+    can_inline_at_use: HashSet<ir::WeakRef<ir::Ssa>>,
     expr_cache: HashMap<ir::Ref<ir::Ssa>, ast::Expr>,
 }
 
@@ -16,14 +17,13 @@ impl Cache {
         let mut collector = CollectSingleUseInliningInfo::default();
         collector.run_visitor(&ir);
         Self {
-            no_side_effects_between_def_and_use: collector.no_side_effects_between_def_and_use,
+            can_inline_at_use: collector.can_inline_at_use,
             expr_cache: Default::default(),
         }
     }
 
     pub fn can_be_freely_inlined(&self, ssa_ref: &ir::Ref<ir::Ssa>) -> bool {
-        self.no_side_effects_between_def_and_use
-            .contains(&ssa_ref.weak())
+        self.can_inline_at_use.contains(&ssa_ref.weak())
     }
 
     pub fn cache(&mut self, ssa_ref: ir::Ref<ir::Ssa>, expr: ast::Expr) {
@@ -38,173 +38,228 @@ impl Cache {
 
 #[derive(Default)]
 struct CollectSingleUseInliningInfo {
-    no_side_effects_between_def_and_use: HashSet<ir::WeakRef<ir::Ssa>>,
-    active_single_use_refs: HashSet<ir::WeakRef<ir::Ssa>>,
+    can_inline_at_use: HashSet<ir::WeakRef<ir::Ssa>>,
+    pure_refs: HashSet<ir::WeakRef<ir::Ssa>>,
+    read_refs: HashSet<ir::WeakRef<ir::Ssa>>,
+    write_refs: HashSet<ir::WeakRef<ir::Ssa>>,
+    largest_effect: Effect,
+    about_to_enter_fn: bool,
+}
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum Effect {
+    Pure,
+    Read,
+    Write,
+}
+
+impl Default for Effect {
+    fn default() -> Self {
+        Effect::Pure
+    }
 }
 
 impl CollectSingleUseInliningInfo {
-    fn use_ref(&mut self, ssa_ref: &ir::Ref<ir::Ssa>) {
-        if self.active_single_use_refs.remove(&ssa_ref.weak()) {
-            self.no_side_effects_between_def_and_use
-                .insert(ssa_ref.weak());
-        }
+    fn declare_ref(&mut self, ref_: &ir::Ref<ir::Ssa>, eff: Effect) {
+        let added_to_set = match eff {
+            Effect::Pure => self.pure_refs.insert(ref_.weak()),
+            Effect::Read => self.read_refs.insert(ref_.weak()),
+            Effect::Write => self.write_refs.insert(ref_.weak()),
+        };
+        assert!(added_to_set, "refs can only be declared once");
     }
 
-    fn side_effect(&mut self) {
-        self.active_single_use_refs.clear();
+    fn use_ref(&mut self, own_eff: Effect, ref_: &ir::Ref<ir::Ssa>) -> Effect {
+        self.use_refs(own_eff, iter::once(ref_))
+    }
+
+    fn use_refs_<'a, 'b: 'a>(
+        &mut self,
+        own_eff: Effect,
+        refs: impl IntoIterator<Item = &'a &'b ir::Ref<ir::Ssa>>,
+    ) -> Effect {
+        self.use_refs(own_eff, refs.into_iter().map(|r| *r))
+    }
+
+    fn use_refs<'a>(
+        &mut self,
+        own_eff: Effect,
+        refs: impl IntoIterator<Item = &'a ir::Ref<ir::Ssa>>,
+    ) -> Effect {
+        refs.into_iter()
+            .filter_map(|ref_| {
+                if self.pure_refs.remove(&ref_.weak()) {
+                    self.can_inline_at_use.insert(ref_.weak());
+                    Some(Effect::Pure)
+                } else if self.read_refs.remove(&ref_.weak()) {
+                    self.can_inline_at_use.insert(ref_.weak());
+                    Some(Effect::Read)
+                } else if self.write_refs.remove(&ref_.weak()) {
+                    self.can_inline_at_use.insert(ref_.weak());
+                    Some(Effect::Write)
+                } else {
+                    None
+                }
+            })
+            .chain(iter::once(own_eff))
+            .max()
+            .unwrap_or(Effect::Write)
+    }
+
+    fn side_effect(&mut self, eff: Effect) {
+        match &eff {
+            Effect::Pure => {}
+            Effect::Read => {
+                self.write_refs.clear();
+            }
+            Effect::Write => {
+                self.read_refs.clear();
+                self.write_refs.clear();
+            }
+        }
+        if eff > self.largest_effect {
+            self.largest_effect = eff;
+        }
     }
 }
 
 impl Visitor for CollectSingleUseInliningInfo {
     fn wrap_scope<R>(&mut self, enter: impl FnOnce(&mut Self) -> R) -> R {
-        // it is not safe in general to inline single-use refs between scopes,
-        // since they may have side-effects
-        let prev_scope_active = mem::replace(&mut self.active_single_use_refs, Default::default());
+        // pure refs can be inlined in any scope, but not between functions
+        let pure_refs = if self.about_to_enter_fn {
+            self.about_to_enter_fn = false;
+            Some(mem::replace(&mut self.pure_refs, Default::default()))
+        } else {
+            None
+        };
+        // read and write refs cannot be inlined into an inner scope, but may be inlined across it
+        let read_refs = mem::replace(&mut self.read_refs, Default::default());
+        let write_refs = mem::replace(&mut self.write_refs, Default::default());
+        let largest_effect = mem::replace(&mut self.largest_effect, Default::default());
+
         let r = enter(self);
-        self.active_single_use_refs = prev_scope_active;
+
+        if let Some(pure_refs) = pure_refs {
+            self.pure_refs = pure_refs;
+        }
+        self.read_refs = read_refs;
+        self.write_refs = write_refs;
+        let inner_largest_effect = mem::replace(&mut self.largest_effect, largest_effect);
+
+        // apply side effect from inner scope, possibly clearing read/write refs and raising our effect level
+        self.side_effect(inner_largest_effect);
+
         r
     }
 
     fn visit(&mut self, stmt: &ir::Stmt) {
         match stmt {
             ir::Stmt::Expr { target, expr } => {
-                match expr {
-                    ir::Expr::Read { source } => self.use_ref(source),
+                let eff = match expr {
+                    ir::Expr::Bool { .. }
+                    | ir::Expr::Number { .. }
+                    | ir::Expr::String { .. }
+                    | ir::Expr::Null
+                    | ir::Expr::Undefined => Effect::Pure,
+                    ir::Expr::This => Effect::Pure,
+                    ir::Expr::Read { source } => self.use_ref(Effect::Read, source),
+                    ir::Expr::ReadMutable { .. } => Effect::Read,
+                    ir::Expr::ReadGlobal { .. } => Effect::Read,
                     ir::Expr::ReadMember { obj, prop } => {
-                        self.use_ref(obj);
-                        self.use_ref(prop);
+                        self.use_refs_(Effect::Read, &[obj, prop])
                     }
                     ir::Expr::Array { elems } => {
-                        elems
+                        self.use_refs(Effect::Pure, elems.iter().flatten().map(|(_, elem)| elem))
+                    }
+                    ir::Expr::Object { props } => self.use_refs(
+                        Effect::Pure,
+                        props
                             .iter()
-                            .flatten()
-                            .for_each(|(_, elem)| self.use_ref(elem));
-                    }
-                    ir::Expr::Object { props } => {
-                        props.iter().for_each(|(_, obj, prop)| {
-                            self.use_ref(obj);
-                            self.use_ref(prop);
-                        });
-                    }
-                    ir::Expr::Unary { op: _, val } => self.use_ref(val),
+                            .flat_map(|(_, obj, prop)| iter::once(obj).chain(iter::once(prop))),
+                    ),
+                    ir::Expr::RegExp { .. } => Effect::Read,
+                    ir::Expr::Unary { op: _, val } => self.use_ref(Effect::Pure, val),
                     ir::Expr::Binary { op: _, left, right } => {
-                        self.use_ref(left);
-                        self.use_ref(right);
+                        self.use_refs_(Effect::Pure, &[left, right])
                     }
-                    ir::Expr::Delete { obj, prop } => {
-                        self.use_ref(obj);
-                        self.use_ref(prop);
-                    }
-                    ir::Expr::Yield { kind: _, val } => self.use_ref(val),
-                    ir::Expr::Await { val } => self.use_ref(val),
+                    ir::Expr::Delete { obj, prop } => self.use_refs_(Effect::Write, &[obj, prop]),
+                    ir::Expr::Yield { kind: _, val } => self.use_ref(Effect::Write, val),
+                    ir::Expr::Await { val } => self.use_ref(Effect::Write, val),
                     ir::Expr::Call {
                         kind: _,
                         func,
                         args,
-                    } => {
-                        self.use_ref(func);
-                        args.iter().for_each(|(_, arg)| self.use_ref(arg));
+                    } => self.use_refs(
+                        Effect::Write,
+                        iter::once(func).chain(args.iter().map(|(_, arg)| arg)),
+                    ),
+                    ir::Expr::Function { .. } => {
+                        self.about_to_enter_fn = true;
+                        Effect::Pure
                     }
-                    ir::Expr::Bool { .. }
-                    | ir::Expr::Number { .. }
-                    | ir::Expr::String { .. }
-                    | ir::Expr::Null
-                    | ir::Expr::Undefined
-                    | ir::Expr::This
-                    | ir::Expr::ReadMutable { .. }
-                    | ir::Expr::ReadGlobal { .. }
-                    | ir::Expr::Function { .. }
-                    | ir::Expr::CurrentFunction
-                    | ir::Expr::Argument { .. }
-                    | ir::Expr::RegExp { .. } => {}
-                }
+                    ir::Expr::CurrentFunction | ir::Expr::Argument { .. } => Effect::Read,
+                };
 
-                match expr {
-                    ir::Expr::ReadMutable { .. }
-                    | ir::Expr::ReadGlobal { .. }
-                    | ir::Expr::ReadMember { .. }
-                    | ir::Expr::Delete { .. }
-                    | ir::Expr::Yield { .. }
-                    | ir::Expr::Await { .. }
-                    | ir::Expr::Call { .. } => {
-                        self.side_effect();
-                    }
-                    ir::Expr::Bool { .. }
-                    | ir::Expr::Number { .. }
-                    | ir::Expr::String { .. }
-                    | ir::Expr::Null
-                    | ir::Expr::Undefined
-                    | ir::Expr::This
-                    | ir::Expr::Read { .. }
-                    | ir::Expr::Array { .. }
-                    | ir::Expr::Object { .. }
-                    | ir::Expr::RegExp { .. }
-                    | ir::Expr::Unary { .. }
-                    | ir::Expr::Binary { .. }
-                    | ir::Expr::Function { .. }
-                    | ir::Expr::CurrentFunction
-                    | ir::Expr::Argument { .. } => {}
-                }
+                self.side_effect(eff.clone());
 
                 if let ir::Used::Once = target.used() {
-                    self.active_single_use_refs.insert(target.weak());
+                    self.declare_ref(&target, eff);
                 }
             }
             ir::Stmt::DeclareMutable { target: _, val } => {
-                self.use_ref(val);
+                let eff = self.use_ref(Effect::Pure, val);
+                self.side_effect(eff);
             }
             ir::Stmt::WriteMutable { target: _, val } => {
-                self.use_ref(val);
-                self.side_effect();
+                let eff = self.use_ref(Effect::Write, val);
+                self.side_effect(eff);
             }
             ir::Stmt::WriteGlobal { target: _, val } => {
-                self.use_ref(val);
-                self.side_effect();
+                let eff = self.use_ref(Effect::Write, val);
+                self.side_effect(eff);
             }
             ir::Stmt::WriteMember { obj, prop, val } => {
-                self.use_ref(obj);
-                self.use_ref(prop);
-                self.use_ref(val);
-                self.side_effect();
+                let eff = self.use_refs_(Effect::Write, &[obj, prop, val]);
+                self.side_effect(eff);
             }
             ir::Stmt::Return { val } | ir::Stmt::Throw { val } => {
-                self.use_ref(val);
-                self.side_effect();
+                let eff = self.use_ref(Effect::Read, val);
+                self.side_effect(eff);
             }
             ir::Stmt::Break { .. } | ir::Stmt::Continue { .. } => {
-                self.side_effect();
+                self.side_effect(Effect::Read);
             }
             ir::Stmt::Debugger => {
-                self.side_effect();
+                self.side_effect(Effect::Write);
             }
             ir::Stmt::Label { label: _, body: _ } => {
-                self.side_effect();
+                self.side_effect(Effect::Pure);
             }
             ir::Stmt::Loop { body: _ } => {
-                self.side_effect();
+                self.side_effect(Effect::Pure);
             }
             ir::Stmt::ForEach {
                 kind: _,
                 init,
                 body: _,
             } => {
-                self.use_ref(init);
-                self.side_effect();
+                let eff = self.use_ref(Effect::Pure, init);
+                self.side_effect(eff);
             }
             ir::Stmt::IfElse {
                 cond,
                 cons: _,
                 alt: _,
             } => {
-                self.use_ref(cond);
-                self.side_effect();
+                let eff = self.use_ref(Effect::Pure, cond);
+                self.side_effect(eff);
             }
             ir::Stmt::Try {
                 body: _,
                 catch: _,
                 finally: _,
             } => {
-                self.side_effect();
+                self.side_effect(Effect::Pure);
             }
         }
     }
