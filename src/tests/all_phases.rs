@@ -55,3 +55,20 @@ case!(
     }
 "#
 );
+
+case!(
+    nested_no_side_effects,
+    r#"
+    let x = 1;
+    if (foo) {
+        just_read_global_state;
+    }
+    log(x);
+
+    let y = 1;
+    if (foo) {
+        maybe_change_y();
+    }
+    log(y);
+"#
+);

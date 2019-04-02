@@ -22,3 +22,33 @@ case!(
     y = "foo" + " " + "bar";
 "#
 );
+
+case!(
+    downleveling,
+    r#"
+    let x = 1;
+    x = 2;
+    x = 3;
+
+    let y = 10;
+    log(y);
+    log(y + 1);
+"#
+);
+
+case!(
+    downleveling_bail,
+    r#"
+    let x = 1;
+    x = 2;
+    x = 3;
+    if (foo) log(x);
+
+    let y = 10;
+    log(y);
+    log(y + 1);
+    if (bar) (function() {
+        y = 5;
+    })();
+"#
+);

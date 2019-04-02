@@ -1,0 +1,16 @@
+---
+created: "2019-04-01T23:41:31.977260700Z"
+creator: insta@0.7.1
+source: src/tests/all_phases.rs
+expression: "\n    const x = 1;\n    if (foo) {\n        just_read_global_state;\n    }\n    log(x);\n\n    const y = 1;\n    if (foo) {\n        maybe_change_y();\n    }\n    log(y);\n"
+---
+if (foo) {
+    just_read_global_state;
+}
+log(1);
+var y = 1;
+if (foo) {
+    maybe_change_y();
+}
+log(y);
+

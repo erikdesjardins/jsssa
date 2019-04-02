@@ -3,8 +3,12 @@ use crate::ir;
 pub trait Folder {
     type Output: IntoIterator<Item = ir::Stmt>;
 
-    fn wrap_scope<R>(&mut self, enter: impl FnOnce(&mut Self) -> R) -> R {
-        enter(self)
+    fn wrap_scope<R>(
+        &mut self,
+        block: ir::Block,
+        enter: impl FnOnce(&mut Self, ir::Block) -> R,
+    ) -> R {
+        enter(self, block)
     }
 
     fn fold(&mut self, stmt: ir::Stmt) -> Self::Output;
@@ -16,7 +20,7 @@ pub trait RunFolder: Folder {
 
 impl<F: Folder> RunFolder for F {
     fn run_folder(&mut self, ir: ir::Block) -> ir::Block {
-        self.wrap_scope(|this| {
+        self.wrap_scope(ir, |this, ir| {
             let ir::Block(children) = ir;
 
             let folded_children = children

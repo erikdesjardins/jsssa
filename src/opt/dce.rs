@@ -10,8 +10,12 @@ pub struct Eliminate {
 impl Folder for Eliminate {
     type Output = Option<ir::Stmt>;
 
-    fn wrap_scope<R>(&mut self, enter: impl FnOnce(&mut Self) -> R) -> R {
-        let r = enter(self);
+    fn wrap_scope<R>(
+        &mut self,
+        block: ir::Block,
+        enter: impl FnOnce(&mut Self, ir::Block) -> R,
+    ) -> R {
+        let r = enter(self, block);
         // stop dropping when we leave the current scope
         self.dropping_after_jump = false;
         r
