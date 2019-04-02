@@ -75,3 +75,24 @@ case!(
     log(y);
 "#
 );
+
+case!(
+    snudown_js_like,
+    r#"
+    var r;
+    something;
+    r || (r = { x: 1 });
+    var s = {};
+    var o;
+    for (o in r) s[o] = r[o];
+    var stuff = (function(r_inner) {
+        return {
+            xy: r_inner * 2
+        };
+    })();
+    var xy = stuff.xy;
+    window.foo = function foo(z) {
+        return z + xy;
+    };
+"#
+);
