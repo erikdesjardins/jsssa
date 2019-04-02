@@ -96,3 +96,16 @@ case!(
     };
 "#
 );
+
+case!(
+    fn_scopes_do_not_deter_ssa_inlining,
+    r#"
+    let x = foo();
+    function f() {
+        something();
+    }
+    g = x;
+    f();
+    f();
+"#
+);

@@ -125,31 +125,27 @@ impl CollectSingleUseInliningInfo {
 
 impl Visitor for CollectSingleUseInliningInfo {
     fn wrap_scope<R>(&mut self, enter: impl FnOnce(&mut Self) -> R) -> R {
-        // pure refs can be inlined in any scope, but not between functions
-        let pure_refs = if self.about_to_enter_fn {
+        if self.about_to_enter_fn {
             self.about_to_enter_fn = false;
-            Some(mem::replace(&mut self.pure_refs, Default::default()))
+            // nothing can be inlined between functions, but keep the map of results
+            let mut inner = Self::default();
+            mem::swap(&mut inner.can_inline_at_use, &mut self.can_inline_at_use);
+            let r = enter(&mut inner);
+            mem::swap(&mut inner.can_inline_at_use, &mut self.can_inline_at_use);
+            r
         } else {
-            None
-        };
-        // read and write refs cannot be inlined into an inner scope, but may be inlined across it
-        let read_refs = mem::replace(&mut self.read_refs, Default::default());
-        let write_refs = mem::replace(&mut self.write_refs, Default::default());
-        let largest_effect = mem::replace(&mut self.largest_effect, Default::default());
-
-        let r = enter(self);
-
-        if let Some(pure_refs) = pure_refs {
-            self.pure_refs = pure_refs;
+            // pure refs can be inlined in any scope
+            // read and write refs cannot be inlined into an inner scope, but may be inlined across it
+            let mut inner = Self::default();
+            mem::swap(&mut inner.can_inline_at_use, &mut self.can_inline_at_use);
+            mem::swap(&mut inner.pure_refs, &mut self.pure_refs);
+            let r = enter(&mut inner);
+            mem::swap(&mut inner.can_inline_at_use, &mut self.can_inline_at_use);
+            mem::swap(&mut inner.pure_refs, &mut self.pure_refs);
+            // apply side effect from inner scope, possibly clearing read/write refs and raising our effect level
+            self.side_effect(inner.largest_effect);
+            r
         }
-        self.read_refs = read_refs;
-        self.write_refs = write_refs;
-        let inner_largest_effect = mem::replace(&mut self.largest_effect, largest_effect);
-
-        // apply side effect from inner scope, possibly clearing read/write refs and raising our effect level
-        self.side_effect(inner_largest_effect);
-
-        r
     }
 
     fn visit(&mut self, stmt: &ir::Stmt) {

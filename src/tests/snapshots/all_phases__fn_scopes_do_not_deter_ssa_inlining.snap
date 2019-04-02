@@ -1,0 +1,13 @@
+---
+created: "2019-04-02T21:16:06.787852300Z"
+creator: insta@0.7.1
+source: src/tests/all_phases.rs
+expression: "\n    let x = foo();\n    function f() {\n        something();\n    }\n    g = x;\n    f();\n    f();\n"
+---
+var _fun = function() {
+    something();
+};
+g = foo();
+_fun();
+_fun();
+
