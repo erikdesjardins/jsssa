@@ -12,24 +12,16 @@ pub trait RunVisitor: Visitor {
     fn run_visitor(&mut self, ir: &ir::Block);
 }
 
-pub struct VisitFn<F>(F)
-where
-    F: FnMut(&ir::Stmt);
+pub fn visit_with(ir: &ir::Block, f: impl FnMut(&ir::Stmt)) {
+    struct VisitFn<F>(F);
 
-pub fn visitor_fn<F>(f: F) -> VisitFn<F>
-where
-    F: FnMut(&ir::Stmt),
-{
-    VisitFn(f)
-}
-
-impl<F> Visitor for VisitFn<F>
-where
-    F: FnMut(&ir::Stmt),
-{
-    fn visit(&mut self, stmt: &ir::Stmt) {
-        (self.0)(stmt);
+    impl<F: FnMut(&ir::Stmt)> Visitor for VisitFn<F> {
+        fn visit(&mut self, stmt: &ir::Stmt) {
+            (self.0)(stmt);
+        }
     }
+
+    VisitFn(f).run_visitor(ir);
 }
 
 impl<V: Visitor> RunVisitor for V {

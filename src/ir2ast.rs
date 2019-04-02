@@ -3,7 +3,7 @@ use swc_ecma_ast as ast;
 
 use crate::ir;
 use crate::ir::scope;
-use crate::ir::visit::{visitor_fn, RunVisitor};
+use crate::ir::visit::visit_with;
 use crate::swc_globals;
 use crate::utils::P;
 
@@ -12,7 +12,7 @@ mod ssa;
 pub fn convert(_: &swc_globals::Initialized, ir: ir::Block) -> ast::Script {
     let mut scope = scope::Ir::default();
 
-    visitor_fn(|stmt| match stmt {
+    visit_with(&ir, |stmt| match stmt {
         ir::Stmt::Expr {
             target: _,
             expr: ir::Expr::ReadGlobal { source: global },
@@ -22,8 +22,7 @@ pub fn convert(_: &swc_globals::Initialized, ir: ir::Block) -> ast::Script {
             val: _,
         } => scope.register_global(global),
         _ => {}
-    })
-    .run_visitor(&ir);
+    });
 
     let mut ssa_cache = ssa::Cache::with_inlining_information(&ir);
 

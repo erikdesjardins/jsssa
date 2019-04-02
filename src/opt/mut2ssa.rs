@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::ir;
 use crate::ir::fold::Folder;
-use crate::ir::visit::{visitor_fn, RunVisitor};
+use crate::ir::visit::visit_with;
 
 /// Converts read-only mutable vars to SSA, and removes write-only mutable vars
 #[derive(Default)]
@@ -37,7 +37,7 @@ impl Folder for Downlevel {
 
             let mut potential_replacements = HashMap::new();
 
-            visitor_fn(|stmt: &ir::Stmt| {
+            visit_with(&block, |stmt: &ir::Stmt| {
                 let read_or_write = match stmt {
                     ir::Stmt::Expr {
                         target: _,
@@ -57,8 +57,7 @@ impl Folder for Downlevel {
                         Entry::Occupied(_) => {}
                     }
                 }
-            })
-            .run_visitor(&block);
+            });
 
             self.mut_vars_to_replace = potential_replacements
                 .into_iter()
