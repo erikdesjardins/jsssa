@@ -19,4 +19,5 @@ macro_rules! case {
 mod all_passes;
 mod constant;
 mod dce;
+mod forward;
 mod mut2ssa;

@@ -5,6 +5,7 @@ use crate::utils::default_hash;
 
 mod constant;
 mod dce;
+mod forward;
 mod mut2ssa;
 
 #[cfg(test)]
@@ -14,6 +15,7 @@ pub fn run_passes(_: &swc_globals::Initialized, ir: ir::Block) -> ir::Block {
     OptContext::new(ir)
         .converge::<dce::Eliminate>("early-dce")
         .run::<mut2ssa::Downlevel>("mut2ssa")
+        .run::<forward::Reads>("forward-reads")
         .run::<constant::Prop>("constant-prop")
         .converge::<dce::Eliminate>("dce")
         .into_inner()

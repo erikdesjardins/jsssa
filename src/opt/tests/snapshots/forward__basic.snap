@@ -1,0 +1,10 @@
+---
+created: "2019-04-02T05:19:14.454865100Z"
+creator: insta@0.7.1
+source: src/opt/tests/forward.rs
+expression: ppr
+---
+a = <null>
+<dead> = a
+<dead> = a
+<dead> = a + a

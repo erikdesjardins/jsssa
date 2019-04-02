@@ -67,6 +67,9 @@ case!(
 
     let y = 1;
     if (foo) {
+        function maybe_change_y() {
+            if (bar) y = 10;
+        }
         maybe_change_y();
     }
     log(y);
