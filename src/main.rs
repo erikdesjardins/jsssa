@@ -3,7 +3,8 @@
 #![allow(
     clippy::unneeded_field_pattern,
     clippy::cognitive_complexity,
-    clippy::map_clone
+    clippy::map_clone,
+    clippy::single_match
 )]
 
 use std::fs;
