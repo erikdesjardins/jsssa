@@ -1,7 +1,9 @@
 use crate::ir;
 use crate::ir::fold::Folder;
 
-/// Dead code elimination
+/// Dead code elimination.
+///
+/// Requires multiple passes to converge.
 #[derive(Default)]
 pub struct Eliminate {
     dropping_after_jump: bool,

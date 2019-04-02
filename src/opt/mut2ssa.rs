@@ -5,7 +5,11 @@ use crate::ir;
 use crate::ir::fold::Folder;
 use crate::ir::visit::visit_with;
 
-/// Converts read-only mutable vars to SSA, and removes write-only mutable vars
+/// Converts read-only mutable vars to SSA, and removes write-only mutable vars.
+///
+/// Does not profit from multiple passes.
+/// Profits from DCE running first, to remove unused reads; may also create opportunities for DCE.
+/// May create opportunities for read forwarding.
 #[derive(Default)]
 pub struct Downlevel {
     done_initial_pass: bool,
