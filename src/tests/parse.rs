@@ -30,8 +30,8 @@ case!(
 
 #[test]
 fn parse_error() {
-    swc_globals::with(|g| {
-        let err = parse::parse(g, "var ab-cd = 1;").err().unwrap();
-        insta::assert_display_snapshot_matches!("parse error", err);
+    swc_globals::with(|g| match parse::parse(g, "var ab-cd = 1;").err() {
+        Some(err) => insta::assert_display_snapshot_matches!("parse error", err),
+        None => panic!("parse unexpectedly succeeded"),
     });
 }
