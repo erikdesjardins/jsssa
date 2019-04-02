@@ -1,5 +1,5 @@
 #![feature(drain_filter)]
-#![warn(clippy::print_stdout)]
+#![warn(clippy::dbg_macro, clippy::print_stdout)]
 #![allow(
     clippy::unneeded_field_pattern,
     clippy::cognitive_complexity,
