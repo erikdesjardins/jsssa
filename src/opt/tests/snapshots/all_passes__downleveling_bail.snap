@@ -1,37 +1,30 @@
 ---
-created: "2019-04-01T23:41:31.945999700Z"
+created: "2019-04-03T06:38:34.516111500Z"
 creator: insta@0.7.1
 source: src/opt/tests/all_passes.rs
 expression: "\n    let x = 1;\n    x = 2;\n    x = 3;\n    if (foo) log(x);\n\n    let y = 10;\n    log(y);\n    log(y + 1);\n    if (bar) (function() {\n        y = 5;\n    })();\n"
 ---
-_ini = 1
-x :- _ini
-_val = 2
-x <- _val
-_val$1 = 3
-x <- _val$1
+_val = 3
 _iff = <global foo>
 <if> _iff:
     _fun = <global log>
-    _arg = x
-    <dead> = _fun(_arg)
+    <dead> = _fun(_val)
 <else>:
     <empty>
-_ini$1 = 10
-y :- _ini$1
+_ini = 10
+y :- _ini
 _fun = <global log>
-_arg = y
-<dead> = _fun(_arg)
+<dead> = _fun(_ini)
 _fun$1 = <global log>
 _lhs = y
 _rhs = 1
-_arg$1 = _lhs + _rhs
-<dead> = _fun$1(_arg$1)
+_arg = _lhs + _rhs
+<dead> = _fun$1(_arg)
 _iff$1 = <global bar>
 <if> _iff$1:
     _fun$2 = <function>:
-        _val$2 = 5
-        y <- _val$2
+        _val$1 = 5
+        y <- _val$1
     <dead> = _fun$2()
 <else>:
     <empty>

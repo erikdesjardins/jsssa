@@ -1,29 +1,27 @@
 ---
-created: "2019-04-02T05:19:14.468964700Z"
+created: "2019-04-03T06:38:34.547365100Z"
 creator: insta@0.7.1
 source: src/tests/all_phases.rs
 expression: "\n    function f(x) {\n        while (true);\n        x = y.bar;\n        z.foo = x ? true : 'hi';\n        return +[1 || x, { x }, f + 1, ++g];\n    }\n    f(1), true;\n"
 ---
-function f(x) {
-    var x$1 = x;
+function f() {
     while(true){
     }
-    x$1 = y['bar'];
+    var _val = y['bar'];
     var _obj = z;
-    var _val = void 0;
-    if (x$1) {
-        _val = true;
+    var _val$1 = void 0;
+    if (_val) {
+        _val$1 = true;
     } else {
-        _val = 'hi';
+        _val$1 = 'hi';
     }
-    _obj['foo'] = _val;
+    _obj['foo'] = _val$1;
     var _log = 1;
     var _ele = _log;
-    var _ele$1 = {
-        ['x']: x$1
-    };
     var _wri = g + 1;
     g = _wri;
-    return +[_ele, _ele$1, f + 1, _wri];
+    return +[_ele, {
+            ['x']: _val
+        }, f + 1, _wri];
 }(1);
 

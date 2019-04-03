@@ -1,0 +1,12 @@
+---
+created: "2019-04-03T06:38:34.609863Z"
+creator: insta@0.7.1
+source: src/tests/all_phases.rs
+expression: "\n    var x = 0;\n    x += 1;\n    var n = x;\n    if (foo) {\n        x += 1;\n        log(x);\n    } else {\n        log(n);\n    }\n"
+---
+if (foo) {
+    log(2);
+} else {
+    log(1);
+}
+

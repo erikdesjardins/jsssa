@@ -21,3 +21,4 @@ mod constant;
 mod dce;
 mod forward;
 mod mut2ssa;
+mod redundant;

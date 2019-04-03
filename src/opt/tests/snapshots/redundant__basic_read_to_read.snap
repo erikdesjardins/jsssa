@@ -1,0 +1,14 @@
+---
+created: "2019-04-03T06:38:34.531739800Z"
+creator: insta@0.7.1
+source: src/opt/tests/redundant.rs
+expression: "\n    let something = 1;\n    foo();\n    let x = something;\n    let y = something;\n"
+---
+_ini = 1
+something :- _ini
+_fun = <global foo>
+<dead> = _fun()
+_ini$1 = something
+x :- _ini$1
+_ini$2 = _ini$1
+y :- _ini$2

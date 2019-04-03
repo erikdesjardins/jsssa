@@ -134,3 +134,18 @@ case!(
     } while (foo);
 "#
 );
+
+case!(
+    completely_redundant_var,
+    r#"
+    var x = 0;
+    x += 1;
+    var n = x;
+    if (foo) {
+        x += 1;
+        log(x);
+    } else {
+        log(n);
+    }
+"#
+);

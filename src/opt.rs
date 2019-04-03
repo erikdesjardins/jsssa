@@ -7,6 +7,7 @@ mod constant;
 mod dce;
 mod forward;
 mod mut2ssa;
+mod redundant;
 
 #[cfg(test)]
 mod tests;
@@ -14,6 +15,7 @@ mod tests;
 pub fn run_passes(_: &swc_globals::Initialized, ir: ir::Block) -> ir::Block {
     OptContext::new(ir)
         .converge::<dce::Eliminate>("early-dce")
+        .converge::<redundant::LoadStore>("redundant-load-store")
         .run::<mut2ssa::Downlevel>("mut2ssa")
         .run::<forward::Reads>("forward-reads")
         .run::<constant::Prop>("constant-prop")

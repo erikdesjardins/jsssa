@@ -1,35 +1,24 @@
 ---
-created: "2019-04-02T05:33:06.828216900Z"
+created: "2019-04-03T06:38:34.641114500Z"
 creator: insta@0.7.1
 source: src/tests/all_phases.rs
 expression: "\n    var r;\n    something;\n    r || (r = { x: 1 });\n    var s = {};\n    var o;\n    for (o in r) s[o] = r[o];\n    var stuff = (function(r_inner) {\n        return {\n            xy: r_inner * 2\n        };\n    })();\n    var xy = stuff.xy;\n    window.foo = function foo(z) {\n        return z + xy;\n    };\n"
 ---
-var r = void 0;
-var s = void 0;
-var o = void 0;
-var stuff = void 0;
 var xy = void 0;
-r = void 0;
+var r = void 0;
 something;
-if (r) {
-} else {
-    r = {
-        ['x']: 1
-    };
-}
-s = {
+r = {
+    ['x']: 1
 };
-o = void 0;
 for(var _for in r){
-    o = _for;
-    s[o] = r[o];
+    {
+    }[_for] = r[_for];
 }
-stuff = function(r_inner) {
+xy = function(r_inner) {
     return {
         ['xy']: r_inner * 2
     };
-}();
-xy = stuff['xy'];
+}()['xy'];
 window['foo'] = function(z) {
     return z + xy;
 };
