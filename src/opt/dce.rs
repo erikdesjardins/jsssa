@@ -3,7 +3,7 @@ use crate::ir::traverse::{Folder, ScopeTy};
 
 /// Dead code elimination.
 ///
-/// Requires multiple passes to converge.
+/// May profit from multiple passes.
 #[derive(Default)]
 pub struct Eliminate {
     dropping_after_jump: bool,
