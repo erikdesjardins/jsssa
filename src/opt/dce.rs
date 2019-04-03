@@ -1,5 +1,5 @@
 use crate::ir;
-use crate::ir::fold::Folder;
+use crate::ir::traverse::{Folder, ScopeTy};
 
 /// Dead code elimination.
 ///
@@ -14,6 +14,7 @@ impl Folder for Eliminate {
 
     fn wrap_scope<R>(
         &mut self,
+        _: &ScopeTy,
         block: ir::Block,
         enter: impl FnOnce(&mut Self, ir::Block) -> R,
     ) -> R {

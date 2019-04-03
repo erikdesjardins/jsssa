@@ -1,0 +1,16 @@
+---
+created: "2019-04-03T04:33:03.270556700Z"
+creator: insta@0.7.1
+source: src/tests/all_phases.rs
+expression: "\n    let x = g;\n    do {\n        log(x);\n        g = 1;\n    } while (foo);\n"
+---
+var _ini = g;
+while(true){
+    log(_ini);
+    g = 1;
+    if (foo) {
+    } else {
+        break;
+    }
+}
+

@@ -3,7 +3,7 @@ use swc_ecma_ast as ast;
 
 use crate::ir;
 use crate::ir::scope;
-use crate::ir::visit::visit_with;
+use crate::ir::traverse::visit_with;
 use crate::swc_globals;
 use crate::utils::P;
 

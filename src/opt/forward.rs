@@ -2,15 +2,13 @@ use std::collections::HashMap;
 use std::iter;
 
 use crate::ir;
-use crate::ir::fold::Folder;
-use crate::ir::visit::visit_with;
+use crate::ir::traverse::{visit_with, Folder, ScopeTy};
 
 /// Forward `ir::Expr::Read` to the source SSA ref.
 ///
 /// Does not profit from multiple passes.
 #[derive(Default)]
 pub struct Reads {
-    done_initial_pass: bool,
     ssa_remappings: HashMap<ir::WeakRef<ir::Ssa>, ir::Ref<ir::Ssa>>,
 }
 
@@ -28,12 +26,11 @@ impl Folder for Reads {
 
     fn wrap_scope<R>(
         &mut self,
+        ty: &ScopeTy,
         block: ir::Block,
         enter: impl FnOnce(&mut Self, ir::Block) -> R,
     ) -> R {
-        if !self.done_initial_pass {
-            self.done_initial_pass = true;
-
+        if let ScopeTy::Toplevel = ty {
             visit_with(&block, |stmt: &ir::Stmt| match stmt {
                 ir::Stmt::Expr {
                     target,

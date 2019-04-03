@@ -6,11 +6,10 @@ use swc_atoms::JsWord;
 pub use self::print::print;
 pub use self::ref_::{Lbl, Mut, Ref, RefType, Ssa, Used, WeakRef};
 
-pub mod fold;
 mod print;
 mod ref_;
 pub mod scope;
-pub mod visit;
+pub mod traverse;
 
 #[derive(Debug, Clone, Hash)]
 pub struct Block(pub Vec<Stmt>);

@@ -1,0 +1,14 @@
+---
+created: "2019-04-03T04:33:54.070429200Z"
+creator: insta@0.7.1
+source: src/tests/all_phases.rs
+expression: "\n    let x = g;\n    if (foo) {\n        log(x);\n    }\n    let y = h;\n    if (bar()) {\n        log(y);\n    }\n"
+---
+if (foo) {
+    log(g);
+}
+var _ini = h;
+if (bar()) {
+    log(_ini);
+}
+

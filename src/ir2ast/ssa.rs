@@ -5,7 +5,7 @@ use std::mem;
 use swc_ecma_ast as ast;
 
 use crate::ir;
-use crate::ir::visit::{RunVisitor, Visitor};
+use crate::ir::traverse::{RunVisitor, ScopeTy, Visitor};
 
 pub struct Cache {
     can_inline_at_use: HashSet<ir::WeakRef<ir::Ssa>>,
@@ -43,7 +43,6 @@ struct CollectSingleUseInliningInfo {
     read_refs: HashSet<ir::WeakRef<ir::Ssa>>,
     write_refs: HashSet<ir::WeakRef<ir::Ssa>>,
     largest_effect: Effect,
-    about_to_enter_fn: bool,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -124,27 +123,47 @@ impl CollectSingleUseInliningInfo {
 }
 
 impl Visitor for CollectSingleUseInliningInfo {
-    fn wrap_scope<R>(&mut self, enter: impl FnOnce(&mut Self) -> R) -> R {
-        if self.about_to_enter_fn {
-            self.about_to_enter_fn = false;
-            // nothing can be inlined between functions, but keep the map of results
-            let mut inner = Self::default();
-            mem::swap(&mut inner.can_inline_at_use, &mut self.can_inline_at_use);
-            let r = enter(&mut inner);
-            mem::swap(&mut inner.can_inline_at_use, &mut self.can_inline_at_use);
-            r
-        } else {
-            // pure refs can be inlined in any scope
-            // read and write refs cannot be inlined into an inner scope, but may be inlined across it
-            let mut inner = Self::default();
-            mem::swap(&mut inner.can_inline_at_use, &mut self.can_inline_at_use);
-            mem::swap(&mut inner.pure_refs, &mut self.pure_refs);
-            let r = enter(&mut inner);
-            mem::swap(&mut inner.can_inline_at_use, &mut self.can_inline_at_use);
-            mem::swap(&mut inner.pure_refs, &mut self.pure_refs);
-            // apply side effect from inner scope, possibly clearing read/write refs and raising our effect level
-            self.side_effect(inner.largest_effect);
-            r
+    fn wrap_scope<R>(
+        &mut self,
+        ty: &ScopeTy,
+        block: &ir::Block,
+        enter: impl FnOnce(&mut Self, &ir::Block) -> R,
+    ) -> R {
+        match ty {
+            ScopeTy::Function => {
+                // each function is analyzed separately, but keep the map of results
+                let mut inner = Self::default();
+                mem::swap(&mut inner.can_inline_at_use, &mut self.can_inline_at_use);
+                let r = enter(&mut inner, block);
+                mem::swap(&mut inner.can_inline_at_use, &mut self.can_inline_at_use);
+                r
+            }
+            ScopeTy::Normal | ScopeTy::Toplevel => {
+                // write refs cannot be inlined into normal scopes (because they may not execute)
+                let mut inner = Self::default();
+                mem::swap(&mut inner.can_inline_at_use, &mut self.can_inline_at_use);
+                mem::swap(&mut inner.pure_refs, &mut self.pure_refs);
+                mem::swap(&mut inner.read_refs, &mut self.read_refs);
+                let r = enter(&mut inner, block);
+                mem::swap(&mut inner.can_inline_at_use, &mut self.can_inline_at_use);
+                mem::swap(&mut inner.pure_refs, &mut self.pure_refs);
+                mem::swap(&mut inner.read_refs, &mut self.read_refs);
+                // apply side effect from inner scope
+                self.side_effect(inner.largest_effect);
+                r
+            }
+            ScopeTy::Nonlinear => {
+                // read and write refs cannot be inlined into nonlinear scopes
+                let mut inner = Self::default();
+                mem::swap(&mut inner.can_inline_at_use, &mut self.can_inline_at_use);
+                mem::swap(&mut inner.pure_refs, &mut self.pure_refs);
+                let r = enter(&mut inner, block);
+                mem::swap(&mut inner.can_inline_at_use, &mut self.can_inline_at_use);
+                mem::swap(&mut inner.pure_refs, &mut self.pure_refs);
+                // apply side effect from inner scope
+                self.side_effect(inner.largest_effect);
+                r
+            }
         }
     }
 
@@ -189,10 +208,7 @@ impl Visitor for CollectSingleUseInliningInfo {
                         Effect::Write,
                         iter::once(func).chain(args.iter().map(|(_, arg)| arg)),
                     ),
-                    ir::Expr::Function { .. } => {
-                        self.about_to_enter_fn = true;
-                        Effect::Pure
-                    }
+                    ir::Expr::Function { .. } => Effect::Pure,
                     ir::Expr::CurrentFunction | ir::Expr::Argument { .. } => Effect::Read,
                 };
 

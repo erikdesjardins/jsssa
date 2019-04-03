@@ -2,8 +2,7 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
 use crate::ir;
-use crate::ir::fold::Folder;
-use crate::ir::visit::visit_with;
+use crate::ir::traverse::{visit_with, Folder, ScopeTy};
 
 /// Converts read-only mutable vars to SSA, and removes write-only mutable vars.
 ///
@@ -12,7 +11,6 @@ use crate::ir::visit::visit_with;
 /// May create opportunities for read forwarding.
 #[derive(Default)]
 pub struct Downlevel {
-    done_initial_pass: bool,
     mut_vars_to_replace: HashMap<ir::WeakRef<ir::Mut>, What>,
 }
 
@@ -26,12 +24,11 @@ impl Folder for Downlevel {
 
     fn wrap_scope<R>(
         &mut self,
+        ty: &ScopeTy,
         block: ir::Block,
         enter: impl FnOnce(&mut Self, ir::Block) -> R,
     ) -> R {
-        if !self.done_initial_pass {
-            self.done_initial_pass = true;
-
+        if let ScopeTy::Toplevel = ty {
             #[derive(PartialEq)]
             enum Saw {
                 Read,

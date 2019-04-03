@@ -1,5 +1,5 @@
 use crate::ir;
-use crate::ir::fold::{Folder, RunFolder};
+use crate::ir::traverse::{Folder, RunFolder};
 use crate::swc_globals;
 use crate::utils::default_hash;
 

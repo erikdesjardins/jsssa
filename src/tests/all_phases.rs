@@ -109,3 +109,28 @@ case!(
     f();
 "#
 );
+
+case!(
+    inline_into_if_but_not_past_effects,
+    r#"
+    let x = g;
+    if (foo) {
+        log(x);
+    }
+    let y = h;
+    if (bar()) {
+        log(y);
+    }
+"#
+);
+
+case!(
+    dont_inline_into_loop,
+    r#"
+    let x = g;
+    do {
+        log(x);
+        g = 1;
+    } while (foo);
+"#
+);

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::collections::ZeroOneMany::{self, Many, One, Zero};
 use crate::ir;
-use crate::ir::fold::Folder;
+use crate::ir::traverse::Folder;
 
 /// Constant propagation / precompute.
 ///
