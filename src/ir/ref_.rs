@@ -6,11 +6,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use swc_atoms::JsWord;
 
-pub trait RefType {}
-impl RefType for Ssa {}
-impl RefType for Mut {}
-impl RefType for Lbl {}
-
 /// SSA references
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Ssa {}
@@ -22,6 +17,22 @@ pub enum Mut {}
 /// Labels
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Lbl {}
+
+pub trait RefType {
+    const NAME: &'static str;
+}
+
+impl RefType for Ssa {
+    const NAME: &'static str = "Ssa";
+}
+
+impl RefType for Mut {
+    const NAME: &'static str = "Mut";
+}
+
+impl RefType for Lbl {
+    const NAME: &'static str = "Lbl";
+}
 
 /// A unique, statically-resolved reference
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -81,9 +92,15 @@ impl<T: RefType> Ref<T> {
 impl<T: RefType> Debug for Ref<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         if self.used().is_never() {
-            write!(f, "Ref(<dead>)")
+            write!(f, "Ref<{}>({}, <dead>)", T::NAME, self.inner.id)
         } else {
-            write!(f, "Ref({} '{}')", self.inner.id, self.inner.name_hint)
+            write!(
+                f,
+                "Ref<{}>({}, \"{}\")",
+                T::NAME,
+                self.inner.id,
+                self.inner.name_hint
+            )
         }
     }
 }
