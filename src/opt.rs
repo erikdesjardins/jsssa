@@ -15,11 +15,13 @@ mod tests;
 pub fn run_passes(_: &swc_globals::Initialized, ir: ir::Block) -> ir::Block {
     OptContext::new(ir)
         .converge::<dce::Eliminate>("early-dce")
-        .converge::<redundant::LoadStore>("redundant-load-store")
-        .run::<mut2ssa::Downlevel>("mut2ssa")
-        .run::<forward::Reads>("forward-reads")
-        .run::<constant::Prop>("constant-prop")
-        .converge::<dce::Eliminate>("dce")
+        .converge_with("main-opt-loop", |cx| {
+            cx.converge::<redundant::LoadStore>("redundant-load-store")
+                .run::<mut2ssa::Downlevel>("mut2ssa")
+                .run::<forward::Reads>("forward-reads")
+                .run::<constant::Prop>("constant-prop")
+                .converge::<dce::Eliminate>("dce")
+        })
         .into_inner()
 }
 
