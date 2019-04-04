@@ -40,6 +40,7 @@ impl ConstProp {
                 has_escape: *has_escape,
                 flags: flags.clone(),
             },
+            // avoid cloning function body
             ir::Expr::Function { kind, body: _ } => ir::Expr::Function {
                 kind: kind.clone(),
                 body: ir::Block(vec![]),
