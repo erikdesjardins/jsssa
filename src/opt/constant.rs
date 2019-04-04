@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::f64;
 
 use crate::collections::ZeroOneMany::{self, Many, One, Zero};
 use crate::ir;
@@ -65,6 +66,8 @@ impl Folder for ConstProp {
                 expr,
             } => {
                 let expr = match expr {
+                    ReadGlobal { ref source } if source == "NaN" => Number { value: F64(f64::NAN) },
+                    ReadGlobal { ref source } if source == "undefined" => Undefined,
                     Unary {
                         ref op,
                         ref val,

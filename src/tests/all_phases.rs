@@ -149,3 +149,17 @@ case!(
     }
 "#
 );
+
+case!(
+    deconflict_nan,
+    r#"
+    g1 = 0 / 0;
+    {
+        let NaN = 1;
+        if (foo) {
+            NaN = 2;
+        }
+        g3 = NaN;
+    }
+"#
+);

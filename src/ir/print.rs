@@ -5,7 +5,7 @@ use crate::swc_globals;
 #[inline(never)] // for better profiling
 pub fn print(_: &swc_globals::Initialized, ir: &ir::Block) -> String {
     let mut s = String::new();
-    print_block(ir, &scope::Ir::default(), &mut WriteIndent::new(&mut s));
+    print_block(ir, &scope::Ir::no_globals(), &mut WriteIndent::new(&mut s));
     s
 }
 
@@ -158,7 +158,13 @@ fn print_expr<'a, 'b: 'a>(expr: &ir::Expr, scope: &scope::Ir, w: &'a mut WriteIn
         ir::Expr::Bool { value } => w.write_str(&value.to_string()),
         ir::Expr::Number {
             value: ir::F64(value),
-        } => w.write_str(&value.to_string()),
+        } => {
+            if value.is_nan() {
+                w.write_str("+NaN");
+            } else {
+                w.write_str(&value.to_string());
+            }
+        }
         ir::Expr::String { value } => {
             // use debug to print newlines etc. escaped
             w.write_str(&format!("{:?}", value.as_ref()));

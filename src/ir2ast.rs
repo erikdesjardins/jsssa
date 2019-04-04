@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use swc_common::Span;
 use swc_ecma_ast as ast;
 
@@ -11,9 +13,15 @@ mod ssa;
 
 #[inline(never)] // for better profiling
 pub fn convert(_: &swc_globals::Initialized, ir: ir::Block) -> ast::Script {
-    let mut scope = scope::Ir::default();
+    let mut globals = HashSet::new();
 
     visit_with(&ir, |stmt| match stmt {
+        ir::Stmt::Expr {
+            target: _,
+            expr: ir::Expr::Number { value },
+        } if value.0.is_nan() => {
+            globals.insert("NaN");
+        }
         ir::Stmt::Expr {
             target: _,
             expr: ir::Expr::ReadGlobal { source: global },
@@ -21,9 +29,13 @@ pub fn convert(_: &swc_globals::Initialized, ir: ir::Block) -> ast::Script {
         | ir::Stmt::WriteGlobal {
             target: global,
             val: _,
-        } => scope.register_global(global),
+        } => {
+            globals.insert(global);
+        }
         _ => {}
     });
+
+    let scope = scope::Ir::with_globals(globals);
 
     let mut ssa_cache = ssa::prepare_ssa_cache(&ir);
 

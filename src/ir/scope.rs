@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use swc_atoms::JsWord;
 
@@ -51,7 +51,6 @@ impl<'a> Ast<'a> {
     }
 }
 
-#[derive(Default)]
 pub struct Ir<'a> {
     parent: Option<&'a Ir<'a>>,
     seen_prefix_hashes: HashMap<u64, u64>,
@@ -61,6 +60,29 @@ pub struct Ir<'a> {
 }
 
 impl<'a> Ir<'a> {
+    pub fn with_globals(globals: HashSet<&str>) -> Self {
+        Self {
+            parent: None,
+            seen_prefix_hashes: globals
+                .into_iter()
+                .map(|name| (default_hash(name), 1))
+                .collect(),
+            mutable_names: Default::default(),
+            label_names: Default::default(),
+            ssa_names: Default::default(),
+        }
+    }
+
+    pub fn no_globals() -> Self {
+        Self {
+            parent: None,
+            seen_prefix_hashes: Default::default(),
+            mutable_names: Default::default(),
+            label_names: Default::default(),
+            ssa_names: Default::default(),
+        }
+    }
+
     pub fn nested(&'a self) -> Ir<'a> {
         Self {
             parent: Some(self),
@@ -69,13 +91,6 @@ impl<'a> Ir<'a> {
             label_names: Default::default(),
             ssa_names: Default::default(),
         }
-    }
-
-    pub fn register_global(&mut self, name: &str) {
-        *self
-            .seen_prefix_hashes
-            .entry(default_hash(name))
-            .or_default() += 1;
     }
 
     pub fn get_mutable(&self, ref_: &Ref<Mut>) -> Option<JsWord> {
@@ -156,7 +171,7 @@ mod tests {
 
     #[test]
     fn basic() {
-        let mut p = Ir::default();
+        let mut p = Ir::no_globals();
         assert_eq!(p.unique_name("foo").as_ref(), "foo");
         assert_eq!(p.unique_name("foo").as_ref(), "foo$1");
         assert_eq!(p.unique_name("foo").as_ref(), "foo$2");
@@ -165,7 +180,7 @@ mod tests {
 
     #[test]
     fn replacement_overlap1() {
-        let mut p = Ir::default();
+        let mut p = Ir::no_globals();
         assert_eq!(p.unique_name("foo").as_ref(), "foo");
         assert_eq!(p.unique_name("foo$1").as_ref(), "foo$1");
         assert_eq!(p.unique_name("foo").as_ref(), "foo$1$1");
@@ -173,7 +188,7 @@ mod tests {
 
     #[test]
     fn replacement_overlap2() {
-        let mut p = Ir::default();
+        let mut p = Ir::no_globals();
         assert_eq!(p.unique_name("foo").as_ref(), "foo");
         assert_eq!(p.unique_name("foo").as_ref(), "foo$1");
         assert_eq!(p.unique_name("foo$1").as_ref(), "foo$1$1");
@@ -181,7 +196,7 @@ mod tests {
 
     #[test]
     fn empty_string() {
-        let mut p = Ir::default();
+        let mut p = Ir::no_globals();
         assert_eq!(p.unique_name("").as_ref(), "_");
         assert_eq!(p.unique_name("").as_ref(), "_$1");
     }

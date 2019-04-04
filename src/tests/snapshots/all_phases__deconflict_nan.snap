@@ -1,0 +1,13 @@
+---
+created: "2019-04-04T19:19:00.316707Z"
+creator: insta@0.7.1
+source: src/tests/all_phases.rs
+expression: "\n    g1 = 0 / 0;\n    {\n        let NaN = 1;\n        if (foo) {\n            NaN = 2;\n        }\n        g3 = NaN;\n    }\n"
+---
+g1 = NaN;
+var NaN$1 = 1;
+if (foo) {
+    NaN$1 = 2;
+}
+g3 = NaN$1;
+

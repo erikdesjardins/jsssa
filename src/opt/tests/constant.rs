@@ -37,3 +37,18 @@ case!(
     else good;
 "#
 );
+
+case!(
+    nan_and_undefined_magic_globals,
+    |cx| cx.run::<constant::ConstProp>("const-prop"),
+    r#"
+    g1 = NaN;
+    g2 = undefined;
+    {
+        let NaN = 1;
+        let undefined = 2;
+        g3 = NaN;
+        g4 = undefined;
+    }
+"#
+);
