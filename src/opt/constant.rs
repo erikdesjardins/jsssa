@@ -89,7 +89,8 @@ impl Folder for ConstProp {
                             (Typeof, Array { .. })
                             | (Typeof, Object { .. })
                             | (Typeof, RegExp { .. }) => String { value: "object".into(), has_escape: false },
-                            (Typeof, Function { .. }) => String { value: "function".into(), has_escape: false },
+                            (Typeof, Function { .. })
+                            | (Typeof, CurrentFunction) => String { value: "function".into(), has_escape: false },
                             (Void, _) => Undefined,
                             _ => expr,
                         },
