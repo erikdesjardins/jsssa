@@ -76,36 +76,36 @@ impl Folder for Mut2Ssa {
     fn fold(&mut self, stmt: ir::Stmt) -> Self::Output {
         match stmt {
             ir::Stmt::Expr {
-                ref target,
-                expr: ir::Expr::ReadMutable { ref source },
+                target,
+                expr: ir::Expr::ReadMutable { source },
             } => match self.mut_vars_to_replace.get(&source.weak()) {
                 Some(What::Convert(ssa_ref)) => Some(ir::Stmt::Expr {
-                    target: target.clone(),
+                    target,
                     expr: ir::Expr::Read {
                         source: ssa_ref.clone(),
                     },
                 }),
                 Some(What::Remove) => unreachable!("removing mut read: {:?}", source),
-                None => Some(stmt),
-            },
-            ir::Stmt::DeclareMutable {
-                ref target,
-                ref val,
-            } => match self.mut_vars_to_replace.get(&target.weak()) {
-                Some(What::Convert(ssa_ref)) => Some(ir::Stmt::Expr {
-                    target: ssa_ref.clone(),
-                    expr: ir::Expr::Read {
-                        source: val.clone(),
-                    },
+                None => Some(ir::Stmt::Expr {
+                    target,
+                    expr: ir::Expr::ReadMutable { source },
                 }),
-                Some(What::Remove) => None,
-                None => Some(stmt),
             },
-            ir::Stmt::WriteMutable { ref target, val: _ } => {
+            ir::Stmt::DeclareMutable { target, val } => {
+                match self.mut_vars_to_replace.get(&target.weak()) {
+                    Some(What::Convert(ssa_ref)) => Some(ir::Stmt::Expr {
+                        target: ssa_ref.clone(),
+                        expr: ir::Expr::Read { source: val },
+                    }),
+                    Some(What::Remove) => None,
+                    None => Some(ir::Stmt::DeclareMutable { target, val }),
+                }
+            }
+            ir::Stmt::WriteMutable { target, val } => {
                 match self.mut_vars_to_replace.get(&target.weak()) {
                     Some(What::Convert(_)) => unreachable!("converting mut write: {:?}", target),
                     Some(What::Remove) => None,
-                    None => Some(stmt),
+                    None => Some(ir::Stmt::WriteMutable { target, val }),
                 }
             }
             _ => Some(stmt),
