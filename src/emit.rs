@@ -7,6 +7,7 @@ use swc_ecma_codegen::{text_writer::JsWriter, Emitter, Handlers};
 
 use crate::swc_globals;
 
+#[inline(never)] // for better profiling
 pub fn emit(
     _: &swc_globals::Initialized,
     ast: ast::Script,

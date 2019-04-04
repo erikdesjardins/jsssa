@@ -13,7 +13,7 @@ mod redundant;
 mod tests;
 
 pub fn run_passes(_: &swc_globals::Initialized, ir: ir::Block) -> ir::Block {
-    OptContext::new(ir)
+    OptCx::new(ir)
         .converge::<dce::Dce>("early-dce")
         .converge_with("main-opt-loop", |cx| {
             cx.converge::<redundant::LoadStore>("redundant-load-store")
@@ -25,9 +25,9 @@ pub fn run_passes(_: &swc_globals::Initialized, ir: ir::Block) -> ir::Block {
         .into_inner()
 }
 
-struct OptContext(ir::Block);
+struct OptCx(ir::Block);
 
-impl OptContext {
+impl OptCx {
     fn new(block: ir::Block) -> Self {
         Self(block)
     }
@@ -36,11 +36,13 @@ impl OptContext {
         self.0
     }
 
+    #[inline(never)] // for better profiling
     fn run<F: Folder + Default>(self, name: &str) -> Self {
         log::debug!("{}: running single pass", name);
         Self(F::default().run_folder(self.0))
     }
 
+    #[inline(never)] // for better profiling
     fn converge<F: Folder + Default>(self, name: &str) -> Self {
         self.converge_with(name, |cx| cx.run::<F>(name))
     }

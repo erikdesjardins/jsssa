@@ -9,7 +9,12 @@ pub enum ShouldHoist {
     No,
 }
 
-pub fn hoist_block(body: &[ast::Stmt], scope: &mut scope::Ast) -> Vec<ir::Stmt> {
+#[inline(never)] // for better profiling
+pub fn hoist(block: &[ast::Stmt], scope: &mut scope::Ast) -> Vec<ir::Stmt> {
+    hoist_block(block, scope)
+}
+
+fn hoist_block(body: &[ast::Stmt], scope: &mut scope::Ast) -> Vec<ir::Stmt> {
     body.iter()
         .flat_map(|stmt| hoist_statement(stmt, scope))
         .collect()

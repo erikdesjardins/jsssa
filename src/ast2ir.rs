@@ -10,6 +10,7 @@ use self::hoist::ShouldHoist;
 
 mod hoist;
 
+#[inline(never)] // for better profiling
 pub fn convert(_: &swc_globals::Initialized, ast: ast::Script) -> ir::Block {
     let ast::Script {
         shebang: _,
@@ -23,7 +24,7 @@ fn convert_block(body: Vec<ast::Stmt>, parent_scope: &scope::Ast, hoist: ShouldH
     let mut scope = parent_scope.nested();
 
     let mut stmts = match hoist {
-        ShouldHoist::Yes => hoist::hoist_block(&body, &mut scope),
+        ShouldHoist::Yes => hoist::hoist(&body, &mut scope),
         ShouldHoist::No => vec![],
     };
 

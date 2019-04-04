@@ -18,6 +18,7 @@ use crate::swc_globals;
 pub struct ParseError(String);
 
 /// Parse a given ES6+ script into SWC's AST.
+#[inline(never)] // for better profiling
 pub fn parse(
     _: &swc_globals::Initialized,
     js: impl Into<String>,

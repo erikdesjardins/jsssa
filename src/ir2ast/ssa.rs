@@ -7,25 +7,26 @@ use swc_ecma_ast as ast;
 use crate::ir;
 use crate::ir::traverse::{RunVisitor, ScopeTy, Visitor};
 
+#[inline(never)] // for better profiling
+pub fn prepare_ssa_cache(ir: &ir::Block) -> Cache {
+    let mut collector = CollectSingleUseInliningInfo::default();
+    collector.run_visitor(&ir);
+    Cache {
+        can_inline_at_use: collector
+            .can_inline_at_use
+            .into_iter()
+            .map(ir::Ref::weak)
+            .collect(),
+        expr_cache: Default::default(),
+    }
+}
+
 pub struct Cache {
     can_inline_at_use: HashSet<ir::WeakRef<ir::Ssa>>,
     expr_cache: HashMap<ir::Ref<ir::Ssa>, ast::Expr>,
 }
 
 impl Cache {
-    pub fn with_inlining_information(ir: &ir::Block) -> Self {
-        let mut collector = CollectSingleUseInliningInfo::default();
-        collector.run_visitor(&ir);
-        Self {
-            can_inline_at_use: collector
-                .can_inline_at_use
-                .into_iter()
-                .map(ir::Ref::weak)
-                .collect(),
-            expr_cache: Default::default(),
-        }
-    }
-
     pub fn can_be_freely_inlined(&self, ssa_ref: &ir::Ref<ir::Ssa>) -> bool {
         self.can_inline_at_use.contains(&ssa_ref.weak())
     }

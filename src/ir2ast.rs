@@ -9,6 +9,7 @@ use crate::utils::P;
 
 mod ssa;
 
+#[inline(never)] // for better profiling
 pub fn convert(_: &swc_globals::Initialized, ir: ir::Block) -> ast::Script {
     let mut scope = scope::Ir::default();
 
@@ -24,7 +25,7 @@ pub fn convert(_: &swc_globals::Initialized, ir: ir::Block) -> ast::Script {
         _ => {}
     });
 
-    let mut ssa_cache = ssa::Cache::with_inlining_information(&ir);
+    let mut ssa_cache = ssa::prepare_ssa_cache(&ir);
 
     let body = convert_block(ir, &scope, &mut ssa_cache);
 

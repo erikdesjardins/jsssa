@@ -22,7 +22,7 @@ fn basic() {
             ])
         };
 
-        let ir = opt::OptContext::new(ir)
+        let ir = opt::OptCx::new(ir)
             .run::<forward::Reads>("forward-reads")
             .into_inner();
         let ppr = ir::print(g, &ir);
