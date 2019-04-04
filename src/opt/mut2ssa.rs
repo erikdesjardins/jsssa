@@ -43,8 +43,8 @@ impl Folder for Downlevel {
                     ir::Stmt::Expr {
                         target: _,
                         expr: ir::Expr::ReadMutable { source },
-                    } => Some((source.clone(), Saw::Read)),
-                    ir::Stmt::WriteMutable { target, val: _ } => Some((target.clone(), Saw::Write)),
+                    } => Some((source, Saw::Read)),
+                    ir::Stmt::WriteMutable { target, val: _ } => Some((target, Saw::Write)),
                     _ => None,
                 };
                 if let Some((ref_, saw)) = read_or_write {

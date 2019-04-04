@@ -62,34 +62,34 @@ enum What {
 }
 
 #[derive(Default)]
-struct CollectLoadStoreInfo {
+struct CollectLoadStoreInfo<'a> {
     mut_ops_to_replace: HashMap<StmtIndex, What>,
     cur_index: StmtIndex,
-    last_op_for_reads: HashMap<ir::WeakRef<ir::Mut>, (StmtIndex, MutOp)>,
-    last_op_for_writes: HashMap<ir::WeakRef<ir::Mut>, (StmtIndex, MutOp)>,
-    invalid_for_parent_scope: Invalid,
+    last_op_for_reads: HashMap<&'a ir::Ref<ir::Mut>, (StmtIndex, MutOp<'a>)>,
+    last_op_for_writes: HashMap<&'a ir::Ref<ir::Mut>, (StmtIndex, MutOp<'a>)>,
+    invalid_for_parent_scope: Invalid<'a>,
 }
 
 #[derive(Clone)]
-enum MutOp {
-    Declare(ir::Ref<ir::Ssa>),
-    Write(ir::Ref<ir::Ssa>),
-    Read(ir::Ref<ir::Ssa>),
+enum MutOp<'a> {
+    Declare(&'a ir::Ref<ir::Ssa>),
+    Write(&'a ir::Ref<ir::Ssa>),
+    Read(&'a ir::Ref<ir::Ssa>),
 }
 
-enum Invalid {
+enum Invalid<'a> {
     Everything,
-    Refs(HashSet<ir::WeakRef<ir::Mut>>),
+    Refs(HashSet<&'a ir::Ref<ir::Mut>>),
 }
 
-impl Default for Invalid {
+impl Default for Invalid<'_> {
     fn default() -> Self {
         Invalid::Refs(Default::default())
     }
 }
 
-impl Invalid {
-    fn insert_ref(&mut self, ref_: ir::WeakRef<ir::Mut>) {
+impl<'a> Invalid<'a> {
+    fn insert_ref(&mut self, ref_: &'a ir::Ref<ir::Mut>) {
         match self {
             Invalid::Everything => {}
             Invalid::Refs(our_refs) => {
@@ -99,8 +99,8 @@ impl Invalid {
     }
 }
 
-impl CollectLoadStoreInfo {
-    fn invalidate_from_child(&mut self, invalid: Invalid) {
+impl<'a> CollectLoadStoreInfo<'a> {
+    fn invalidate_from_child(&mut self, invalid: Invalid<'a>) {
         match invalid {
             Invalid::Everything => self.invalidate_everything(),
             Invalid::Refs(refs) => {
@@ -119,52 +119,52 @@ impl CollectLoadStoreInfo {
         self.invalid_for_parent_scope = Invalid::Everything;
     }
 
-    fn declare_mut(&mut self, target: &ir::Ref<ir::Mut>, val: &ir::Ref<ir::Ssa>) {
-        let op = (self.cur_index, MutOp::Declare(val.clone()));
-        self.last_op_for_reads.insert(target.weak(), op.clone());
-        self.last_op_for_writes.insert(target.weak(), op);
-        self.invalid_for_parent_scope.insert_ref(target.weak());
+    fn declare_mut(&mut self, target: &'a ir::Ref<ir::Mut>, val: &'a ir::Ref<ir::Ssa>) {
+        let op = (self.cur_index, MutOp::Declare(val));
+        self.last_op_for_reads.insert(target, op.clone());
+        self.last_op_for_writes.insert(target, op);
+        self.invalid_for_parent_scope.insert_ref(target);
     }
 
-    fn write_mut(&mut self, target: &ir::Ref<ir::Mut>, val: &ir::Ref<ir::Ssa>) {
-        let op = match self.last_op_for_writes.get(&target.weak()) {
+    fn write_mut(&mut self, target: &'a ir::Ref<ir::Mut>, val: &'a ir::Ref<ir::Ssa>) {
+        let op = match self.last_op_for_writes.get(&target) {
             // write -> write (decl)
             Some((declare_index, MutOp::Declare(_))) => {
                 self.mut_ops_to_replace.insert(*declare_index, What::Remove);
                 self.mut_ops_to_replace
                     .insert(self.cur_index, What::BecomeDecl);
-                (self.cur_index, MutOp::Declare(val.clone()))
+                (self.cur_index, MutOp::Declare(val))
             }
             // write -> write
             Some((write_index, MutOp::Write(_))) => {
                 self.mut_ops_to_replace.insert(*write_index, What::Remove);
-                (self.cur_index, MutOp::Write(val.clone()))
+                (self.cur_index, MutOp::Write(val))
             }
-            Some((_, MutOp::Read(_))) | None => (self.cur_index, MutOp::Write(val.clone())),
+            Some((_, MutOp::Read(_))) | None => (self.cur_index, MutOp::Write(val)),
         };
-        self.last_op_for_reads.insert(target.weak(), op.clone());
-        self.last_op_for_writes.insert(target.weak(), op);
-        self.invalid_for_parent_scope.insert_ref(target.weak());
+        self.last_op_for_reads.insert(target, op.clone());
+        self.last_op_for_writes.insert(target, op);
+        self.invalid_for_parent_scope.insert_ref(target);
     }
 
-    fn read_mut(&mut self, target: &ir::Ref<ir::Ssa>, source: &ir::Ref<ir::Mut>) {
-        let op = match self.last_op_for_reads.get(&source.weak()) {
+    fn read_mut(&mut self, target: &'a ir::Ref<ir::Ssa>, source: &'a ir::Ref<ir::Mut>) {
+        let op = match self.last_op_for_reads.get(&source) {
             // write -> read, read -> read
             Some((_, MutOp::Declare(val)))
             | Some((_, MutOp::Write(val)))
             | Some((_, MutOp::Read(val))) => {
                 self.mut_ops_to_replace
-                    .insert(self.cur_index, What::ReadSsa(val.clone()));
-                (self.cur_index, MutOp::Read(val.clone()))
+                    .insert(self.cur_index, What::ReadSsa((*val).clone()));
+                (self.cur_index, MutOp::Read(*val))
             }
-            None => (self.cur_index, MutOp::Read(target.clone())),
+            None => (self.cur_index, MutOp::Read(target)),
         };
-        self.last_op_for_reads.insert(source.weak(), op.clone());
-        self.last_op_for_writes.insert(source.weak(), op);
+        self.last_op_for_reads.insert(source, op.clone());
+        self.last_op_for_writes.insert(source, op);
     }
 }
 
-impl<'a> Visitor<'a> for CollectLoadStoreInfo {
+impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
     fn wrap_scope<R>(
         &mut self,
         ty: &ScopeTy,

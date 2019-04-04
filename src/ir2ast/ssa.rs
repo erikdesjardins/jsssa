@@ -17,7 +17,11 @@ impl Cache {
         let mut collector = CollectSingleUseInliningInfo::default();
         collector.run_visitor(&ir);
         Self {
-            can_inline_at_use: collector.can_inline_at_use,
+            can_inline_at_use: collector
+                .can_inline_at_use
+                .into_iter()
+                .map(ir::Ref::weak)
+                .collect(),
             expr_cache: Default::default(),
         }
     }
@@ -37,11 +41,11 @@ impl Cache {
 }
 
 #[derive(Default)]
-struct CollectSingleUseInliningInfo {
-    can_inline_at_use: HashSet<ir::WeakRef<ir::Ssa>>,
-    pure_refs: HashSet<ir::WeakRef<ir::Ssa>>,
-    read_refs: HashSet<ir::WeakRef<ir::Ssa>>,
-    write_refs: HashSet<ir::WeakRef<ir::Ssa>>,
+struct CollectSingleUseInliningInfo<'a> {
+    can_inline_at_use: HashSet<&'a ir::Ref<ir::Ssa>>,
+    pure_refs: HashSet<&'a ir::Ref<ir::Ssa>>,
+    read_refs: HashSet<&'a ir::Ref<ir::Ssa>>,
+    write_refs: HashSet<&'a ir::Ref<ir::Ssa>>,
     largest_effect: Effect,
 }
 
@@ -58,43 +62,46 @@ impl Default for Effect {
     }
 }
 
-impl CollectSingleUseInliningInfo {
-    fn declare_ref(&mut self, ref_: &ir::Ref<ir::Ssa>, eff: Effect) {
+impl<'a> CollectSingleUseInliningInfo<'a> {
+    fn declare_ref(&mut self, ref_: &'a ir::Ref<ir::Ssa>, eff: Effect) {
         let added_to_set = match eff {
-            Effect::Pure => self.pure_refs.insert(ref_.weak()),
-            Effect::Read => self.read_refs.insert(ref_.weak()),
-            Effect::Write => self.write_refs.insert(ref_.weak()),
+            Effect::Pure => self.pure_refs.insert(ref_),
+            Effect::Read => self.read_refs.insert(ref_),
+            Effect::Write => self.write_refs.insert(ref_),
         };
         assert!(added_to_set, "refs can only be declared once");
     }
 
-    fn use_ref(&mut self, own_eff: Effect, ref_: &ir::Ref<ir::Ssa>) -> Effect {
+    fn use_ref(&mut self, own_eff: Effect, ref_: &'a ir::Ref<ir::Ssa>) -> Effect {
         self.use_refs(own_eff, iter::once(ref_))
     }
 
-    fn use_refs_<'a, 'b: 'a>(
+    fn use_refs_<'b>(
         &mut self,
         own_eff: Effect,
-        refs: impl IntoIterator<Item = &'a &'b ir::Ref<ir::Ssa>>,
-    ) -> Effect {
+        refs: impl IntoIterator<Item = &'b &'a ir::Ref<ir::Ssa>>,
+    ) -> Effect
+    where
+        'a: 'b,
+    {
         self.use_refs(own_eff, refs.into_iter().map(|r| *r))
     }
 
-    fn use_refs<'a>(
+    fn use_refs(
         &mut self,
         own_eff: Effect,
         refs: impl IntoIterator<Item = &'a ir::Ref<ir::Ssa>>,
     ) -> Effect {
         refs.into_iter()
             .filter_map(|ref_| {
-                if self.pure_refs.remove(&ref_.weak()) {
-                    self.can_inline_at_use.insert(ref_.weak());
+                if self.pure_refs.remove(&ref_) {
+                    self.can_inline_at_use.insert(ref_);
                     Some(Effect::Pure)
-                } else if self.read_refs.remove(&ref_.weak()) {
-                    self.can_inline_at_use.insert(ref_.weak());
+                } else if self.read_refs.remove(&ref_) {
+                    self.can_inline_at_use.insert(ref_);
                     Some(Effect::Read)
-                } else if self.write_refs.remove(&ref_.weak()) {
-                    self.can_inline_at_use.insert(ref_.weak());
+                } else if self.write_refs.remove(&ref_) {
+                    self.can_inline_at_use.insert(ref_);
                     Some(Effect::Write)
                 } else {
                     None
@@ -122,7 +129,7 @@ impl CollectSingleUseInliningInfo {
     }
 }
 
-impl<'a> Visitor<'a> for CollectSingleUseInliningInfo {
+impl<'a> Visitor<'a> for CollectSingleUseInliningInfo<'a> {
     fn wrap_scope<R>(
         &mut self,
         ty: &ScopeTy,
