@@ -7,6 +7,7 @@ use crate::ir::traverse::{visit_with, Folder, ScopeTy};
 /// Forward `ir::Expr::Read` to the source SSA ref.
 ///
 /// Does not profit from multiple passes.
+/// Does not profit from DCE running first; may create opportunities for DCE.
 #[derive(Default)]
 pub struct Reads {
     ssa_remappings: HashMap<ir::WeakRef<ir::Ssa>, ir::Ref<ir::Ssa>>,
