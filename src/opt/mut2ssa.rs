@@ -85,7 +85,7 @@ impl Folder for Downlevel {
                         source: ssa_ref.clone(),
                     },
                 }),
-                Some(What::Remove) => None,
+                Some(What::Remove) => unreachable!("removing mut read: {:?}", source),
                 None => Some(stmt),
             },
             ir::Stmt::DeclareMutable {
@@ -103,7 +103,7 @@ impl Folder for Downlevel {
             },
             ir::Stmt::WriteMutable { ref target, val: _ } => {
                 match self.mut_vars_to_replace.get(&target.weak()) {
-                    Some(What::Convert(_)) => unreachable!("unexpected mutated var: {:?}", target),
+                    Some(What::Convert(_)) => unreachable!("converting mut write: {:?}", target),
                     Some(What::Remove) => None,
                     None => Some(stmt),
                 }
