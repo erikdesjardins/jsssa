@@ -1,11 +1,11 @@
 ---
-created: "2019-04-01T23:41:31.961625400Z"
+created: "2019-04-04T19:26:26.200097Z"
 creator: insta@0.7.1
 source: src/opt/tests/mut2ssa.rs
 expression: "\n    let x = 1;\n    x = 2;\n    x = 3;\n    if (foo) log(x);\n\n    let y = 10;\n    log(y);\n    log(y + 1);\n    if (bar) (function() {\n        y = 5;\n    })();\n"
 ---
 _ini = 1
-x :- _ini
+x <= _ini
 _val = 2
 x <- _val
 <dead> = _val
@@ -15,17 +15,17 @@ x <- _val$1
 _iff = <global foo>
 <if> _iff:
     _fun = <global log>
-    _arg = x
+    _arg = *x
     <dead> = _fun(_arg)
 <else>:
     <empty>
 _ini$1 = 10
-y :- _ini$1
+y <= _ini$1
 _fun = <global log>
-_arg = y
+_arg = *y
 <dead> = _fun(_arg)
 _fun$1 = <global log>
-_lhs = y
+_lhs = *y
 _rhs = 1
 _arg$1 = _lhs + _rhs
 <dead> = _fun$1(_arg$1)

@@ -44,7 +44,7 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
         ir::Stmt::DeclareMutable { target, val } => {
             let name = scope.declare_mutable(target.clone());
             w.write_str(&name);
-            w.write_str(" :- ");
+            w.write_str(" <= ");
             print_ssa(val, scope, w);
         }
         ir::Stmt::WriteMutable { target, val } => match scope.get_mutable(&target) {
@@ -173,10 +173,13 @@ fn print_expr<'a, 'b: 'a>(expr: &ir::Expr, scope: &scope::Ir, w: &'a mut WriteIn
         ir::Expr::Undefined => w.write_str("<void>"),
         ir::Expr::This => w.write_str("<this>"),
         ir::Expr::Read { source } => print_ssa(source, scope, w),
-        ir::Expr::ReadMutable { source } => match scope.get_mutable(&source) {
-            Some(name) => w.write_str(&name),
-            None => w.write_str(&format!("<BAD MUT {:?}>", source)),
-        },
+        ir::Expr::ReadMutable { source } => {
+            w.write_str("*");
+            match scope.get_mutable(&source) {
+                Some(name) => w.write_str(&name),
+                None => w.write_str(&format!("<BAD MUT {:?}>", source)),
+            }
+        }
         ir::Expr::ReadGlobal { source } => {
             w.write_str("<global ");
             w.write_str(source);

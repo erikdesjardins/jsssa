@@ -1,5 +1,5 @@
 ---
-created: "2019-04-03T06:38:34.516111500Z"
+created: "2019-04-04T19:26:26.168862Z"
 creator: insta@0.7.1
 source: src/opt/tests/all_passes.rs
 expression: "\n    let x = 1;\n    x = 2;\n    x = 3;\n    if (foo) log(x);\n\n    let y = 10;\n    log(y);\n    log(y + 1);\n    if (bar) (function() {\n        y = 5;\n    })();\n"
@@ -12,11 +12,11 @@ _iff = <global foo>
 <else>:
     <empty>
 _ini = 10
-y :- _ini
+y <= _ini
 _fun = <global log>
 <dead> = _fun(_ini)
 _fun$1 = <global log>
-_lhs = y
+_lhs = *y
 _rhs = 1
 _arg = _lhs + _rhs
 <dead> = _fun$1(_arg)

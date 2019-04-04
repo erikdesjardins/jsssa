@@ -1,11 +1,11 @@
 ---
-created: "2019-04-03T06:38:34.531739800Z"
+created: "2019-04-04T19:26:26.325098100Z"
 creator: insta@0.7.1
 source: src/opt/tests/redundant.rs
 expression: "\n    let something = 1;\n    foo();\n    something = x;\n    something = y;\n"
 ---
 _ini = 1
-something :- _ini
+something <= _ini
 _fun = <global foo>
 <dead> = _fun()
 _val = <global x>

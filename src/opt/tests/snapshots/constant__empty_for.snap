@@ -1,11 +1,11 @@
 ---
-created: "2019-03-31T07:18:49.720038800Z"
+created: "2019-04-04T19:26:26.168862Z"
 creator: insta@0.7.1
 source: src/opt/tests/constant.rs
 expression: "\n    for (var x in {}) bad;\n    for (var x of []) bad;\n    for (var x in { z: 1 }) good;\n    for (var x of [1]) good;\n"
 ---
 _ini = <void>
-x :- _ini
+x <= _ini
 <dead> = {  }
 <dead> = []
 _key = "z"

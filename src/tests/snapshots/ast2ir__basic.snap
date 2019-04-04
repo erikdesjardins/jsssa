@@ -1,14 +1,14 @@
 ---
-created: "2019-03-31T23:50:50.515671600Z"
+created: "2019-04-04T19:26:26.481345700Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
 expression: "\n    function f(x) {\n        while (true);\n        x = y.bar;\n        z.foo = x ? true : 'hi';\n        return +[1 || x, { x }, f + 1, ++g];\n    }\n    f(1), true;\n"
 ---
 _fun = <function>:
     f = <current function>
-    f$1 :- f
+    f$1 <= f
     x = <argument 0>
-    x$1 :- x
+    x$1 <= x
     <loop>:
         _whl = true
         <if> _whl:
@@ -22,30 +22,30 @@ _fun = <function>:
     <dead> = _val
     _obj$1 = <global z>
     _prp$1 = "foo"
-    _tst = x$1
+    _tst = *x$1
     _udf = <void>
-    _val$1 :- _udf
+    _val$1 <= _udf
     <if> _tst:
         _cns = true
         _val$1 <- _cns
     <else>:
         _alt = "hi"
         _val$1 <- _alt
-    _val$2 = _val$1
+    _val$2 = *_val$1
     _obj$1[_prp$1] <- _val$2
     <dead> = _val$2
     _prd = 1
-    _log :- _prd
+    _log <= _prd
     <if> _prd:
         <empty>
     <else>:
-        _cns = x$1
+        _cns = *x$1
         _log <- _cns
-    _ele = _log
+    _ele = *_log
     _key = "x"
-    _val$3 = x$1
+    _val$3 = *x$1
     _ele$1 = { [_key]: _val$3 }
-    _lhs = f$1
+    _lhs = *f$1
     _rhs = 1
     _ele$2 = _lhs + _rhs
     _rdr = <global g>
@@ -56,8 +56,8 @@ _fun = <function>:
     _una = [_ele, _ele$1, _ele$2, _ele$3]
     _ret = + _una
     <return> _ret
-f :- _fun
-_fun$1 = f
+f <= _fun
+_fun$1 = *f
 _arg = 1
 <dead> = _fun$1(_arg)
 <dead> = true

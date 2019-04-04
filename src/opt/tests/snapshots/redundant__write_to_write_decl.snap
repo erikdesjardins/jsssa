@@ -1,5 +1,5 @@
 ---
-created: "2019-04-03T06:38:34.531739800Z"
+created: "2019-04-04T19:26:26.403223300Z"
 creator: insta@0.7.1
 source: src/opt/tests/redundant.rs
 expression: "\n    let something = 1;\n    something = x;\n    // implicit void init\n    var y = 2;\n"
@@ -7,7 +7,7 @@ expression: "\n    let something = 1;\n    something = x;\n    // implicit void 
 <dead> = <void>
 <dead> = 1
 _val = <global x>
-something :- _val
+something <= _val
 <dead> = _val
 _ini = 2
-y :- _ini
+y <= _ini

@@ -1,11 +1,11 @@
 ---
-created: "2019-03-30T21:24:04.507475200Z"
+created: "2019-04-04T19:26:26.543847800Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
 expression: "\n    var x;\n    for (x in 1);\n    for (y in 1);\n"
 ---
 _ini = <void>
-x :- _ini
+x <= _ini
 _ini$1 = <void>
 x <- _ini$1
 _rhs = 1

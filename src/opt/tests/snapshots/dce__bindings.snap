@@ -1,10 +1,10 @@
 ---
-created: "2019-03-30T06:14:40.388860600Z"
+created: "2019-04-04T19:26:26.168862Z"
 creator: insta@0.7.1
 source: src/opt/tests/dce.rs
 expression: "\n    var x = 1;\n    const y = 1;\n    function z() {}\n"
 ---
 _ini = <void>
-x :- _ini
+x <= _ini
 _ini$1 = 1
 x <- _ini$1

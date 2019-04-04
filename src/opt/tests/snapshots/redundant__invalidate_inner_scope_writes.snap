@@ -1,15 +1,15 @@
 ---
-created: "2019-04-03T06:38:34.531739800Z"
+created: "2019-04-04T19:26:26.387594700Z"
 creator: insta@0.7.1
 source: src/opt/tests/redundant.rs
 expression: "\n    let foo = 1;\n    let bar = 2;\n    let not_written = 2;\n    // every ref should be forwarded except the two at the bottom\n    if (something) {\n        foo;\n        foo = 3;\n        bar;\n        if (something2) {\n            bar = 4;\n        }\n        foo;\n        not_written;\n    }\n    foo; // do not forward\n    bar; // do not forward\n    not_written;\n"
 ---
 _ini = 1
-foo :- _ini
+foo <= _ini
 _ini$1 = 2
-bar :- _ini$1
+bar <= _ini$1
 _ini$2 = 2
-not_written :- _ini$2
+not_written <= _ini$2
 _iff = <global something>
 <if> _iff:
     <dead> = _ini
@@ -28,6 +28,6 @@ _iff = <global something>
     <dead> = _ini$2
 <else>:
     <empty>
-<dead> = foo
-<dead> = bar
+<dead> = *foo
+<dead> = *bar
 <dead> = _ini$2
