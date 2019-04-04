@@ -1,8 +1,8 @@
 use crate::ast2ir;
+use crate::err::NiceError;
 use crate::ir;
 use crate::parse;
 use crate::swc_globals;
-use crate::utils::NiceError;
 
 macro_rules! case {
     ( $name:ident, $string:expr ) => {

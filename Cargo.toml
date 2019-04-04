@@ -6,7 +6,6 @@ edition = "2018"
 
 [dependencies]
 env_logger = { version = "0.6", default-features = false }
-failure = "0.1"
 log = "0.4"
 structopt = { version = "0.2", default-features = false }
 swc_atoms = "0.1"

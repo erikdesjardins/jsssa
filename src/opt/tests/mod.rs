@@ -1,7 +1,7 @@
 macro_rules! case {
     ( $name:ident, |$cx:ident| $cx_expr:expr, $string:expr ) => {
         #[test]
-        fn $name() -> Result<(), crate::utils::NiceError> {
+        fn $name() -> Result<(), crate::err::NiceError> {
             use crate::{ast2ir, ir, opt, parse, swc_globals};
             swc_globals::with(|g| {
                 let (ast, _) = parse::parse(g, $string)?;

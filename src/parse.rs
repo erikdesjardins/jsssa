@@ -3,7 +3,6 @@ use std::io;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 
-use failure::Fail;
 use swc_common::{
     errors::{EmitterWriter, Handler},
     FileName, FilePathMapping, SourceMap,
@@ -12,10 +11,6 @@ use swc_ecma_ast as ast;
 use swc_ecma_parser::{Parser, Session, SourceFileInput, Syntax};
 
 use crate::swc_globals;
-
-#[derive(Debug, Fail)]
-#[fail(display = "{}", _0)]
-pub struct ParseError(String);
 
 /// Parse a given ES6+ script into SWC's AST.
 #[inline(never)] // for better profiling
@@ -49,6 +44,17 @@ pub fn parse(
     })?;
 
     Ok((ast, files))
+}
+
+#[derive(Debug)]
+pub struct ParseError(String);
+
+impl std::error::Error for ParseError {}
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Parse {}", self.0)
+    }
 }
 
 #[derive(Clone, Default)]

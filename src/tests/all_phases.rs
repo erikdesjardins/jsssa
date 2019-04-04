@@ -1,10 +1,10 @@
 use crate::ast2ir;
 use crate::emit;
+use crate::err::NiceError;
 use crate::ir2ast;
 use crate::opt;
 use crate::parse;
 use crate::swc_globals;
-use crate::utils::NiceError;
 
 macro_rules! case {
     ( $name:ident, $string:expr ) => {

@@ -14,12 +14,14 @@ use std::time::Instant;
 
 use structopt::StructOpt;
 
-use crate::utils::{NiceError, Time};
+use crate::err::NiceError;
+use crate::utils::Time;
 
 mod ast2ir;
 mod cli;
 mod collections;
 mod emit;
+mod err;
 mod ir;
 mod ir2ast;
 mod opt;

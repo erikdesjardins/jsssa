@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use failure::Error;
 use swc_common::SourceMap;
 use swc_ecma_ast as ast;
 use swc_ecma_codegen::{text_writer::JsWriter, Emitter, Handlers};
 
+use crate::err::Error;
 use crate::swc_globals;
 
 #[inline(never)] // for better profiling
