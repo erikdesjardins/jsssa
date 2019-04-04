@@ -11,10 +11,10 @@ mod ref_;
 pub mod scope;
 pub mod traverse;
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Hash)]
 pub struct Block(pub Vec<Stmt>);
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Hash)]
 pub enum Stmt {
     Expr {
         target: Ref<Ssa>,
@@ -74,7 +74,7 @@ pub enum Stmt {
     },
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Hash)]
 pub enum Expr {
     Bool {
         value: bool,
