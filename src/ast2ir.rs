@@ -519,7 +519,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 exp:
                     ast::Str {
                         value,
-                        has_escape,
+                        has_escape: _,
                         span: _,
                     },
                 flags,
@@ -528,16 +528,12 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 vec![],
                 ir::Expr::RegExp {
                     regex: value,
-                    has_escape,
                     flags: match flags {
                         Some(ast::Str {
                             value,
-                            has_escape,
+                            has_escape: _,
                             span: _,
-                        }) => {
-                            assert!(!has_escape);
-                            value
-                        }
+                        }) => value,
                         None => JsWord::from(""),
                     },
                 },
@@ -545,9 +541,9 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             ast::Lit::Null(ast::Null { span: _ }) => (vec![], ir::Expr::Null),
             ast::Lit::Str(ast::Str {
                 value,
-                has_escape,
+                has_escape: _,
                 span: _,
-            }) => (vec![], ir::Expr::String { value, has_escape }),
+            }) => (vec![], ir::Expr::String { value }),
             ast::Lit::Bool(ast::Bool { value, span: _ }) => (vec![], ir::Expr::Bool { value }),
             ast::Lit::Num(ast::Number { value, span: _ }) => (
                 vec![],
@@ -922,13 +918,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                     span: _,
                                     type_ann: _,
                                     optional: _,
-                                }) => (
-                                    vec![],
-                                    ir::Expr::String {
-                                        value: sym,
-                                        has_escape: false,
-                                    },
-                                ),
+                                }) => (vec![], ir::Expr::String { value: sym }),
                                 e => unreachable!("non-computed property is not an ident: {:?}", e),
                             }
                         };
@@ -1190,13 +1180,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                 span: _,
                                 type_ann: _,
                                 optional: _,
-                            }) => (
-                                vec![],
-                                ir::Expr::String {
-                                    value: sym,
-                                    has_escape: false,
-                                },
-                            ),
+                            }) => (vec![], ir::Expr::String { value: sym }),
                             e => unreachable!("non-computed property is not an ident: {:?}", e),
                         }
                     };
@@ -1303,13 +1287,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         span: _,
                         type_ann: _,
                         optional: _,
-                    }) => (
-                        vec![],
-                        ir::Expr::String {
-                            value: sym,
-                            has_escape: false,
-                        },
-                    ),
+                    }) => (vec![], ir::Expr::String { value: sym }),
                     e => unreachable!("non-computed property is not an ident: {:?}", e),
                 }
             };

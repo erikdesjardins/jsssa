@@ -84,7 +84,6 @@ pub enum Expr {
     },
     String {
         value: JsWord,
-        has_escape: bool,
     },
     Null,
     Undefined,
@@ -110,7 +109,6 @@ pub enum Expr {
     },
     RegExp {
         regex: JsWord,
-        has_escape: bool,
         flags: JsWord,
     },
     Unary {

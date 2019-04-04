@@ -159,11 +159,9 @@ fn print_expr<'a, 'b: 'a>(expr: &ir::Expr, scope: &scope::Ir, w: &'a mut WriteIn
         ir::Expr::Number {
             value: ir::F64(value),
         } => w.write_str(&value.to_string()),
-        ir::Expr::String { value, has_escape } => {
-            assert!(!has_escape);
-            w.write_str("\"");
-            w.write_str(&value);
-            w.write_str("\"");
+        ir::Expr::String { value } => {
+            // use debug to print newlines etc. escaped
+            w.write_str(&format!("{:?}", value.as_ref()));
         }
         ir::Expr::Null => w.write_str("<null>"),
         ir::Expr::Undefined => w.write_str("<void>"),
@@ -218,12 +216,7 @@ fn print_expr<'a, 'b: 'a>(expr: &ir::Expr, scope: &scope::Ir, w: &'a mut WriteIn
             }
             w.write_str(" }");
         }
-        ir::Expr::RegExp {
-            regex,
-            has_escape,
-            flags,
-        } => {
-            assert!(!has_escape);
+        ir::Expr::RegExp { regex, flags } => {
             w.write_str("/");
             w.write_str(regex);
             w.write_str("/");

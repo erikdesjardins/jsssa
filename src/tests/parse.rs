@@ -35,3 +35,21 @@ fn parse_error() {
         None => panic!("parse unexpectedly succeeded"),
     });
 }
+
+case!(
+    string_has_escape_behavior,
+    r#"
+    "foo";
+    "ba\r";
+    "ba\\z";
+"#
+);
+
+case!(
+    regex_has_escape_behavior,
+    r#"
+    /foo/;
+    /bar\./;
+    /ba\/z/;
+"#
+);

@@ -324,10 +324,12 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
             span: span(),
             value,
         })),
-        ir::Expr::String { value, has_escape } => ast::Expr::Lit(ast::Lit::Str(ast::Str {
+        ir::Expr::String { value } => ast::Expr::Lit(ast::Lit::Str(ast::Str {
             span: span(),
             value,
-            has_escape,
+            // it appears safe to always assume has_escape: true, since the string content is verbatim
+            // see test string_has_escape_behavior
+            has_escape: true,
         })),
         ir::Expr::Null => ast::Expr::Lit(ast::Lit::Null(ast::Null { span: span() })),
         ir::Expr::Undefined => ast::Expr::Unary(ast::UnaryExpr {
@@ -398,16 +400,14 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
                 })
                 .collect(),
         }),
-        ir::Expr::RegExp {
-            regex,
-            has_escape,
-            flags,
-        } => ast::Expr::Lit(ast::Lit::Regex(ast::Regex {
+        ir::Expr::RegExp { regex, flags } => ast::Expr::Lit(ast::Lit::Regex(ast::Regex {
             span: span(),
             exp: ast::Str {
                 span: span(),
                 value: regex,
-                has_escape,
+                // it appears that regex values always have `has_escape: false`, even if they have escapes
+                // see test regex_has_escape_behavior
+                has_escape: false,
             },
             flags: Some(ast::Str {
                 span: span(),
@@ -626,7 +626,7 @@ fn write_ssa_to_stmt(
         | (_, ir::Expr::Null)
         | (_, ir::Expr::Undefined) => What::Cache,
         (ir::Used::Once, ir::Expr::String { .. }) => What::Cache,
-        (ir::Used::Mult, ir::Expr::String { value, .. }) if value.len() <= 32 => What::Cache,
+        (ir::Used::Mult, ir::Expr::String { value }) if value.len() <= 32 => What::Cache,
         _ => What::Define,
     };
     let expr = convert_expr(expr, scope, ssa_cache);

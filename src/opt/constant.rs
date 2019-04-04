@@ -20,9 +20,8 @@ impl ConstProp {
         let shallow_clone = match expr {
             ir::Expr::Bool { value } => ir::Expr::Bool { value: *value },
             ir::Expr::Number { value } => ir::Expr::Number { value: *value },
-            ir::Expr::String { value, has_escape } => ir::Expr::String {
+            ir::Expr::String { value } => ir::Expr::String {
                 value: value.clone(),
-                has_escape: *has_escape,
             },
             ir::Expr::Null => ir::Expr::Null,
             ir::Expr::Undefined => ir::Expr::Undefined,
@@ -31,13 +30,8 @@ impl ConstProp {
             ir::Expr::Array { elems } if elems.is_empty() => ir::Expr::Array { elems: vec![] },
             // avoid cloning refs inside object
             ir::Expr::Object { props } if props.is_empty() => ir::Expr::Object { props: vec![] },
-            ir::Expr::RegExp {
-                regex,
-                has_escape,
-                flags,
-            } => ir::Expr::RegExp {
+            ir::Expr::RegExp { regex, flags } => ir::Expr::RegExp {
                 regex: regex.clone(),
-                has_escape: *has_escape,
                 flags: flags.clone(),
             },
             // avoid cloning function body
@@ -81,16 +75,16 @@ impl Folder for ConstProp {
                             (Not, Number { value }) => Bool { value: value.0 == 0.0 },
                             (Not, Bool { value }) => Bool { value: !*value },
                             (Tilde, Number { value }) => Number { value: F64(!(value.0 as i32) as f64) },
-                            (Typeof, Bool { .. }) => String { value: "boolean".into(), has_escape: false },
-                            (Typeof, Number { .. }) => String { value: "number".into(), has_escape: false },
-                            (Typeof, String { .. }) => String { value: "string".into(), has_escape: false },
-                            (Typeof, Null) => String { value: "object".into(), has_escape: false },
-                            (Typeof, Undefined) => String { value: "undefined".into(), has_escape: false },
+                            (Typeof, Bool { .. }) => String { value: "boolean".into() },
+                            (Typeof, Number { .. }) => String { value: "number".into() },
+                            (Typeof, String { .. }) => String { value: "string".into() },
+                            (Typeof, Null) => String { value: "object".into() },
+                            (Typeof, Undefined) => String { value: "undefined".into() },
                             (Typeof, Array { .. })
                             | (Typeof, Object { .. })
-                            | (Typeof, RegExp { .. }) => String { value: "object".into(), has_escape: false },
+                            | (Typeof, RegExp { .. }) => String { value: "object".into() },
                             (Typeof, Function { .. })
-                            | (Typeof, CurrentFunction) => String { value: "function".into(), has_escape: false },
+                            | (Typeof, CurrentFunction) => String { value: "function".into() },
                             (Void, _) => Undefined,
                             _ => expr,
                         },
@@ -128,8 +122,7 @@ impl Folder for ConstProp {
                             (BitXor, Number { value: a }, Number { value: b }) => Number { value: F64((a.0 as i32 ^ b.0 as i32) as f64) },
                             (BitAnd, Number { value: a }, Number { value: b }) => Number { value: F64((a.0 as i32 & b.0 as i32) as f64) },
                             (Exp, Number { value: a }, Number { value: b }) => Number { value: F64(a.0.powf(b.0)) },
-                            (Add, String { value: a, has_escape: a_escape }, String { value: b, has_escape: b_escape })
-                            => String { value: (a.to_string() + b).into(), has_escape: *a_escape || *b_escape },
+                            (Add, String { value: a }, String { value: b }) => String { value: (a.to_string() + b).into() },
                             _ => expr,
                         },
                         _ => expr,
@@ -168,7 +161,7 @@ impl Folder for ConstProp {
                     | Null
                     | Undefined => Many(alt.0),
                     Number { value } => if value.0 == 0. || value.0.is_nan() { Many(alt.0) } else { Many(cons.0) },
-                    String { value, has_escape: _ } => if value == "" { Many(alt.0) } else { Many(cons.0) },
+                    String { value } => if value == "" { Many(alt.0) } else { Many(cons.0) },
                     _ => One(ir::Stmt::IfElse { cond, cons, alt }),
                 },
                 None => One(ir::Stmt::IfElse { cond, cons, alt }),

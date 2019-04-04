@@ -1,0 +1,10 @@
+---
+created: "2019-04-04T18:42:26.929952900Z"
+creator: insta@0.7.1
+source: src/tests/ir2ast.rs
+expression: "\n    \"foo\";\n    \"ba\\r\";\n    \"ba\\\\z\";\n"
+---
+'foo';
+'ba\r';
+'ba\\z';
+
