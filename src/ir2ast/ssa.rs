@@ -122,12 +122,12 @@ impl CollectSingleUseInliningInfo {
     }
 }
 
-impl Visitor for CollectSingleUseInliningInfo {
+impl<'a> Visitor<'a> for CollectSingleUseInliningInfo {
     fn wrap_scope<R>(
         &mut self,
         ty: &ScopeTy,
-        block: &ir::Block,
-        enter: impl FnOnce(&mut Self, &ir::Block) -> R,
+        block: &'a ir::Block,
+        enter: impl FnOnce(&mut Self, &'a ir::Block) -> R,
     ) -> R {
         match ty {
             ScopeTy::Function => {
@@ -167,7 +167,7 @@ impl Visitor for CollectSingleUseInliningInfo {
         }
     }
 
-    fn visit(&mut self, stmt: &ir::Stmt) {
+    fn visit(&mut self, stmt: &'a ir::Stmt) {
         match stmt {
             ir::Stmt::Expr { target, expr } => {
                 let eff = match expr {

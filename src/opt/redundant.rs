@@ -164,12 +164,12 @@ impl CollectLoadStoreInfo {
     }
 }
 
-impl Visitor for CollectLoadStoreInfo {
+impl<'a> Visitor<'a> for CollectLoadStoreInfo {
     fn wrap_scope<R>(
         &mut self,
         ty: &ScopeTy,
-        block: &ir::Block,
-        enter: impl FnOnce(&mut Self, &ir::Block) -> R,
+        block: &'a ir::Block,
+        enter: impl FnOnce(&mut Self, &'a ir::Block) -> R,
     ) -> R {
         match ty {
             ScopeTy::Function => {
@@ -211,7 +211,7 @@ impl Visitor for CollectLoadStoreInfo {
         }
     }
 
-    fn visit(&mut self, stmt: &ir::Stmt) {
+    fn visit(&mut self, stmt: &'a ir::Stmt) {
         self.cur_index += 1;
         match stmt {
             ir::Stmt::Expr { target, expr } => match expr {

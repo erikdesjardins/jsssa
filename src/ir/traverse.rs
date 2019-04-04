@@ -1,18 +1,18 @@
 use crate::ir;
 
 /// Non-mutating traversal, receiving each node by reference.
-pub trait Visitor: Sized {
+pub trait Visitor<'a>: Sized {
     fn wrap_scope<R>(
         &mut self,
         ty: &ScopeTy,
-        block: &ir::Block,
-        enter: impl FnOnce(&mut Self, &ir::Block) -> R,
+        block: &'a ir::Block,
+        enter: impl FnOnce(&mut Self, &'a ir::Block) -> R,
     ) -> R {
         let _ = ty;
         enter(self, block)
     }
 
-    fn visit(&mut self, stmt: &ir::Stmt);
+    fn visit(&mut self, stmt: &'a ir::Stmt);
 }
 
 /// Mutating/mapping traversal, receiving each node by value.
@@ -33,13 +33,13 @@ pub trait Folder: Sized {
 }
 
 /// Execute a visitor on borrowed IR.
-pub trait RunVisitor: Visitor {
-    fn run_visitor(&mut self, ir: &ir::Block) {
+pub trait RunVisitor<'a>: Visitor<'a> {
+    fn run_visitor(&mut self, ir: &'a ir::Block) {
         visit_block(self, ir, ScopeTy::Toplevel)
     }
 }
 
-impl<V: Visitor> RunVisitor for V {}
+impl<'a, V: Visitor<'a>> RunVisitor<'a> for V {}
 
 /// Execute a folder on owned IR.
 pub trait RunFolder: Folder {
@@ -51,10 +51,10 @@ pub trait RunFolder: Folder {
 impl<F: Folder> RunFolder for F {}
 
 /// Helper to run simple visitors without defining a struct.
-pub fn visit_with(ir: &ir::Block, f: impl FnMut(&ir::Stmt)) {
+pub fn visit_with<'a>(ir: &'a ir::Block, f: impl FnMut(&'a ir::Stmt)) {
     struct VisitFn<F>(F);
-    impl<F: FnMut(&ir::Stmt)> Visitor for VisitFn<F> {
-        fn visit(&mut self, stmt: &ir::Stmt) {
+    impl<'a, F: FnMut(&'a ir::Stmt)> Visitor<'a> for VisitFn<F> {
+        fn visit(&mut self, stmt: &'a ir::Stmt) {
             (self.0)(stmt);
         }
     }
@@ -69,7 +69,7 @@ pub enum ScopeTy {
     Function,
 }
 
-fn visit_block(this: &mut impl Visitor, block: &ir::Block, ty: ScopeTy) {
+fn visit_block<'a>(this: &mut impl Visitor<'a>, block: &'a ir::Block, ty: ScopeTy) {
     this.wrap_scope(&ty, block, |this, block| {
         let ir::Block(children) = block;
 
