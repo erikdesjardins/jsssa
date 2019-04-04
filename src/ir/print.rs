@@ -53,7 +53,7 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
                 w.write_str(" <- ");
                 print_ssa(val, scope, w);
             }
-            None => w.write_str(&format!("<BAD MUT {:?}>", target)),
+            None => w.write_str(&format!("<BAD {:?}>", target)),
         },
         ir::Stmt::WriteGlobal { target, val } => {
             w.write_str("<global ");
@@ -84,7 +84,7 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
                         w.write_str(" ");
                         w.write_str(&name);
                     }
-                    None => w.write_str(&format!(" BAD LBL {:?}", label)),
+                    None => w.write_str(&format!(" BAD {:?}", label)),
                 }
             }
             w.write_str(">");
@@ -97,7 +97,7 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
                         w.write_str(" ");
                         w.write_str(&name);
                     }
-                    None => w.write_str(&format!(" BAD LBL {:?}", label)),
+                    None => w.write_str(&format!(" BAD {:?}", label)),
                 }
             }
             w.write_str(">");
@@ -177,7 +177,7 @@ fn print_expr<'a, 'b: 'a>(expr: &ir::Expr, scope: &scope::Ir, w: &'a mut WriteIn
             w.write_str("*");
             match scope.get_mutable(&source) {
                 Some(name) => w.write_str(&name),
-                None => w.write_str(&format!("<BAD MUT {:?}>", source)),
+                None => w.write_str(&format!("<BAD {:?}>", source)),
             }
         }
         ir::Expr::ReadGlobal { source } => {
@@ -346,7 +346,7 @@ fn print_expr<'a, 'b: 'a>(expr: &ir::Expr, scope: &scope::Ir, w: &'a mut WriteIn
 fn print_ssa(ssa_ref: &ir::Ref<ir::Ssa>, scope: &scope::Ir, w: &mut WriteIndent<'_>) {
     match scope.get_ssa(ssa_ref) {
         Some(name) => w.write_str(&name),
-        None => w.write_str(&format!("<BAD SSA {:?}>", ssa_ref)),
+        None => w.write_str(&format!("<BAD {:?}>", ssa_ref)),
     }
 }
 
