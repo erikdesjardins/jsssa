@@ -278,39 +278,38 @@ impl Folder for LoadStore {
         self.cur_index += 1;
         match stmt {
             ir::Stmt::Expr {
-                ref target,
-                expr: ir::Expr::ReadMutable { .. },
-            } => match self.mut_ops_to_replace.get(&self.cur_index) {
+                target,
+                expr: ir::Expr::ReadMutable { source },
+            } => match self.mut_ops_to_replace.remove(&self.cur_index) {
                 Some(What::ReadSsa(ssa_ref)) => Some(ir::Stmt::Expr {
-                    target: target.clone(),
-                    expr: ir::Expr::Read {
-                        source: ssa_ref.clone(),
-                    },
+                    target,
+                    expr: ir::Expr::Read { source: ssa_ref },
                 }),
                 Some(What::Remove) | Some(What::BecomeDecl) => {
-                    unreachable!("cannot remove convert mut read to decl")
+                    unreachable!("cannot remove/convert mut read to decl")
                 }
-                None => Some(stmt),
-            },
-            ir::Stmt::DeclareMutable { .. } => match self.mut_ops_to_replace.get(&self.cur_index) {
-                Some(What::Remove) => None,
-                Some(What::ReadSsa(_)) | Some(What::BecomeDecl) => {
-                    unreachable!("cannot convert mut decl to read or decl")
-                }
-                None => Some(stmt),
-            },
-            ir::Stmt::WriteMutable {
-                ref target,
-                ref val,
-            } => match self.mut_ops_to_replace.get(&self.cur_index) {
-                Some(What::Remove) => None,
-                Some(What::BecomeDecl) => Some(ir::Stmt::DeclareMutable {
-                    target: target.clone(),
-                    val: val.clone(),
+                None => Some(ir::Stmt::Expr {
+                    target,
+                    expr: ir::Expr::ReadMutable { source },
                 }),
-                Some(What::ReadSsa(_)) => unreachable!("cannot convert mut write to read"),
-                None => Some(stmt),
             },
+            ir::Stmt::DeclareMutable { target, val } => {
+                match self.mut_ops_to_replace.remove(&self.cur_index) {
+                    Some(What::Remove) => None,
+                    Some(What::ReadSsa(_)) | Some(What::BecomeDecl) => {
+                        unreachable!("cannot convert mut decl to read or decl")
+                    }
+                    None => Some(ir::Stmt::DeclareMutable { target, val }),
+                }
+            }
+            ir::Stmt::WriteMutable { target, val } => {
+                match self.mut_ops_to_replace.remove(&self.cur_index) {
+                    Some(What::Remove) => None,
+                    Some(What::BecomeDecl) => Some(ir::Stmt::DeclareMutable { target, val }),
+                    Some(What::ReadSsa(_)) => unreachable!("cannot convert mut write to read"),
+                    None => Some(ir::Stmt::WriteMutable { target, val }),
+                }
+            }
             _ => Some(stmt),
         }
     }
