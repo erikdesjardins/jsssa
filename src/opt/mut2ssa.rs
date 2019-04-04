@@ -10,7 +10,7 @@ use crate::ir::traverse::{visit_with, Folder, ScopeTy};
 /// Profits from DCE running first, to remove unused reads; may also create opportunities for DCE.
 /// May create opportunities for read forwarding.
 #[derive(Default)]
-pub struct Downlevel {
+pub struct Mut2Ssa {
     mut_vars_to_replace: HashMap<ir::WeakRef<ir::Mut>, What>,
 }
 
@@ -19,7 +19,7 @@ enum What {
     Remove,
 }
 
-impl Folder for Downlevel {
+impl Folder for Mut2Ssa {
     type Output = Option<ir::Stmt>;
 
     fn wrap_scope<R>(

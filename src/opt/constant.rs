@@ -9,11 +9,11 @@ use crate::ir::traverse::Folder;
 /// Does not profit from multiple passes.
 /// Does not profit from DCE running first; may create opportunities for DCE.
 #[derive(Default)]
-pub struct Prop {
+pub struct ConstProp {
     shallow_values: HashMap<ir::WeakRef<ir::Ssa>, ir::Expr>,
 }
 
-impl Prop {
+impl ConstProp {
     fn maybe_shallow_cache_expr(&mut self, ref_: &ir::Ref<ir::Ssa>, expr: &ir::Expr) {
         // avoid cloning refs, which wastes time on refcounts and make tracing ref drops harder
         // and CERTAINLY avoid deep cloning blocks
@@ -53,7 +53,7 @@ impl Prop {
     }
 }
 
-impl Folder for Prop {
+impl Folder for ConstProp {
     type Output = ZeroOneMany<ir::Stmt>;
 
     #[rustfmt::skip]

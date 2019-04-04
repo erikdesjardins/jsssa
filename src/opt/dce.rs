@@ -5,11 +5,11 @@ use crate::ir::traverse::{Folder, ScopeTy};
 ///
 /// May profit from multiple passes.
 #[derive(Default)]
-pub struct Eliminate {
+pub struct Dce {
     dropping_after_jump: bool,
 }
 
-impl Folder for Eliminate {
+impl Folder for Dce {
     type Output = Option<ir::Stmt>;
 
     fn wrap_scope<R>(

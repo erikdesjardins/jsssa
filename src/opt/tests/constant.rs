@@ -2,7 +2,7 @@ use crate::opt::constant;
 
 case!(
     basic,
-    |cx| cx.run::<constant::Prop>("const-prop"),
+    |cx| cx.run::<constant::ConstProp>("const-prop"),
     r#"
     (typeof (1 + 1 + 1 + 1));
 "#
@@ -10,7 +10,7 @@ case!(
 
 case!(
     basic_bail,
-    |cx| cx.run::<constant::Prop>("const-prop"),
+    |cx| cx.run::<constant::ConstProp>("const-prop"),
     r#"
     (typeof (1 + 1 + null + 1));
 "#
@@ -18,7 +18,7 @@ case!(
 
 case!(
     empty_for,
-    |cx| cx.run::<constant::Prop>("const-prop"),
+    |cx| cx.run::<constant::ConstProp>("const-prop"),
     r#"
     for (var x in {}) bad;
     for (var x of []) bad;
@@ -29,7 +29,7 @@ case!(
 
 case!(
     dead_if,
-    |cx| cx.run::<constant::Prop>("const-prop"),
+    |cx| cx.run::<constant::ConstProp>("const-prop"),
     r#"
     if (true) good;
     else bad;

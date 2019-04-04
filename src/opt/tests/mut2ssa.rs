@@ -2,7 +2,7 @@ use crate::opt::mut2ssa;
 
 case!(
     basic,
-    |cx| cx.run::<mut2ssa::Downlevel>("mut2ssa"),
+    |cx| cx.run::<mut2ssa::Mut2Ssa>("mut2ssa"),
     r#"
     let x = 1;
     x = 2;
@@ -16,7 +16,7 @@ case!(
 
 case!(
     basic_bail,
-    |cx| cx.run::<mut2ssa::Downlevel>("mut2ssa"),
+    |cx| cx.run::<mut2ssa::Mut2Ssa>("mut2ssa"),
     r#"
     let x = 1;
     x = 2;
