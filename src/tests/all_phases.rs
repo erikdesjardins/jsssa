@@ -81,15 +81,17 @@ case!(
     r#"
     var r;
     something;
-    r || (r = { x: 1 });
+    r || (r = {});
     var s = {};
     var o;
     for (o in r) s[o] = r[o];
+    r.x = 1;
+    for (o in s) r[o] = s[o];
     var stuff = (function(r_inner) {
         return {
-            xy: r_inner * 2
+            xy: r_inner.x * 2
         };
-    })();
+    })(r);
     var xy = stuff.xy;
     window.foo = function foo(z) {
         return z + xy;
