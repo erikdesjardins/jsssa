@@ -79,3 +79,17 @@ case!(
     foo = 5;
 "#
 );
+
+case!(
+    reads_dont_propagate_to_parent,
+    |cx| cx.converge::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let foo = 1;
+    invalidate();
+    if (bar) {
+        g = foo;
+    } else {
+        g = foo;
+    }
+"#
+);

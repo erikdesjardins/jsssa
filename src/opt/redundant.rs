@@ -184,14 +184,15 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
             }
             ScopeTy::Normal | ScopeTy::Toplevel => {
                 // r->r and w->r can go into scopes, but not w->w (since it might not execute)
+                // and in particular, r->r can't go _out_ of scopes
                 let mut inner = Self::default();
                 mem::swap(&mut inner.mut_ops_to_replace, &mut self.mut_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
-                mem::swap(&mut inner.last_op_for_reads, &mut self.last_op_for_reads);
+                // todo avoid this clone
+                inner.last_op_for_reads = self.last_op_for_reads.clone();
                 let r = enter(&mut inner, block);
                 mem::swap(&mut inner.mut_ops_to_replace, &mut self.mut_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
-                mem::swap(&mut inner.last_op_for_reads, &mut self.last_op_for_reads);
                 // invalidate any vars written in the inner scope
                 self.invalidate_from_child(inner.invalid_for_parent_scope);
                 r

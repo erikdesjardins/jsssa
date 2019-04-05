@@ -1,0 +1,19 @@
+---
+created: "2019-04-05T06:28:43.389703100Z"
+creator: insta@0.7.1
+source: src/opt/tests/redundant.rs
+expression: "\n    let foo = 1;\n    invalidate();\n    if (bar) {\n        g = foo;\n    } else {\n        g = foo;\n    }\n"
+---
+_ini = 1
+foo <= _ini
+_fun = <global invalidate>
+<dead> = _fun()
+_iff = <global bar>
+<if> _iff:
+    _val = *foo
+    <global g> <- _val
+    <dead> = _val
+<else>:
+    _val = *foo
+    <global g> <- _val
+    <dead> = _val
