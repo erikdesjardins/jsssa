@@ -1,5 +1,5 @@
 ---
-created: "2019-04-04T19:26:26.200097Z"
+created: "2019-04-05T04:24:48.402178400Z"
 creator: insta@0.7.1
 source: src/opt/tests/mut2ssa.rs
 expression: "\n    let x = 1;\n    x = 2;\n    x = 3;\n    if (foo) log(x);\n\n    let y = 10;\n    log(y);\n    log(y + 1);\n    if (bar) (function() {\n        y = 5;\n    })();\n"
@@ -14,9 +14,9 @@ x <- _val$1
 <dead> = _val$1
 _iff = <global foo>
 <if> _iff:
-    _fun = <global log>
-    _arg = *x
-    <dead> = _fun(_arg)
+    _fun$2 = <global log>
+    _arg$2 = *x
+    <dead> = _fun$2(_arg$2)
 <else>:
     <empty>
 _ini$1 = 10

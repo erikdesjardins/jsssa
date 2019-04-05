@@ -18,6 +18,18 @@ fn print_block<'a, 'b: 'a>(
 
     let ir::Block(children) = block;
 
+    for stmt in children {
+        match stmt {
+            ir::Stmt::Expr { target, expr: _ } if !target.used().is_never() => {
+                scope.declare_ssa(target.clone());
+            }
+            ir::Stmt::DeclareMutable { target, val: _ } => {
+                scope.declare_mutable(target.clone());
+            }
+            _ => {}
+        }
+    }
+
     if children.is_empty() {
         w.start_line();
         w.write_str("<empty>");
@@ -35,15 +47,19 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
             if target.used().is_never() {
                 w.write_str("<dead>");
             } else {
-                let name = scope.declare_ssa(target.clone());
-                w.write_str(&name);
+                match scope.get_ssa(target) {
+                    Some(name) => w.write_str(&name),
+                    None => w.write_str(&format!("<BAD {:?}>", target)),
+                }
             }
             w.write_str(" = ");
             print_expr(expr, scope, w);
         }
         ir::Stmt::DeclareMutable { target, val } => {
-            let name = scope.declare_mutable(target.clone());
-            w.write_str(&name);
+            match scope.get_mutable(target) {
+                Some(name) => w.write_str(&name),
+                None => w.write_str(&format!("<BAD {:?}>", target)),
+            }
             w.write_str(" <= ");
             print_ssa(val, scope, w);
         }

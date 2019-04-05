@@ -1,12 +1,12 @@
 ---
-created: "2019-04-04T19:26:26.481345700Z"
+created: "2019-04-05T04:24:48.452373400Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
 expression: "\n    function f(x) {\n        while (true);\n        x = y.bar;\n        z.foo = x ? true : 'hi';\n        return +[1 || x, { x }, f + 1, ++g];\n    }\n    f(1), true;\n"
 ---
 _fun = <function>:
-    f = <current function>
-    f$1 <= f
+    f$1 = <current function>
+    f$2 <= f$1
     x = <argument 0>
     x$1 <= x
     <loop>:
@@ -45,7 +45,7 @@ _fun = <function>:
     _key = "x"
     _val$3 = *x$1
     _ele$1 = { [_key]: _val$3 }
-    _lhs = *f$1
+    _lhs = *f$2
     _rhs = 1
     _ele$2 = _lhs + _rhs
     _rdr = <global g>

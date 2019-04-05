@@ -1,11 +1,11 @@
 ---
-created: "2019-03-31T23:50:50.535672300Z"
+created: "2019-04-05T04:24:48.585125300Z"
 creator: insta@0.7.1
 source: src/tests/ir2ast.rs
 expression: "\n    function f(x) {\n        while (true);\n        x = y.bar;\n        z.foo = x ? true : 'hi';\n        return +[1 || x, { x }, f + 1, ++g];\n    }\n    f(1), true;\n"
 ---
-var f = function f(x) {
-    var f$1 = f;
+var f = function f$1(x) {
+    var f$2 = f$1;
     var x$1 = x;
     while(true){
         if (true) {
@@ -35,7 +35,7 @@ var f = function f(x) {
     var _ele$1 = {
         ['x']: x$1
     };
-    var _ele$2 = f$1 + 1;
+    var _ele$2 = f$2 + 1;
     var _wri = g + 1;
     g = _wri;
     return +[_ele, _ele$1, _ele$2, _wri];

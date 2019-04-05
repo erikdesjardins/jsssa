@@ -163,3 +163,28 @@ case!(
     }
 "#
 );
+
+case!(
+    referencing_outer_scope_moved_later,
+    r#"
+    var x; // converted to ssa, moved down to x = 0
+    g = function() {
+        x();
+    };
+    x = foo;
+"#
+);
+
+case!(
+    referencing_outer_scope_moved_later2,
+    r#"
+    var x; // stays mutable, moved down to x = 0
+    g = function() {
+        x();
+    };
+    x = foo;
+    g2 = function() {
+        x = 1;
+    };
+"#
+);

@@ -176,3 +176,33 @@ case!(
     }
 "#
 );
+
+case!(
+    referencing_outer_scope_declared_later,
+    r#"
+    g = function() {
+        x;
+        y;
+        z;
+    };
+    var x = 0;
+    let y = 1;
+    const z = 2;
+"#
+);
+
+case!(
+    referencing_outer_scope_declared_later2,
+    r#"
+    g = function() {
+        x;
+        y; // global
+        z; // global
+    };
+    {
+        var x = 0;
+        let y = 1;
+        const z = 2;
+    }
+"#
+);

@@ -1,0 +1,20 @@
+---
+created: "2019-04-05T04:24:48.502259100Z"
+creator: insta@0.7.1
+source: src/tests/ast2ir.rs
+expression: "\n    g = function() {\n        x;\n        y;\n        z;\n    };\n    var x = 0;\n    let y = 1;\n    const z = 2;\n"
+---
+_ini = <void>
+x <= _ini
+_val = <function>:
+    <dead> = *x
+    <dead> = *y
+    <dead> = *z
+<global g> <- _val
+<dead> = _val
+_ini$1 = 0
+x <- _ini$1
+_ini$2 = 1
+y <= _ini$2
+_ini$3 = 2
+z <= _ini$3

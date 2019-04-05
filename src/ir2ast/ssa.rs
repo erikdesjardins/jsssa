@@ -18,26 +18,44 @@ pub fn prepare_ssa_cache(ir: &ir::Block) -> Cache {
             .map(ir::Ref::weak)
             .collect(),
         expr_cache: Default::default(),
+        to_do_at_declaration: Default::default(),
     }
 }
 
 pub struct Cache {
     can_inline_at_use: HashSet<ir::WeakRef<ir::Ssa>>,
-    expr_cache: HashMap<ir::Ref<ir::Ssa>, ast::Expr>,
+    expr_cache: HashMap<ir::WeakRef<ir::Ssa>, ast::Expr>,
+    to_do_at_declaration: HashMap<ir::WeakRef<ir::Ssa>, ToDo>,
+}
+
+pub enum ToDo {
+    EmitForSideEffects,
+    AddToCache,
+    DropAlreadyCached,
+    DeclareVar,
 }
 
 impl Cache {
-    pub fn can_be_freely_inlined(&self, ssa_ref: &ir::Ref<ir::Ssa>) -> bool {
+    pub fn can_be_inlined_forwards(&self, ssa_ref: &ir::Ref<ir::Ssa>) -> bool {
         self.can_inline_at_use.contains(&ssa_ref.weak())
     }
 
-    pub fn cache(&mut self, ssa_ref: ir::Ref<ir::Ssa>, expr: ast::Expr) {
-        let old_value = self.expr_cache.insert(ssa_ref, expr);
-        assert!(old_value.is_none(), "ssa var cached multiple times");
+    pub fn cache(&mut self, ssa_ref: &ir::Ref<ir::Ssa>, expr: ast::Expr) {
+        let old_value = self.expr_cache.insert(ssa_ref.weak(), expr);
+        assert!(old_value.is_none(), "cached multiple times: {:?}", ssa_ref);
     }
 
     pub fn get_cached(&self, ssa_ref: &ir::Ref<ir::Ssa>) -> Option<&ast::Expr> {
-        self.expr_cache.get(ssa_ref)
+        self.expr_cache.get(&ssa_ref.weak())
+    }
+
+    pub fn to_do_at_declaration(&mut self, ssa_ref: &ir::Ref<ir::Ssa>, to_do: ToDo) {
+        let old_value = self.to_do_at_declaration.insert(ssa_ref.weak(), to_do);
+        assert!(old_value.is_none(), "multiple todos for ref: {:?}", ssa_ref);
+    }
+
+    pub fn what_to_do(&self, ssa_ref: &ir::Ref<ir::Ssa>) -> Option<&ToDo> {
+        self.to_do_at_declaration.get(&ssa_ref.weak())
     }
 }
 

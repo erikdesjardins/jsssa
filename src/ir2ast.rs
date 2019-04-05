@@ -57,6 +57,17 @@ fn convert_block(
 
     let ir::Block(children) = block;
 
+    // predeclare ssa/mut refs, since they may be used above their declaration in a fn scope
+    children.iter().for_each(|stmt| match stmt {
+        ir::Stmt::Expr { target, expr } => {
+            declare_or_cache_ssa(target, expr, &mut scope, ssa_cache);
+        }
+        ir::Stmt::DeclareMutable { target, val: _ } => {
+            scope.declare_mutable(target.clone());
+        }
+        _ => {}
+    });
+
     children
         .into_iter()
         .flat_map(|stmt| convert_stmt(stmt, &mut scope, ssa_cache))
@@ -72,9 +83,8 @@ fn convert_stmt(
         ir::Stmt::Expr { target, expr } => {
             return write_ssa_to_stmt(target, expr, scope, ssa_cache)
         }
-        ir::Stmt::DeclareMutable { target, val } => {
-            let name = scope.declare_mutable(target);
-            ast::Stmt::Decl(ast::Decl::Var(ast::VarDecl {
+        ir::Stmt::DeclareMutable { target, val } => match scope.get_mutable(&target) {
+            Some(name) => ast::Stmt::Decl(ast::Decl::Var(ast::VarDecl {
                 span: span(),
                 kind: ast::VarDeclKind::Var,
                 decls: vec![ast::VarDeclarator {
@@ -89,8 +99,9 @@ fn convert_stmt(
                     definite: false,
                 }],
                 declare: false,
-            }))
-        }
+            })),
+            None => unreachable!("mutable ref not predeclared: {:?}", target),
+        },
         ir::Stmt::WriteMutable { target, val } => match scope.get_mutable(&target) {
             Some(existing_name) => ast::Stmt::Expr(P(ast::Expr::Assign(ast::AssignExpr {
                 span: span(),
@@ -619,54 +630,89 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
     }
 }
 
+fn declare_or_cache_ssa(
+    ssa_ref: &ir::Ref<ir::Ssa>,
+    expr: &ir::Expr,
+    scope: &mut scope::Ir,
+    ssa_cache: &mut ssa::Cache,
+) {
+    let what_to_do_later = match (ssa_ref.used(), expr) {
+        (ir::Used::Never, _) => ssa::ToDo::EmitForSideEffects,
+        (ir::Used::Once, _) if ssa_cache.can_be_inlined_forwards(ssa_ref) => ssa::ToDo::AddToCache,
+        (used, expr) => {
+            let expr_to_cache_now = match (used, expr) {
+                (_, ir::Expr::Bool { value }) => Some(ir::Expr::Bool { value: *value }),
+                (_, ir::Expr::Number { value }) => Some(ir::Expr::Number { value: *value }),
+                (_, ir::Expr::Null) => Some(ir::Expr::Null),
+                (_, ir::Expr::Undefined) => Some(ir::Expr::Undefined),
+                (ir::Used::Once, ir::Expr::String { value }) => Some(ir::Expr::String {
+                    value: value.clone(),
+                }),
+                (ir::Used::Mult, ir::Expr::String { value }) if value.len() <= 32 => {
+                    Some(ir::Expr::String {
+                        value: value.clone(),
+                    })
+                }
+                _ => None,
+            };
+            match expr_to_cache_now {
+                Some(expr) => {
+                    let expr = convert_expr(expr, scope, ssa_cache);
+                    ssa_cache.cache(ssa_ref, expr);
+                    ssa::ToDo::DropAlreadyCached
+                }
+                None => {
+                    scope.declare_ssa(ssa_ref.clone());
+                    ssa::ToDo::DeclareVar
+                }
+            }
+        }
+    };
+    ssa_cache.to_do_at_declaration(ssa_ref, what_to_do_later);
+}
+
 fn write_ssa_to_stmt(
     ssa_ref: ir::Ref<ir::Ssa>,
     expr: ir::Expr,
     scope: &mut scope::Ir,
     ssa_cache: &mut ssa::Cache,
 ) -> Option<ast::Stmt> {
-    enum What {
-        Emit,
-        Cache,
-        Define,
-    }
-    let what = match (ssa_ref.used(), &expr) {
-        (ir::Used::Never, _) => What::Emit,
-        (ir::Used::Once, _) if ssa_cache.can_be_freely_inlined(&ssa_ref) => What::Cache,
-        (_, ir::Expr::Bool { .. })
-        | (_, ir::Expr::Number { .. })
-        | (_, ir::Expr::Null)
-        | (_, ir::Expr::Undefined) => What::Cache,
-        (ir::Used::Once, ir::Expr::String { .. }) => What::Cache,
-        (ir::Used::Mult, ir::Expr::String { value }) if value.len() <= 32 => What::Cache,
-        _ => What::Define,
-    };
-    let expr = convert_expr(expr, scope, ssa_cache);
-    match what {
-        What::Emit => Some(ast::Stmt::Expr(P(expr))),
-        What::Cache => {
-            ssa_cache.cache(ssa_ref, expr);
-            None
-        }
-        What::Define => {
-            let name = scope.declare_ssa(ssa_ref);
-            Some(ast::Stmt::Decl(ast::Decl::Var(ast::VarDecl {
-                span: span(),
-                kind: ast::VarDeclKind::Var,
-                decls: vec![ast::VarDeclarator {
-                    span: span(),
-                    name: ast::Pat::Ident(ast::Ident {
+    match ssa_cache.what_to_do(&ssa_ref) {
+        Some(what) => match what {
+            ssa::ToDo::EmitForSideEffects => {
+                let expr = convert_expr(expr, scope, ssa_cache);
+                Some(ast::Stmt::Expr(P(expr)))
+            }
+            ssa::ToDo::AddToCache => {
+                let expr = convert_expr(expr, scope, ssa_cache);
+                ssa_cache.cache(&ssa_ref, expr);
+                None
+            }
+            ssa::ToDo::DropAlreadyCached => None,
+            ssa::ToDo::DeclareVar => {
+                let expr = convert_expr(expr, scope, ssa_cache);
+                match scope.get_ssa(&ssa_ref) {
+                    Some(name) => Some(ast::Stmt::Decl(ast::Decl::Var(ast::VarDecl {
                         span: span(),
-                        sym: name,
-                        type_ann: None,
-                        optional: false,
-                    }),
-                    init: Some(P(expr)),
-                    definite: false,
-                }],
-                declare: false,
-            })))
-        }
+                        kind: ast::VarDeclKind::Var,
+                        decls: vec![ast::VarDeclarator {
+                            span: span(),
+                            name: ast::Pat::Ident(ast::Ident {
+                                span: span(),
+                                sym: name,
+                                type_ann: None,
+                                optional: false,
+                            }),
+                            init: Some(P(expr)),
+                            definite: false,
+                        }],
+                        declare: false,
+                    }))),
+                    None => unreachable!("ssa ref not predeclared: {:?}", ssa_ref),
+                }
+            }
+        },
+        None => unreachable!("no record for what to do for ref: {:?}", ssa_ref),
     }
 }
 

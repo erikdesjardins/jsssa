@@ -4,68 +4,103 @@ use swc_ecma_ast as ast;
 use crate::ir;
 use crate::ir::scope;
 
-pub enum ShouldHoist {
-    Yes,
-    No,
+pub enum Hoist {
+    Everything,
+    OnlyLetConst,
 }
 
 #[inline(never)] // for better profiling
-pub fn hoist(block: &[ast::Stmt], scope: &mut scope::Ast) -> Vec<ir::Stmt> {
-    hoist_block(block, scope)
+pub fn hoist(block: &[ast::Stmt], scope: &mut scope::Ast, hoist: Hoist) -> Vec<ir::Stmt> {
+    hoist_block(block, scope, &hoist, Level::First)
 }
 
-fn hoist_block(body: &[ast::Stmt], scope: &mut scope::Ast) -> Vec<ir::Stmt> {
-    body.iter()
-        .flat_map(|stmt| hoist_statement(stmt, scope))
-        .collect()
+enum Level {
+    First,
+    Below,
 }
 
-fn hoist_statement(stmt: &ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
+fn hoist_block(
+    body: &[ast::Stmt],
+    scope: &mut scope::Ast,
+    hoist: &Hoist,
+    level: Level,
+) -> Vec<ir::Stmt> {
+    match (hoist, &level) {
+        (Hoist::Everything, _) | (Hoist::OnlyLetConst, Level::First) => body
+            .iter()
+            .flat_map(|stmt| hoist_statement(stmt, scope, hoist, &level))
+            .collect(),
+        (Hoist::OnlyLetConst, Level::Below) => vec![],
+    }
+}
+
+fn hoist_statement(
+    stmt: &ast::Stmt,
+    scope: &mut scope::Ast,
+    hoist: &Hoist,
+    level: &Level,
+) -> Vec<ir::Stmt> {
     match stmt {
-        ast::Stmt::Block(ast::BlockStmt { stmts, span: _ }) => hoist_block(stmts, scope),
+        ast::Stmt::Block(ast::BlockStmt { stmts, span: _ }) => {
+            hoist_block(stmts, scope, hoist, Level::Below)
+        }
         ast::Stmt::With(ast::WithStmt {
             obj: _,
             body,
             span: _,
-        }) => hoist_statement(body, scope),
+        }) => hoist_statement(body, scope, hoist, &Level::Below),
         ast::Stmt::Labeled(ast::LabeledStmt {
             label: _,
             body,
             span: _,
-        }) => hoist_statement(body, scope),
+        }) => hoist_statement(body, scope, hoist, level),
         ast::Stmt::If(ast::IfStmt {
             test: _,
             cons,
             alt,
             span: _,
         }) => {
-            let mut decls = hoist_statement(cons, scope);
+            let mut decls = hoist_statement(cons, scope, hoist, &Level::Below);
             if let Some(alt) = alt {
-                decls.extend(hoist_statement(alt, scope));
+                decls.extend(hoist_statement(alt, scope, hoist, &Level::Below));
             }
             decls
         }
-        ast::Stmt::Switch(_) => {
-            // remember, switch cases aren't evaluated (!) until they're checked for equality
-            unimplemented!("switch statements not yet supported")
-        }
+        ast::Stmt::Switch(ast::SwitchStmt {
+            discriminant: _,
+            cases,
+            span: _,
+        }) => cases
+            .iter()
+            .flat_map(
+                |ast::SwitchCase {
+                     test: _,
+                     cons,
+                     span: _,
+                 }| {
+                    cons.iter()
+                        .flat_map(|stmt| hoist_statement(stmt, scope, hoist, &Level::Below))
+                        .collect::<Vec<_>>()
+                },
+            )
+            .collect(),
         ast::Stmt::Try(ast::TryStmt {
             block: ast::BlockStmt { stmts, span: _ },
             handler,
             finalizer,
             span: _,
         }) => {
-            let mut decls = hoist_block(stmts, scope);
+            let mut decls = hoist_block(stmts, scope, hoist, Level::Below);
             if let Some(ast::CatchClause {
                 param: _,
                 body: ast::BlockStmt { stmts, span: _ },
                 span: _,
             }) = handler
             {
-                decls.extend(hoist_block(stmts, scope));
+                decls.extend(hoist_block(stmts, scope, hoist, Level::Below));
             }
             if let Some(ast::BlockStmt { stmts, span: _ }) = finalizer {
-                decls.extend(hoist_block(stmts, scope));
+                decls.extend(hoist_block(stmts, scope, hoist, Level::Below));
             }
             decls
         }
@@ -78,7 +113,7 @@ fn hoist_statement(stmt: &ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             test: _,
             body,
             span: _,
-        }) => hoist_statement(body, scope),
+        }) => hoist_statement(body, scope, hoist, &Level::Below),
         ast::Stmt::For(ast::ForStmt {
             init,
             test: _,
@@ -88,11 +123,11 @@ fn hoist_statement(stmt: &ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
         }) => {
             let mut decls = match init {
                 Some(ast::VarDeclOrExpr::VarDecl(var_decl)) => {
-                    hoist_variable_declaration(var_decl, scope)
+                    hoist_variable_declaration(var_decl, scope, hoist, &Level::Below)
                 }
                 Some(ast::VarDeclOrExpr::Expr(_)) | None => vec![],
             };
-            decls.extend(hoist_statement(body, scope));
+            decls.extend(hoist_statement(body, scope, hoist, &Level::Below));
             decls
         }
         ast::Stmt::ForIn(ast::ForInStmt {
@@ -109,16 +144,18 @@ fn hoist_statement(stmt: &ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             span: _,
         }) => {
             let mut decls = match left {
-                ast::VarDeclOrPat::VarDecl(var_decl) => hoist_variable_declaration(var_decl, scope),
+                ast::VarDeclOrPat::VarDecl(var_decl) => {
+                    hoist_variable_declaration(var_decl, scope, hoist, &Level::Below)
+                }
                 // bare patterns can't introduce variables
                 ast::VarDeclOrPat::Pat(_) => vec![],
             };
-            decls.extend(hoist_statement(body, scope));
+            decls.extend(hoist_statement(body, scope, hoist, &Level::Below));
             decls
         }
         ast::Stmt::Decl(decl) => match decl {
             ast::Decl::Fn(_) => vec![],
-            ast::Decl::Var(var_decl) => hoist_variable_declaration(var_decl, scope),
+            ast::Decl::Var(var_decl) => hoist_variable_declaration(var_decl, scope, hoist, level),
             ast::Decl::Class(_) => unimplemented!("classes not yet supported"),
             ast::Decl::TsInterface(_)
             | ast::Decl::TsTypeAlias(_)
@@ -135,15 +172,20 @@ fn hoist_statement(stmt: &ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
     }
 }
 
-fn hoist_variable_declaration(var_decl: &ast::VarDecl, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
+fn hoist_variable_declaration(
+    var_decl: &ast::VarDecl,
+    scope: &mut scope::Ast,
+    hoist: &Hoist,
+    level: &Level,
+) -> Vec<ir::Stmt> {
     let ast::VarDecl {
         kind,
         decls,
         span: _,
         declare: _,
     } = var_decl;
-    match kind {
-        ast::VarDeclKind::Var => decls
+    match (hoist, level, kind) {
+        (Hoist::Everything, _, ast::VarDeclKind::Var) => decls
             .iter()
             .flat_map(
                 |ast::VarDeclarator {
@@ -173,7 +215,24 @@ fn hoist_variable_declaration(var_decl: &ast::VarDecl, scope: &mut scope::Ast) -
                 },
             )
             .collect(),
-        ast::VarDeclKind::Let | ast::VarDeclKind::Const => vec![],
+        (_, Level::First, ast::VarDeclKind::Let) | (_, Level::First, ast::VarDeclKind::Const) => {
+            decls.iter().for_each(
+                |ast::VarDeclarator {
+                     name,
+                     init: _,
+                     span: _,
+                     definite: _,
+                 }| {
+                    let name = pat_to_ident(name);
+                    // declare to reserve name, in case some function above the declaration uses it
+                    scope.declare_mutable(name.clone());
+                },
+            );
+            vec![]
+        }
+        (Hoist::OnlyLetConst, _, ast::VarDeclKind::Var)
+        | (_, Level::Below, ast::VarDeclKind::Let)
+        | (_, Level::Below, ast::VarDeclKind::Const) => vec![],
     }
 }
 
