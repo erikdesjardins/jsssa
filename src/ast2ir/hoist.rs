@@ -16,6 +16,10 @@ pub fn hoist(block: &mut [ast::Stmt], scope: &mut scope::Ast, hoist: Hoist) -> V
             // manually hoist function declarations at the toplevel/fn scopes
             block.sort_by_key(|stmt| match stmt {
                 ast::Stmt::Decl(ast::Decl::Fn(_)) => 0,
+                ast::Stmt::Labeled(ast::LabeledStmt { body, .. }) => match body.as_ref() {
+                    ast::Stmt::Decl(ast::Decl::Fn(_)) => 0,
+                    _ => 1,
+                },
                 _ => 1,
             });
         }

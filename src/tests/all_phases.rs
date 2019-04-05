@@ -226,3 +226,12 @@ case!(
     foo();
 "#
 );
+
+case!(
+    fn_hoisting_labelled,
+    r#"
+    foo();
+    label:
+    function foo() { foo_; }
+"#
+);

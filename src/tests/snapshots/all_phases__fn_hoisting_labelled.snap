@@ -1,0 +1,14 @@
+---
+created: "2019-04-05T14:27:24.622404800Z"
+creator: insta@0.7.1
+source: src/tests/all_phases.rs
+expression: "\n    foo();\n    label:\n    function foo() { foo_; }\n"
+---
+var foo = void 0;
+label: {
+    foo = function() {
+        foo_;
+    };
+}
+foo();
+
