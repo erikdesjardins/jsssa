@@ -20,10 +20,10 @@ pub fn convert(_: &swc_globals::Initialized, ast: ast::Script) -> ir::Block {
     convert_block(body, &scope::Ast::default(), Hoist::Everything)
 }
 
-fn convert_block(body: Vec<ast::Stmt>, parent_scope: &scope::Ast, hoist: Hoist) -> ir::Block {
+fn convert_block(mut body: Vec<ast::Stmt>, parent_scope: &scope::Ast, hoist: Hoist) -> ir::Block {
     let mut scope = parent_scope.nested();
 
-    let mut stmts = hoist::hoist(&body, &mut scope, hoist);
+    let mut stmts = hoist::hoist(&mut body, &mut scope, hoist);
 
     let body_stmts = body
         .into_iter()
@@ -467,7 +467,10 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 let ir::Block(children) = convert_block(body, &fn_scope, Hoist::Everything);
                 let block = cur_fn.into_iter().chain(params).chain(children).collect();
                 let fn_ref = ir::Ref::new("_fun");
-                let fn_binding = scope.declare_mutable(sym);
+                let fn_binding = match scope.get_mutable(&sym) {
+                    Some(fn_ref) => fn_ref.clone(),
+                    None => unreachable!("fn not hoisted/predeclared: {:?}", sym),
+                };
                 vec![
                     ir::Stmt::Expr {
                         target: fn_ref.clone(),
@@ -479,7 +482,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                             body: ir::Block(block),
                         },
                     },
-                    ir::Stmt::DeclareMutable {
+                    ir::Stmt::WriteMutable {
                         target: fn_binding,
                         val: fn_ref,
                     },

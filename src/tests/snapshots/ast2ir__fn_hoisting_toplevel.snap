@@ -1,0 +1,26 @@
+---
+created: "2019-04-05T07:02:49.838111800Z"
+creator: insta@0.7.1
+source: src/tests/ast2ir.rs
+expression: "\n    foo();\n    function foo() { foo_; }\n\n    (function() {\n        bar();\n        function bar() { bar_; }\n    })();\n"
+---
+_ini = <void>
+foo <= _ini
+_fun = <function>:
+    foo$1 = <current function>
+    foo$2 <= foo$1
+    <dead> = <global foo_>
+foo <- _fun
+_fun$1 = *foo
+<dead> = _fun$1()
+_fun$2 = <function>:
+    _ini$1 = <void>
+    bar <= _ini$1
+    _fun$3 = <function>:
+        bar$1 = <current function>
+        bar$2 <= bar$1
+        <dead> = <global bar_>
+    bar <- _fun$3
+    _fun$4 = *bar
+    <dead> = _fun$4()
+<dead> = _fun$2()

@@ -10,7 +10,18 @@ pub enum Hoist {
 }
 
 #[inline(never)] // for better profiling
-pub fn hoist(block: &[ast::Stmt], scope: &mut scope::Ast, hoist: Hoist) -> Vec<ir::Stmt> {
+pub fn hoist(block: &mut [ast::Stmt], scope: &mut scope::Ast, hoist: Hoist) -> Vec<ir::Stmt> {
+    match &hoist {
+        Hoist::Everything => {
+            // manually hoist function declarations at the toplevel/fn scopes
+            block.sort_by_key(|stmt| match stmt {
+                ast::Stmt::Decl(ast::Decl::Fn(_)) => 0,
+                _ => 1,
+            });
+        }
+        Hoist::OnlyLetConst => {}
+    }
+
     hoist_block(block, scope, &hoist, Level::First)
 }
 
@@ -154,7 +165,7 @@ fn hoist_statement(
             decls
         }
         ast::Stmt::Decl(decl) => match decl {
-            ast::Decl::Fn(_) => vec![],
+            ast::Decl::Fn(fn_decl) => hoist_function_declaration(fn_decl, scope, hoist),
             ast::Decl::Var(var_decl) => hoist_variable_declaration(var_decl, scope, hoist, level),
             ast::Decl::Class(_) => unimplemented!("classes not yet supported"),
             ast::Decl::TsInterface(_)
@@ -169,6 +180,42 @@ fn hoist_statement(
         | ast::Stmt::Break(_)
         | ast::Stmt::Continue(_)
         | ast::Stmt::Throw(_) => vec![],
+    }
+}
+
+fn hoist_function_declaration(
+    fn_decl: &ast::FnDecl,
+    scope: &mut scope::Ast,
+    hoist: &Hoist,
+) -> Vec<ir::Stmt> {
+    let ast::FnDecl {
+        ident:
+            ast::Ident {
+                sym,
+                span: _,
+                type_ann: _,
+                optional: _,
+            },
+        function: _,
+        declare: _,
+    } = fn_decl;
+
+    match hoist {
+        Hoist::Everything => {
+            let fn_ref = scope.declare_mutable(sym.clone());
+            let init_ref = ir::Ref::new("_ini");
+            vec![
+                ir::Stmt::Expr {
+                    target: init_ref.clone(),
+                    expr: ir::Expr::Undefined,
+                },
+                ir::Stmt::DeclareMutable {
+                    target: fn_ref,
+                    val: init_ref,
+                },
+            ]
+        }
+        Hoist::OnlyLetConst => vec![],
     }
 }
 

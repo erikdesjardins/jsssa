@@ -1,0 +1,15 @@
+---
+created: "2019-04-05T07:02:49.764108800Z"
+creator: insta@0.7.1
+source: src/tests/all_phases.rs
+expression: "\n    if (x) {\n        foo();\n        function foo() { foo_; }\n    }\n    foo();\n"
+---
+var foo = void 0;
+if (x) {
+    void 0();
+    foo = function() {
+        foo_;
+    };
+}
+foo();
+

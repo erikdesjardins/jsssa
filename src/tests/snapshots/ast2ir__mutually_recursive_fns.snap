@@ -1,0 +1,39 @@
+---
+created: "2019-04-05T07:02:49.933106400Z"
+creator: insta@0.7.1
+source: src/tests/ast2ir.rs
+expression: "\n    function a() { b(); }\n    function b() { c(); }\n    function c() { a(); }\n    g1 = a;\n    g2 = b;\n    g3 = c;\n"
+---
+_ini = <void>
+a <= _ini
+_ini$1 = <void>
+b <= _ini$1
+_ini$2 = <void>
+c <= _ini$2
+_fun = <function>:
+    a$1 = <current function>
+    a$2 <= a$1
+    _fun$3 = *b
+    <dead> = _fun$3()
+a <- _fun
+_fun$1 = <function>:
+    b$1 = <current function>
+    b$2 <= b$1
+    _fun$3 = *c
+    <dead> = _fun$3()
+b <- _fun$1
+_fun$2 = <function>:
+    c$1 = <current function>
+    c$2 <= c$1
+    _fun$3 = *a
+    <dead> = _fun$3()
+c <- _fun$2
+_val = *a
+<global g1> <- _val
+<dead> = _val
+_val$1 = *b
+<global g2> <- _val$1
+<dead> = _val$1
+_val$2 = *c
+<global g3> <- _val$2
+<dead> = _val$2

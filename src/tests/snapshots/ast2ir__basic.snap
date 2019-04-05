@@ -1,9 +1,11 @@
 ---
-created: "2019-04-05T04:24:48.452373400Z"
+created: "2019-04-05T07:02:49.806108100Z"
 creator: insta@0.7.1
 source: src/tests/ast2ir.rs
 expression: "\n    function f(x) {\n        while (true);\n        x = y.bar;\n        z.foo = x ? true : 'hi';\n        return +[1 || x, { x }, f + 1, ++g];\n    }\n    f(1), true;\n"
 ---
+_ini = <void>
+f <= _ini
 _fun = <function>:
     f$1 = <current function>
     f$2 <= f$1
@@ -56,7 +58,7 @@ _fun = <function>:
     _una = [_ele, _ele$1, _ele$2, _ele$3]
     _ret = + _una
     <return> _ret
-f <= _fun
+f <- _fun
 _fun$1 = *f
 _arg = 1
 <dead> = _fun$1(_arg)

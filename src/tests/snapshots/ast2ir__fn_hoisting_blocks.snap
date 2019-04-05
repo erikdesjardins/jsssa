@@ -1,0 +1,21 @@
+---
+created: "2019-04-05T07:02:49.833108100Z"
+creator: insta@0.7.1
+source: src/tests/ast2ir.rs
+expression: "\n    if (x) {\n        foo();\n        function foo() { foo_; }\n    }\n    foo();\n"
+---
+_ini = <void>
+foo <= _ini
+_iff = <global x>
+<if> _iff:
+    _fun$1 = *foo
+    <dead> = _fun$1()
+    _fun$2 = <function>:
+        foo$1 = <current function>
+        foo$2 <= foo$1
+        <dead> = <global foo_>
+    foo <- _fun$2
+<else>:
+    <empty>
+_fun = *foo
+<dead> = _fun()

@@ -1,0 +1,19 @@
+---
+created: "2019-04-05T07:02:49.779106700Z"
+creator: insta@0.7.1
+source: src/tests/all_phases.rs
+expression: "\n    function a() { b(); }\n    function b() { c(); }\n    function c() { a(); }\n    g1 = a;\n    g2 = b;\n    g3 = c;\n"
+---
+var _fun = function() {
+    _fun$1();
+};
+var _fun$1 = function() {
+    _fun$2();
+};
+var _fun$2 = function() {
+    _fun();
+};
+g1 = _fun;
+g2 = _fun$1;
+g3 = _fun$2;
+

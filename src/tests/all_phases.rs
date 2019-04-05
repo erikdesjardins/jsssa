@@ -190,3 +190,39 @@ case!(
     };
 "#
 );
+
+case!(
+    mutually_recursive_fns,
+    r#"
+    function a() { b(); }
+    function b() { c(); }
+    function c() { a(); }
+    g1 = a;
+    g2 = b;
+    g3 = c;
+"#
+);
+
+case!(
+    fn_hoisting_toplevel,
+    r#"
+    foo();
+    function foo() { foo_; }
+
+    (function() {
+        bar();
+        function bar() { bar_; }
+    })();
+"#
+);
+
+case!(
+    fn_hoisting_blocks,
+    r#"
+    if (x) {
+        foo();
+        function foo() { foo_; }
+    }
+    foo();
+"#
+);
