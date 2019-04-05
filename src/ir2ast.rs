@@ -95,7 +95,17 @@ fn convert_stmt(
                         type_ann: None,
                         optional: false,
                     }),
-                    init: Some(P(read_ssa_to_expr(val, scope, ssa_cache))),
+                    init: match read_ssa_to_expr(val, scope, ssa_cache) {
+                        ast::Expr::Unary(ast::UnaryExpr {
+                            op: ast::UnaryOp::Void,
+                            ref arg,
+                            span: _,
+                        }) => match arg.as_ref() {
+                            ast::Expr::Lit(ast::Lit::Num(_)) => None,
+                            _ => unreachable!("should never emit complex `void` arguments"),
+                        },
+                        expr => Some(P(expr)),
+                    },
                     definite: false,
                 }],
                 declare: false,

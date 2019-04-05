@@ -1,10 +1,10 @@
 ---
-created: "2019-03-31T23:33:24.652650400Z"
+created: "2019-04-05T14:49:37.820996200Z"
 creator: insta@0.7.1
 source: src/tests/ir2ast.rs
 expression: "\n    var x = 1;\n    (function() {\n        (function() {\n            x = 2;\n        });\n    });\n"
 ---
-var x = void 0;
+var x;
 x = 1;
 function() {
     function() {

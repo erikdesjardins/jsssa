@@ -121,3 +121,11 @@ case!(
     /ba\/z/;
 "#
 );
+
+case!(
+    no_void_0_initializer,
+    r#"
+    var x;
+    let y;
+"#
+);

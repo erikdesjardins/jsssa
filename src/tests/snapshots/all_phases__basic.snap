@@ -1,5 +1,5 @@
 ---
-created: "2019-04-03T06:48:25.363869200Z"
+created: "2019-04-05T14:49:37.633497500Z"
 creator: insta@0.7.1
 source: src/tests/all_phases.rs
 expression: "\n    function f(x) {\n        while (true);\n        x = y.bar;\n        z.foo = x ? true : 'hi';\n        return +[1 || x, { x }, f + 1, ++g];\n    }\n    f(1), true;\n"
@@ -9,7 +9,7 @@ function f() {
     }
     var _val = y['bar'];
     var _obj = z;
-    var _val$1 = void 0;
+    var _val$1;
     if (_val) {
         _val$1 = true;
     } else {
