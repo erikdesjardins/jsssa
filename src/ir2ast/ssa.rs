@@ -292,6 +292,14 @@ impl<'a> Visitor<'a> for CollectSingleUseInliningInfo<'a> {
                 let eff = self.use_ref(Effect::Pure, cond);
                 self.side_effect(eff);
             }
+            ir::Stmt::Switch { discr, body: _ } => {
+                let eff = self.use_ref(Effect::Pure, discr);
+                self.side_effect(eff);
+            }
+            ir::Stmt::SwitchCase { val } => {
+                let eff = self.use_refs(Effect::Read, val);
+                self.side_effect(eff);
+            }
             ir::Stmt::Try {
                 body: _,
                 catch: _,

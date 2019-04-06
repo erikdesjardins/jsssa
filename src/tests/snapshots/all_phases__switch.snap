@@ -1,0 +1,15 @@
+---
+created: "2019-04-06T00:06:45.153853600Z"
+creator: insta@0.7.1
+source: src/tests/all_phases.rs
+expression: "\n    switch (x) {\n        case 1:\n            one;\n            break;\n        case \"foo\":\n        case bar:\n            two;\n        default:\n            def;\n    }\n"
+---
+switch(x){
+    case 1:
+        one;
+        break;
+    case 'foo':
+    case bar: two;
+    default: def;
+}
+

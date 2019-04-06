@@ -1,8 +1,8 @@
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::mem;
 
 use crate::ir;
-use crate::ir::traverse::{visit_with, Folder, ScopeTy};
+use crate::ir::traverse::{Folder, RunVisitor, ScopeTy, Visitor};
 
 /// Converts read-only mutable vars to SSA, and removes write-only mutable vars.
 ///
@@ -19,6 +19,106 @@ enum What {
     Remove,
 }
 
+#[derive(Default)]
+struct CollectMutOpInfo<'a> {
+    mut_ops: HashMap<&'a ir::Ref<ir::Mut>, State>,
+    reads_in_scope: HashSet<&'a ir::Ref<ir::Mut>>,
+    declared_at_toplevel_of_switch: HashSet<&'a ir::Ref<ir::Mut>>,
+    at_toplevel_of_switch: bool,
+    about_to_enter_switch: bool,
+}
+
+#[derive(Clone, PartialEq)]
+enum State {
+    ReadOnly { frozen: bool },
+    WriteOnly,
+    Invalid,
+}
+
+impl<'a> Visitor<'a> for CollectMutOpInfo<'a> {
+    fn wrap_scope<R>(
+        &mut self,
+        ty: &ScopeTy,
+        block: &'a ir::Block,
+        enter: impl FnOnce(&mut Self, &'a ir::Block) -> R,
+    ) -> R {
+        match ty {
+            ScopeTy::Function => {
+                // functions are analyzed separately, since they can read ssa refs
+                // before they are lexically declared
+                let mut inner = Self::default();
+                mem::swap(&mut inner.mut_ops, &mut self.mut_ops);
+                let r = enter(&mut inner, block);
+                mem::swap(&mut inner.mut_ops, &mut self.mut_ops);
+                r
+            }
+            ScopeTy::Normal | ScopeTy::Toplevel | ScopeTy::Nonlinear => {
+                let mut inner = Self::default();
+                mem::swap(&mut inner.mut_ops, &mut self.mut_ops);
+                mem::swap(&mut inner.reads_in_scope, &mut self.reads_in_scope);
+                inner.at_toplevel_of_switch = self.about_to_enter_switch;
+                let r = enter(&mut inner, block);
+                mem::swap(&mut inner.mut_ops, &mut self.mut_ops);
+                mem::swap(&mut inner.reads_in_scope, &mut self.reads_in_scope);
+                self.about_to_enter_switch = false;
+                r
+            }
+        }
+    }
+
+    fn visit(&mut self, stmt: &'a ir::Stmt) {
+        match stmt {
+            ir::Stmt::Expr {
+                target: _,
+                expr: ir::Expr::ReadMutable { source },
+            } => {
+                let our_state = State::ReadOnly { frozen: false };
+                let state = self.mut_ops.entry(source).or_insert(our_state.clone());
+                if *state != our_state {
+                    *state = State::Invalid;
+                }
+                self.reads_in_scope.insert(source);
+            }
+            ir::Stmt::WriteMutable { target, val: _ } => {
+                let our_state = State::WriteOnly;
+                let state = self.mut_ops.entry(target).or_insert(our_state.clone());
+                if *state != our_state {
+                    *state = State::Invalid;
+                }
+            }
+            ir::Stmt::DeclareMutable { target, val: _ } => {
+                if self.reads_in_scope.contains(&target) {
+                    // read before declaration
+                    self.mut_ops.insert(target, State::Invalid);
+                }
+                if self.at_toplevel_of_switch {
+                    self.declared_at_toplevel_of_switch.insert(target);
+                }
+            }
+            ir::Stmt::Switch { .. } => {
+                self.about_to_enter_switch = true;
+            }
+            ir::Stmt::SwitchCase { .. } => {
+                for ref_ in self.declared_at_toplevel_of_switch.drain() {
+                    match self
+                        .mut_ops
+                        .entry(ref_)
+                        .or_insert(State::ReadOnly { frozen: true })
+                    {
+                        State::ReadOnly { frozen } => {
+                            *frozen = true;
+                        }
+                        State::WriteOnly | State::Invalid => {
+                            // future reads already disallowed
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
 impl Folder for Mut2Ssa {
     type Output = Option<ir::Stmt>;
 
@@ -29,43 +129,17 @@ impl Folder for Mut2Ssa {
         enter: impl FnOnce(&mut Self, ir::Block) -> R,
     ) -> R {
         if let ScopeTy::Toplevel = ty {
-            #[derive(PartialEq)]
-            enum Saw {
-                Read,
-                Write,
-                Both,
-            }
-
-            let mut potential_replacements = HashMap::new();
-
-            visit_with(&block, |stmt: &ir::Stmt| {
-                let read_or_write = match stmt {
-                    ir::Stmt::Expr {
-                        target: _,
-                        expr: ir::Expr::ReadMutable { source },
-                    } => Some((source, Saw::Read)),
-                    ir::Stmt::WriteMutable { target, val: _ } => Some((target, Saw::Write)),
-                    _ => None,
-                };
-                if let Some((ref_, saw)) = read_or_write {
-                    match potential_replacements.entry(ref_) {
-                        Entry::Vacant(e) => {
-                            e.insert(saw);
-                        }
-                        Entry::Occupied(ref mut e) if e.get() != &saw => {
-                            e.insert(Saw::Both);
-                        }
-                        Entry::Occupied(_) => {}
-                    }
-                }
-            });
-
-            self.mut_vars_to_replace = potential_replacements
+            let mut collector = CollectMutOpInfo::default();
+            collector.run_visitor(&block);
+            self.mut_vars_to_replace = collector
+                .mut_ops
                 .into_iter()
                 .flat_map(|(ref_, saw)| match saw {
-                    Saw::Read => Some((ref_.weak(), What::Convert(ir::Ref::new(ref_.name_hint())))),
-                    Saw::Write => Some((ref_.weak(), What::Remove)),
-                    Saw::Both => None,
+                    State::ReadOnly { frozen: _ } => {
+                        Some((ref_.weak(), What::Convert(ir::Ref::new(ref_.name_hint()))))
+                    }
+                    State::WriteOnly => Some((ref_.weak(), What::Remove)),
+                    State::Invalid => None,
                 })
                 .collect();
         }

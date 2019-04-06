@@ -67,6 +67,13 @@ pub enum Stmt {
         cons: Block,
         alt: Block,
     },
+    Switch {
+        discr: Ref<Ssa>,
+        body: Block,
+    },
+    SwitchCase {
+        val: Option<Ref<Ssa>>,
+    },
     Try {
         body: Block,
         catch: Block,

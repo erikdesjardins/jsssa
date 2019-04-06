@@ -1,0 +1,9 @@
+---
+created: "2019-04-06T00:06:45.106981600Z"
+creator: insta@0.7.1
+source: src/opt/tests/mut2ssa.rs
+expression: "\n    x;\n    let x = 1;\n"
+---
+<dead> = *x
+_ini = 1
+x <= _ini

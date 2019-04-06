@@ -112,3 +112,16 @@ case!(
     try {} catch (e) { bad(e); } finally {}
 "#
 );
+
+case!(
+    dont_drop_after_switch_break,
+    |cx| cx.converge::<dce::Dce>("dce"),
+    r#"
+    switch (x) {
+        case 1:
+            break;
+        case 2:
+            log();
+    }
+"#
+);

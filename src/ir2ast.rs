@@ -58,15 +58,7 @@ fn convert_block(
     let ir::Block(children) = block;
 
     // predeclare ssa/mut refs, since they may be used above their declaration in a fn scope
-    children.iter().for_each(|stmt| match stmt {
-        ir::Stmt::Expr { target, expr } => {
-            declare_or_cache_ssa(target, expr, &mut scope, ssa_cache);
-        }
-        ir::Stmt::DeclareMutable { target, val: _ } => {
-            scope.declare_mutable(target.clone());
-        }
-        _ => {}
-    });
+    predeclare_refs(&children, &mut scope, ssa_cache);
 
     children
         .into_iter()
@@ -288,6 +280,36 @@ fn convert_stmt(
                 })))
             },
         }),
+        ir::Stmt::Switch { discr, body } => ast::Stmt::Switch(ast::SwitchStmt {
+            span: span(),
+            discriminant: P(read_ssa_to_expr(discr, scope, ssa_cache)),
+            cases: {
+                let parent_scope = scope;
+                let mut switch_scope = parent_scope.nested();
+                let ir::Block(children) = body;
+
+                predeclare_refs(&children, &mut switch_scope, ssa_cache);
+
+                let mut cases = vec![];
+                children.into_iter().for_each(|stmt| match stmt {
+                    ir::Stmt::SwitchCase { val } => cases.push(ast::SwitchCase {
+                        span: span(),
+                        test: val.map(|val| P(read_ssa_to_expr(val, parent_scope, ssa_cache))),
+                        cons: vec![],
+                    }),
+                    _ => match cases.last_mut() {
+                        Some(last_case) => {
+                            last_case
+                                .cons
+                                .extend(convert_stmt(stmt, &mut switch_scope, ssa_cache))
+                        }
+                        None => unreachable!("expected case, found: {:?}", stmt),
+                    },
+                });
+                cases
+            },
+        }),
+        ir::Stmt::SwitchCase { .. } => unreachable!("Case should be removed by convert_stmt"),
         ir::Stmt::Try {
             body,
             mut catch,
@@ -638,6 +660,18 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
             unreachable!("CurrentFunction and Argument should be removed by convert_stmt")
         }
     }
+}
+
+fn predeclare_refs(stmts: &[ir::Stmt], scope: &mut scope::Ir, ssa_cache: &mut ssa::Cache) {
+    stmts.iter().for_each(|stmt| match stmt {
+        ir::Stmt::Expr { target, expr } => {
+            declare_or_cache_ssa(target, expr, scope, ssa_cache);
+        }
+        ir::Stmt::DeclareMutable { target, val: _ } => {
+            scope.declare_mutable(target.clone());
+        }
+        _ => {}
+    });
 }
 
 fn declare_or_cache_ssa(

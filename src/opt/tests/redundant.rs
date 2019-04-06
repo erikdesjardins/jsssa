@@ -93,3 +93,19 @@ case!(
     }
 "#
 );
+
+case!(
+    switch_invalidate_local,
+    |cx| cx.converge::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let outer = 1;
+    switch (x) {
+        case 1:
+            let inner = 2;
+            inner;
+        case 2:
+            inner; // don't forward
+    }
+    outer;
+"#
+);

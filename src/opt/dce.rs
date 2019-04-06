@@ -19,12 +19,17 @@ impl Folder for Dce {
         enter: impl FnOnce(&mut Self, ir::Block) -> R,
     ) -> R {
         let r = enter(self, block);
-        // stop dropping when we leave the current scope
+        // stop dropping when we leave the current scope...
         self.dropping_after_jump = false;
         r
     }
 
     fn fold(&mut self, stmt: ir::Stmt) -> Self::Output {
+        // ...or when encountering a case statement
+        if let ir::Stmt::SwitchCase { .. } = &stmt {
+            self.dropping_after_jump = false;
+        }
+
         if self.dropping_after_jump {
             return None;
         }

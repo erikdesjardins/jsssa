@@ -120,6 +120,9 @@ fn visit_block<'a>(this: &mut impl Visitor<'a>, block: &'a ir::Block, ty: ScopeT
                     visit_block(this, cons, ScopeTy::Normal);
                     visit_block(this, alt, ScopeTy::Normal);
                 }
+                ir::Stmt::Switch { discr: _, body } => {
+                    visit_block(this, body, ScopeTy::Normal);
+                }
                 ir::Stmt::Try {
                     body,
                     catch,
@@ -137,7 +140,8 @@ fn visit_block<'a>(this: &mut impl Visitor<'a>, block: &'a ir::Block, ty: ScopeT
                 | ir::Stmt::Throw { .. }
                 | ir::Stmt::Break { .. }
                 | ir::Stmt::Continue { .. }
-                | ir::Stmt::Debugger => {}
+                | ir::Stmt::Debugger
+                | ir::Stmt::SwitchCase { .. } => {}
             }
         });
     })
@@ -200,6 +204,10 @@ fn fold_block(this: &mut impl Folder, block: ir::Block, ty: ScopeTy) -> ir::Bloc
                             cons: fold_block(this, cons, ScopeTy::Normal),
                             alt: fold_block(this, alt, ScopeTy::Normal),
                         },
+                        ir::Stmt::Switch { discr, body } => ir::Stmt::Switch {
+                            discr,
+                            body: fold_block(this, body, ScopeTy::Normal),
+                        },
                         ir::Stmt::Try {
                             body,
                             catch,
@@ -217,7 +225,8 @@ fn fold_block(this: &mut impl Folder, block: ir::Block, ty: ScopeTy) -> ir::Bloc
                         | ir::Stmt::Throw { .. }
                         | ir::Stmt::Break { .. }
                         | ir::Stmt::Continue { .. }
-                        | ir::Stmt::Debugger => stmt,
+                        | ir::Stmt::Debugger
+                        | ir::Stmt::SwitchCase { .. } => stmt,
                     })
                     .collect::<Vec<_>>()
             })

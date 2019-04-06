@@ -235,3 +235,75 @@ case!(
     function foo() { foo_; }
 "#
 );
+
+case!(
+    switch,
+    r#"
+    switch (x) {
+        case 1:
+            one;
+            break;
+        case "foo":
+        case bar:
+            two;
+        default:
+            def;
+    }
+"#
+);
+
+case!(
+    switch_scoping_forwards,
+    r#"
+    switch (x) {
+        case 1:
+            var v = 2;
+            let l = 3;
+        default:
+            g1 = v;
+            g2 = l;
+    }
+"#
+);
+
+case!(
+    switch_scoping_forwards_safe,
+    r#"
+    switch (x) {
+        case 1:
+            var v = 2;
+            let l = 3;
+            g1 = v;
+            g2 = l;
+        default:
+            def;
+    }
+"#
+);
+
+case!(
+    switch_scoping_backwards,
+    r#"
+    switch (x) {
+        case 1:
+            g1 = v;
+            g2 = l;
+            break;
+        default:
+            var v = 2;
+            let l = 3;
+    }
+"#
+);
+
+case!(
+    switch_dont_forward_past_cases,
+    r#"
+    switch (x) {
+        case 1:
+            let y = foo();
+        default:
+            g = y;
+    }
+"#
+);

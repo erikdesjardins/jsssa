@@ -1,0 +1,16 @@
+---
+created: "2019-04-06T00:06:45.153853600Z"
+creator: insta@0.7.1
+source: src/tests/all_phases.rs
+expression: "\n    switch (x) {\n        case 1:\n            var v = 2;\n            let l = 3;\n        default:\n            g1 = v;\n            g2 = l;\n    }\n"
+---
+var v;
+switch(x){
+    case 1:
+        v = 2;
+        var l = 3;
+    default:
+        g1 = v;
+        g2 = l;
+}
+

@@ -1,3 +1,5 @@
+use std::iter;
+
 use swc_atoms::JsWord;
 use swc_ecma_ast as ast;
 
@@ -23,7 +25,11 @@ pub fn convert(_: &swc_globals::Initialized, ast: ast::Script) -> ir::Block {
 fn convert_block(mut body: Vec<ast::Stmt>, parent_scope: &scope::Ast, hoist: Hoist) -> ir::Block {
     let mut scope = parent_scope.nested();
 
-    let mut stmts = hoist::hoist(&mut body, &mut scope, hoist);
+    match &hoist {
+        Hoist::Everything => hoist::hoist_fn_decls(&mut body),
+        Hoist::OnlyLetConst => {}
+    };
+    let mut stmts = hoist::hoist_vars(&body, &mut scope, hoist);
 
     let body_stmts = body
         .into_iter()
@@ -139,9 +145,78 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
             });
             stmts
         }
-        ast::Stmt::Switch(_) => {
-            // remember, switch cases aren't evaluated (!) until they're checked for equality
-            unimplemented!("switch statements not yet supported")
+        ast::Stmt::Switch(ast::SwitchStmt {
+            discriminant,
+            cases,
+            span: _,
+        }) => {
+            let discr_ref = ir::Ref::new("_swi");
+            let (mut stmts, discr_value) = convert_expression(*discriminant, scope);
+            stmts.push(ir::Stmt::Expr {
+                target: discr_ref.clone(),
+                expr: discr_value,
+            });
+
+            let parent_scope = scope;
+            let mut switch_scope = parent_scope.nested();
+
+            cases.iter().for_each(
+                |ast::SwitchCase {
+                     test: _,
+                     cons,
+                     span: _,
+                 }| {
+                    let hoist_stmts =
+                        hoist::hoist_vars(cons, &mut switch_scope, Hoist::OnlyLetConst);
+                    assert!(hoist_stmts.is_empty(), "vars shouldn't be hoisted");
+                },
+            );
+
+            let body_stmts = cases
+                .into_iter()
+                .flat_map(
+                    |ast::SwitchCase {
+                         test,
+                         cons,
+                         span: _,
+                     }| {
+                        let case_ref = match test {
+                            Some(test) => {
+                                let test = *test;
+                                let safe_test = match test {
+                                    ast::Expr::Lit(_) | ast::Expr::Ident(_) => test,
+                                    _ => {
+                                        // switch cases aren't evaluated (!) until they're checked for equality,
+                                        // which is hard to model correctly without making IR much more complex
+                                        unimplemented!("switch case with side effects: {:?}", test)
+                                    }
+                                };
+                                let test_ref = ir::Ref::new("_tst");
+                                let (test_stmts, test_value) =
+                                    convert_expression(safe_test, parent_scope);
+                                stmts.extend(test_stmts);
+                                stmts.push(ir::Stmt::Expr {
+                                    target: test_ref.clone(),
+                                    expr: test_value,
+                                });
+                                Some(test_ref)
+                            }
+                            None => None,
+                        };
+                        iter::once(ir::Stmt::SwitchCase { val: case_ref })
+                            .chain(
+                                cons.into_iter()
+                                    .flat_map(|stmt| convert_statement(stmt, &mut switch_scope)),
+                            )
+                            .collect::<Vec<_>>()
+                    },
+                )
+                .collect();
+            stmts.push(ir::Stmt::Switch {
+                discr: discr_ref,
+                body: ir::Block(body_stmts),
+            });
+            stmts
         }
         ast::Stmt::Throw(ast::ThrowStmt { arg, span: _ }) => {
             let ref_ = ir::Ref::new("_thr");

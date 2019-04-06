@@ -1,0 +1,19 @@
+---
+created: "2019-04-06T00:06:45.278851200Z"
+creator: insta@0.7.1
+source: src/tests/ast2ir.rs
+expression: "\n    switch (x) {\n        case 1:\n            one;\n            break;\n        case \"foo\":\n        case bar:\n            two;\n        default:\n            def;\n    }\n"
+---
+_swi = <global x>
+_tst = 1
+_tst$1 = "foo"
+_tst$2 = <global bar>
+<switch> _swi:
+    <case> _tst:
+    <dead> = <global one>
+    <break>
+    <case> _tst$1:
+    <case> _tst$2:
+    <dead> = <global two>
+    <default>:
+    <dead> = <global def>

@@ -119,6 +119,11 @@ impl<'a> CollectLoadStoreInfo<'a> {
         self.invalid_for_parent_scope = Invalid::Everything;
     }
 
+    fn invalidate_local(&mut self) {
+        self.last_op_for_reads.clear();
+        self.last_op_for_writes.clear();
+    }
+
     fn declare_mut(&mut self, target: &'a ir::Ref<ir::Mut>, val: &'a ir::Ref<ir::Ssa>) {
         let op = (self.cur_index, MutOp::Declare(val));
         self.last_op_for_reads.insert(target, op.clone());
@@ -242,6 +247,7 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
             ir::Stmt::DeclareMutable { target, val } => self.declare_mut(target, val),
             ir::Stmt::WriteMutable { target, val } => self.write_mut(target, val),
             ir::Stmt::Debugger { .. } => self.invalidate_everything(),
+            ir::Stmt::SwitchCase { .. } => self.invalidate_local(),
             ir::Stmt::WriteGlobal { .. }
             | ir::Stmt::WriteMember { .. }
             | ir::Stmt::Return { .. }
@@ -252,6 +258,7 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
             | ir::Stmt::Loop { .. }
             | ir::Stmt::ForEach { .. }
             | ir::Stmt::IfElse { .. }
+            | ir::Stmt::Switch { .. }
             | ir::Stmt::Try { .. } => {}
         }
     }

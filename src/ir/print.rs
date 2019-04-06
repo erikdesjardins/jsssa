@@ -152,6 +152,20 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
             w.write_str("<else>:");
             print_block(&alt, scope, &mut w.indented());
         }
+        ir::Stmt::Switch { discr, body } => {
+            w.write_str("<switch> ");
+            print_ssa(discr, scope, w);
+            w.write_str(":");
+            print_block(body, scope, &mut w.indented());
+        }
+        ir::Stmt::SwitchCase { val } => match val {
+            Some(val) => {
+                w.write_str("<case> ");
+                print_ssa(val, scope, w);
+                w.write_str(":");
+            }
+            None => w.write_str("<default>:"),
+        },
         ir::Stmt::Try {
             body,
             catch,

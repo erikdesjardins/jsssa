@@ -150,11 +150,16 @@ impl Folder for Reads {
                 cons,
                 alt,
             },
+            ir::Stmt::Switch { discr, body } => ir::Stmt::Switch {
+                discr: self.remap(discr),
+                body,
+            },
             ir::Stmt::Break { .. }
             | ir::Stmt::Continue { .. }
             | ir::Stmt::Debugger
             | ir::Stmt::Label { .. }
             | ir::Stmt::Loop { .. }
+            | ir::Stmt::SwitchCase { .. }
             | ir::Stmt::Try { .. } => stmt,
         })
     }

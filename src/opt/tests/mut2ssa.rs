@@ -31,3 +31,25 @@ case!(
     })();
 "#
 );
+
+case!(
+    no_time_travel,
+    |cx| cx.run::<mut2ssa::Mut2Ssa>("mut2ssa"),
+    r#"
+    x;
+    let x = 1;
+"#
+);
+
+case!(
+    no_cross_case,
+    |cx| cx.run::<mut2ssa::Mut2Ssa>("mut2ssa"),
+    r#"
+    switch (foo) {
+        case 0:
+            let x = 1;
+        default:
+            g = function() { return x };
+    }
+"#
+);
