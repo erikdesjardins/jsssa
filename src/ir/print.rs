@@ -63,9 +63,9 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
             w.write_str(" <= ");
             print_ssa(val, scope, w);
         }
-        ir::Stmt::WriteMutable { target, val } => match scope.get_mutable(&target) {
-            Some(existing_name) => {
-                w.write_str(&existing_name);
+        ir::Stmt::WriteMutable { target, val } => match scope.get_mutable(target) {
+            Some(name) => {
+                w.write_str(&name);
                 w.write_str(" <- ");
                 print_ssa(val, scope, w);
             }
@@ -127,11 +127,11 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
             w.write_str("<label ");
             w.write_str(&name);
             w.write_str(">:");
-            print_block(&body, &label_scope, &mut w.indented());
+            print_block(body, &label_scope, &mut w.indented());
         }
         ir::Stmt::Loop { body } => {
             w.write_str("<loop>:");
-            print_block(&body, scope, &mut w.indented());
+            print_block(body, scope, &mut w.indented());
         }
         ir::Stmt::ForEach { kind, init, body } => {
             w.write_str("<foreach");
@@ -141,16 +141,16 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
             });
             print_ssa(init, scope, w);
             w.write_str(":");
-            print_block(&body, scope, &mut w.indented());
+            print_block(body, scope, &mut w.indented());
         }
         ir::Stmt::IfElse { cond, cons, alt } => {
             w.write_str("<if> ");
             print_ssa(cond, scope, w);
             w.write_str(":");
-            print_block(&cons, scope, &mut w.indented());
+            print_block(cons, scope, &mut w.indented());
             w.start_line();
             w.write_str("<else>:");
-            print_block(&alt, scope, &mut w.indented());
+            print_block(alt, scope, &mut w.indented());
         }
         ir::Stmt::Switch { discr, body } => {
             w.write_str("<switch> ");
@@ -172,13 +172,13 @@ fn print_stmt<'a, 'b: 'a>(stmt: &ir::Stmt, scope: &mut scope::Ir, w: &'a mut Wri
             finally,
         } => {
             w.write_str("<try>:");
-            print_block(&body, scope, &mut w.indented());
+            print_block(body, scope, &mut w.indented());
             w.start_line();
             w.write_str("<catch>:");
-            print_block(&catch, scope, &mut w.indented());
+            print_block(catch, scope, &mut w.indented());
             w.start_line();
             w.write_str("<finally>:");
-            print_block(&finally, scope, &mut w.indented());
+            print_block(finally, scope, &mut w.indented());
         }
     }
 }
@@ -205,7 +205,7 @@ fn print_expr<'a, 'b: 'a>(expr: &ir::Expr, scope: &scope::Ir, w: &'a mut WriteIn
         ir::Expr::Read { source } => print_ssa(source, scope, w),
         ir::Expr::ReadMutable { source } => {
             w.write_str("*");
-            match scope.get_mutable(&source) {
+            match scope.get_mutable(source) {
                 Some(name) => w.write_str(&name),
                 None => w.write_str(&format!("<BAD {:?}>", source)),
             }
@@ -360,7 +360,7 @@ fn print_expr<'a, 'b: 'a>(expr: &ir::Expr, scope: &scope::Ir, w: &'a mut WriteIn
                     w.write_str(">:");
                 }
             }
-            print_block(&body, scope, &mut w.indented());
+            print_block(body, scope, &mut w.indented());
         }
         ir::Expr::CurrentFunction => {
             w.write_str("<current function>");
