@@ -449,7 +449,7 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
                             value: P(read_ssa_to_expr(val, scope, ssa_cache)),
                         }),
                         ir::PropKind::Get | ir::PropKind::Set => {
-                            unimplemented!("getter and setter props cannot yet be elaborated")
+                            unimplemented!("getter and setter props cannot be elaborated")
                         }
                     }))
                 })

@@ -169,7 +169,7 @@ fn hoist_statement(
         ast::Stmt::Decl(decl) => match decl {
             ast::Decl::Fn(fn_decl) => hoist_function_declaration(fn_decl, scope, hoist),
             ast::Decl::Var(var_decl) => hoist_variable_declaration(var_decl, scope, hoist, level),
-            ast::Decl::Class(_) => unimplemented!("classes not yet supported"),
+            ast::Decl::Class(_) => unimplemented!("classes not supported"),
             ast::Decl::TsInterface(_)
             | ast::Decl::TsTypeAlias(_)
             | ast::Decl::TsEnum(_)
@@ -297,6 +297,6 @@ fn pat_to_ident(pat: &ast::Pat) -> &JsWord {
         | ast::Pat::Object(_)
         | ast::Pat::Rest(_)
         | ast::Pat::Assign(_)
-        | ast::Pat::Expr(_) => unimplemented!("complex patterns not yet supported"),
+        | ast::Pat::Expr(_) => unimplemented!("complex patterns not supported"),
     }
 }

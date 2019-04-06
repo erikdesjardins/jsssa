@@ -564,7 +564,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 ]
             }
             ast::Decl::Var(var_decl) => convert_variable_declaration(var_decl, scope),
-            ast::Decl::Class(_) => unimplemented!("classes not yet supported"),
+            ast::Decl::Class(_) => unimplemented!("classes not supported"),
             ast::Decl::TsInterface(_)
             | ast::Decl::TsTypeAlias(_)
             | ast::Decl::TsEnum(_)
@@ -1505,11 +1505,9 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             (statements, last_value)
         }
         ast::Expr::Paren(ast::ParenExpr { expr, span: _ }) => convert_expression(*expr, scope),
-        ast::Expr::Tpl(_) | ast::Expr::TaggedTpl(_) => {
-            unimplemented!("templates not yet supported")
-        }
-        ast::Expr::Class(_) => unimplemented!("classes not yet supported"),
-        ast::Expr::PrivateName(_) => unimplemented!("private members not yet supported"),
+        ast::Expr::Tpl(_) | ast::Expr::TaggedTpl(_) => unimplemented!("templates not supported"),
+        ast::Expr::Class(_) => unimplemented!("classes not supported"),
+        ast::Expr::PrivateName(_) => unimplemented!("private members not supported"),
         ast::Expr::MetaProp(_) => unreachable!(),
         ast::Expr::JSXElement(_)
         | ast::Expr::JSXEmpty(_)
@@ -1582,7 +1580,7 @@ fn convert_expr_or_super(
 ) -> (Vec<ir::Stmt>, ir::Expr) {
     match expr_or_super {
         ast::ExprOrSuper::Expr(expr) => convert_expression(*expr, scope),
-        ast::ExprOrSuper::Super(_) => unimplemented!("classes (and thus super) not yet supported"),
+        ast::ExprOrSuper::Super(_) => unimplemented!("classes (and thus super) not supported"),
     }
 }
 
@@ -1598,7 +1596,7 @@ fn pat_to_ident(pat: ast::Pat) -> JsWord {
         | ast::Pat::Object(_)
         | ast::Pat::Rest(_)
         | ast::Pat::Assign(_)
-        | ast::Pat::Expr(_) => unimplemented!("complex patterns not yet supported"),
+        | ast::Pat::Expr(_) => unimplemented!("complex patterns not supported"),
     }
 }
 
