@@ -1,0 +1,8 @@
+---
+created: "2019-04-06T23:17:34.715679500Z"
+creator: insta@0.7.1
+source: src/tests/ir2ast.rs
+expression: let x = y;
+---
+var x = y;
+

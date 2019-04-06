@@ -12,8 +12,6 @@ use std::io;
 use std::io::{Read, Write};
 use std::time::Instant;
 
-use structopt::StructOpt;
-
 use crate::err::NiceError;
 use crate::utils::Time;
 
@@ -37,7 +35,9 @@ fn main() -> Result<(), NiceError> {
         verbose,
         input,
         output,
-        optimize,
+        optimize: _,
+        opt_ir,
+        opt_inline_ssa,
         print_ir,
     } = cli::Options::from_args();
 
@@ -68,7 +68,7 @@ fn main() -> Result<(), NiceError> {
         let ir = ast2ir::convert(g, ast);
         log::info!("Done ast2ir @ {}", Time(start.elapsed()));
 
-        let ir = if optimize {
+        let ir = if opt_ir {
             let ir = opt::run_passes(g, ir);
             log::info!("Done optimization @ {}", Time(start.elapsed()));
             ir
@@ -81,7 +81,11 @@ fn main() -> Result<(), NiceError> {
             log::info!("Done printing @ {}", Time(start.elapsed()));
             ppr
         } else {
-            let ast = ir2ast::convert(g, ir);
+            let inline_ssa = match opt_inline_ssa {
+                true => ir2ast::Inline::Yes,
+                false => ir2ast::Inline::No,
+            };
+            let ast = ir2ast::convert(g, ir, inline_ssa);
             log::info!("Done ir2ast @ {}", Time(start.elapsed()));
 
             let js = emit::emit(g, ast, files)?;

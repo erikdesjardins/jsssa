@@ -12,7 +12,7 @@ macro_rules! case {
             swc_globals::with(|g| {
                 let (ast, files) = parse::parse(g, $string)?;
                 let ir = ast2ir::convert(g, ast);
-                let ast2 = ir2ast::convert(g, ir);
+                let ast2 = ir2ast::convert(g, ir, ir2ast::Inline::Yes);
                 let js = emit::emit(g, ast2, files)?;
                 insta::assert_snapshot_matches!(stringify!($name), js, $string);
                 Ok(())
@@ -33,6 +33,20 @@ case!(
     f(1), true;
 "#
 );
+
+case!(simple_inlining, "let x = y;");
+
+#[test]
+fn no_inlining() -> Result<(), NiceError> {
+    swc_globals::with(|g| {
+        let (ast, files) = parse::parse(g, "let x = y;")?;
+        let ir = ast2ir::convert(g, ast);
+        let ast2 = ir2ast::convert(g, ir, ir2ast::Inline::No);
+        let js = emit::emit(g, ast2, files)?;
+        insta::assert_snapshot_matches!("no_inlining", js);
+        Ok(())
+    })
+}
 
 case!(
     deep_scopes,

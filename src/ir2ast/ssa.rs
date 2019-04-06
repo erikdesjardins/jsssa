@@ -7,25 +7,35 @@ use swc_ecma_ast as ast;
 use crate::ir;
 use crate::ir::traverse::{RunVisitor, ScopeTy, Visitor};
 
-#[inline(never)] // for better profiling
-pub fn prepare_ssa_cache(ir: &ir::Block) -> Cache {
-    let mut collector = CollectSingleUseInliningInfo::default();
-    collector.run_visitor(&ir);
-    Cache {
-        can_inline_at_use: collector
-            .can_inline_at_use
-            .into_iter()
-            .map(ir::Ref::weak)
-            .collect(),
-        expr_cache: Default::default(),
-        to_do_at_declaration: Default::default(),
-    }
-}
-
 pub struct Cache {
     can_inline_at_use: HashSet<ir::WeakRef<ir::Ssa>>,
     expr_cache: HashMap<ir::WeakRef<ir::Ssa>, ast::Expr>,
     to_do_at_declaration: HashMap<ir::WeakRef<ir::Ssa>, ToDo>,
+}
+
+impl Cache {
+    #[inline(never)] // for better profiling
+    pub fn prepare_for_inlining(ir: &ir::Block) -> Self {
+        let mut collector = CollectSingleUseInliningInfo::default();
+        collector.run_visitor(&ir);
+        Self {
+            can_inline_at_use: collector
+                .can_inline_at_use
+                .into_iter()
+                .map(ir::Ref::weak)
+                .collect(),
+            expr_cache: Default::default(),
+            to_do_at_declaration: Default::default(),
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            can_inline_at_use: Default::default(),
+            expr_cache: Default::default(),
+            to_do_at_declaration: Default::default(),
+        }
+    }
 }
 
 pub enum ToDo {
