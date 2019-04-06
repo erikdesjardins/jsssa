@@ -1,5 +1,5 @@
 ---
-created: "2019-04-05T14:49:37.727248600Z"
+created: "2019-04-06T05:47:31.941199300Z"
 creator: insta@0.7.1
 source: src/tests/ir2ast.rs
 expression: "\n    function f(x) {\n        while (true);\n        x = y.bar;\n        z.foo = x ? true : 'hi';\n        return +[1 || x, { x }, f + 1, ++g];\n    }\n    f(1), true;\n"
@@ -14,7 +14,7 @@ f = function f$1(x) {
             break;
         }
     }
-    var _val = y['bar'];
+    var _val = y.bar;
     x$1 = _val;
     _val;
     var _obj = z;
@@ -25,7 +25,7 @@ f = function f$1(x) {
         _val$1 = 'hi';
     }
     var _val$2 = _val$1;
-    _obj['foo'] = _val$2;
+    _obj.foo = _val$2;
     _val$2;
     var _log = 1;
     if (1) {
@@ -34,7 +34,7 @@ f = function f$1(x) {
     }
     var _ele = _log;
     var _ele$1 = {
-        ['x']: x$1
+        x: x$1
     };
     var _ele$2 = f$2 + 1;
     var _wri = g + 1;

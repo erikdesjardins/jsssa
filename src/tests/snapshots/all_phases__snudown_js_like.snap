@@ -1,5 +1,5 @@
 ---
-created: "2019-04-05T14:49:37.664748400Z"
+created: "2019-04-06T05:47:31.891199800Z"
 creator: insta@0.7.1
 source: src/tests/all_phases.rs
 expression: "\n    var r;\n    something;\n    r || (r = {});\n    var s = {};\n    var o;\n    for (o in r) s[o] = r[o];\n    r.x = 1;\n    for (o in s) r[o] = s[o];\n    var stuff = (function(r_inner) {\n        return {\n            xy: r_inner.x * 2\n        };\n    })(r);\n    var xy = stuff.xy;\n    window.foo = function foo(z) {\n        return z + xy;\n    };\n"
@@ -8,13 +8,13 @@ var xy;
 something;
 var _val = {
 };
-_val['x'] = 1;
+_val.x = 1;
 xy = function(r_inner) {
     return {
-        ['xy']: r_inner['x'] * 2
+        xy: r_inner.x * 2
     };
-}(_val)['xy'];
-window['foo'] = function(z) {
+}(_val).xy;
+window.foo = function(z) {
     return z + xy;
 };
 

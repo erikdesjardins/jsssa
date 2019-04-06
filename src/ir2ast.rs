@@ -135,14 +135,20 @@ fn convert_stmt(
             ast::Stmt::Expr(P(ast::Expr::Assign(ast::AssignExpr {
                 span: span(),
                 op: ast::AssignOp::Assign,
-                left: ast::PatOrExpr::Pat(P(ast::Pat::Expr(P(ast::Expr::Member(
+                left: ast::PatOrExpr::Pat(P(ast::Pat::Expr(P(ast::Expr::Member({
+                    let obj = ast::ExprOrSuper::Expr(P(read_ssa_to_expr(obj, scope, ssa_cache)));
+                    let (prop, computed) =
+                        match str_as_clean_ident(read_ssa_to_expr(prop, scope, ssa_cache)) {
+                            Ok(ident) => (ast::Expr::Ident(ident), false),
+                            Err(prop) => (prop, true),
+                        };
                     ast::MemberExpr {
                         span: span(),
-                        obj: ast::ExprOrSuper::Expr(P(read_ssa_to_expr(obj, scope, ssa_cache))),
-                        prop: P(read_ssa_to_expr(prop, scope, ssa_cache)),
-                        computed: true,
-                    },
-                ))))),
+                        obj,
+                        prop: P(prop),
+                        computed,
+                    }
+                }))))),
                 right: P(read_ssa_to_expr(val, scope, ssa_cache)),
             })))
         }
@@ -415,11 +421,19 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
             type_ann: None,
             optional: false,
         }),
-        ir::Expr::ReadMember { obj, prop } => ast::Expr::Member(ast::MemberExpr {
-            span: span(),
-            obj: ast::ExprOrSuper::Expr(P(read_ssa_to_expr(obj, scope, ssa_cache))),
-            prop: P(read_ssa_to_expr(prop, scope, ssa_cache)),
-            computed: true,
+        ir::Expr::ReadMember { obj, prop } => ast::Expr::Member({
+            let obj = ast::ExprOrSuper::Expr(P(read_ssa_to_expr(obj, scope, ssa_cache)));
+            let (prop, computed) =
+                match str_as_clean_ident(read_ssa_to_expr(prop, scope, ssa_cache)) {
+                    Ok(ident) => (ast::Expr::Ident(ident), false),
+                    Err(prop) => (prop, true),
+                };
+            ast::MemberExpr {
+                span: span(),
+                obj,
+                prop: P(prop),
+                computed,
+            }
         }),
         ir::Expr::Array { elems } => ast::Expr::Array(ast::ArrayLit {
             span: span(),
@@ -443,9 +457,14 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
                 .map(|(kind, prop, val)| {
                     ast::PropOrSpread::Prop(P(match kind {
                         ir::PropKind::Simple => ast::Prop::KeyValue(ast::KeyValueProp {
-                            key: ast::PropName::Computed(P(read_ssa_to_expr(
-                                prop, scope, ssa_cache,
-                            ))),
+                            key: {
+                                match str_as_clean_ident(read_ssa_to_expr(prop, scope, ssa_cache)) {
+                                    Ok(ident) => ast::PropName::Ident(ident),
+                                    Err(ast::Expr::Lit(ast::Lit::Str(s))) => ast::PropName::Str(s),
+                                    Err(ast::Expr::Lit(ast::Lit::Num(n))) => ast::PropName::Num(n),
+                                    Err(key) => ast::PropName::Computed(P(key)),
+                                }
+                            },
                             value: P(read_ssa_to_expr(val, scope, ssa_cache)),
                         }),
                         ir::PropKind::Get | ir::PropKind::Set => {
@@ -514,11 +533,19 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
         ir::Expr::Delete { obj, prop } => ast::Expr::Unary(ast::UnaryExpr {
             span: span(),
             op: ast::UnaryOp::Delete,
-            arg: P(ast::Expr::Member(ast::MemberExpr {
-                span: span(),
-                obj: ast::ExprOrSuper::Expr(P(read_ssa_to_expr(obj, scope, ssa_cache))),
-                prop: P(read_ssa_to_expr(prop, scope, ssa_cache)),
-                computed: true,
+            arg: P(ast::Expr::Member({
+                let obj = ast::ExprOrSuper::Expr(P(read_ssa_to_expr(obj, scope, ssa_cache)));
+                let (prop, computed) =
+                    match str_as_clean_ident(read_ssa_to_expr(prop, scope, ssa_cache)) {
+                        Ok(ident) => (ast::Expr::Ident(ident), false),
+                        Err(prop) => (prop, true),
+                    };
+                ast::MemberExpr {
+                    span: span(),
+                    obj,
+                    prop: P(prop),
+                    computed,
+                }
             })),
         }),
         ir::Expr::Yield { kind, val } => ast::Expr::Yield(ast::YieldExpr {
@@ -779,6 +806,41 @@ fn read_ssa_to_expr(
                 optional: false,
             })
         }
+    }
+}
+
+fn str_as_clean_ident(expr: ast::Expr) -> Result<ast::Ident, ast::Expr> {
+    fn is_valid_js_ident(string: &str) -> bool {
+        let mut chars = string.chars();
+        let first_valid = chars
+            .next()
+            .map_or(false, |c| c == '_' || c == '$' || c.is_alphabetic());
+        let rest_valid = chars.all(|c| c == '_' || c == '$' || c.is_alphanumeric());
+        first_valid && rest_valid
+    }
+
+    match expr {
+        ast::Expr::Lit(ast::Lit::Str(ast::Str {
+            span,
+            value,
+            has_escape,
+        })) => {
+            if is_valid_js_ident(&value) {
+                Ok(ast::Ident {
+                    span,
+                    sym: value,
+                    type_ann: None,
+                    optional: false,
+                })
+            } else {
+                Err(ast::Expr::Lit(ast::Lit::Str(ast::Str {
+                    span,
+                    value,
+                    has_escape,
+                })))
+            }
+        }
+        _ => Err(expr),
     }
 }
 

@@ -129,3 +129,20 @@ case!(
     let y;
 "#
 );
+
+case!(
+    object_props,
+    r#"
+    var obj = {
+        x: 1,
+        ['bad>']: 2,
+        0: 7,
+    };
+    obj.y = 3;
+    obj['#bad'] = 4;
+    obj.z;
+    obj['%bad'];
+    delete obj.w;
+    delete obj['^bad'];
+"#
+);
