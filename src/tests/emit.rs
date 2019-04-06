@@ -29,3 +29,25 @@ case!(
     f(1), true;
 "#
 );
+
+#[test]
+fn no_octal_escapes() -> Result<(), NiceError> {
+    swc_globals::with(|g| {
+        let (ast, files) = parse::parse(
+            g,
+            r#"
+            "\x001"; // === "\0" + "1"
+            "\x008"; // === "\0" + "8"
+        "#,
+        )?;
+        let js = emit::emit(g, ast, files)?;
+        // record current incorrect behaviour
+        assert_eq!(
+            js,
+            r#"'\01';
+'\08';
+"#
+        );
+        Ok(())
+    })
+}
