@@ -28,7 +28,7 @@ struct CollectMutOpInfo<'a> {
     about_to_enter_switch: bool,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(PartialEq)]
 enum State {
     ReadOnly { frozen: bool },
     WriteOnly,
@@ -73,18 +73,26 @@ impl<'a> Visitor<'a> for CollectMutOpInfo<'a> {
                 expr: ir::Expr::ReadMutable { source },
             } => {
                 let our_state = State::ReadOnly { frozen: false };
-                let state = self.mut_ops.entry(source).or_insert(our_state.clone());
-                if *state != our_state {
-                    *state = State::Invalid;
-                }
+                self.mut_ops
+                    .entry(source)
+                    .and_modify(|state| {
+                        if state != &our_state {
+                            *state = State::Invalid;
+                        }
+                    })
+                    .or_insert(our_state);
                 self.reads_in_scope.insert(source);
             }
             ir::Stmt::WriteMutable { target, val: _ } => {
                 let our_state = State::WriteOnly;
-                let state = self.mut_ops.entry(target).or_insert(our_state.clone());
-                if *state != our_state {
-                    *state = State::Invalid;
-                }
+                self.mut_ops
+                    .entry(target)
+                    .and_modify(|state| {
+                        if state != &our_state {
+                            *state = State::Invalid;
+                        }
+                    })
+                    .or_insert(our_state);
             }
             ir::Stmt::DeclareMutable { target, val: _ } => {
                 if self.reads_in_scope.contains(&target) {

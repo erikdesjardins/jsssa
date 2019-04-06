@@ -49,7 +49,7 @@ impl Cache {
         self.expr_cache.get(&ssa_ref.weak())
     }
 
-    pub fn to_do_at_declaration(&mut self, ssa_ref: &ir::Ref<ir::Ssa>, to_do: ToDo) {
+    pub fn do_at_declaration(&mut self, ssa_ref: &ir::Ref<ir::Ssa>, to_do: ToDo) {
         let old_value = self.to_do_at_declaration.insert(ssa_ref.weak(), to_do);
         assert!(old_value.is_none(), "multiple todos for ref: {:?}", ssa_ref);
     }

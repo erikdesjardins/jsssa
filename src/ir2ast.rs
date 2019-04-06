@@ -712,7 +712,7 @@ fn declare_or_cache_ssa(
             }
         }
     };
-    ssa_cache.to_do_at_declaration(ssa_ref, what_to_do_later);
+    ssa_cache.do_at_declaration(ssa_ref, what_to_do_later);
 }
 
 fn write_ssa_to_stmt(
