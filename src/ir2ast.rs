@@ -210,12 +210,11 @@ fn convert_stmt(
                 })),
             })
         }
-        ir::Stmt::Loop { body } => ast::Stmt::While(ast::WhileStmt {
+        ir::Stmt::Loop { body } => ast::Stmt::For(ast::ForStmt {
             span: span(),
-            test: P(ast::Expr::Lit(ast::Lit::Bool(ast::Bool {
-                span: span(),
-                value: true,
-            }))),
+            init: None,
+            test: None,
+            update: None,
             body: P(ast::Stmt::Block(ast::BlockStmt {
                 span: span(),
                 stmts: convert_block(body, scope, ssa_cache),
