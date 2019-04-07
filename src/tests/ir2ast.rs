@@ -158,5 +158,7 @@ case!(
     obj['%bad'];
     delete obj.w;
     delete obj['^bad'];
+    obj.some();
+    obj['*bad']();
 "#
 );

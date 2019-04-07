@@ -568,8 +568,29 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
             span: span(),
             arg: P(read_ssa_to_expr(val, scope, ssa_cache)),
         }),
-        ir::Expr::Call { kind, func, args } => {
-            let callee = P(read_ssa_to_expr(func, scope, ssa_cache));
+        ir::Expr::Call {
+            kind,
+            base,
+            prop,
+            args,
+        } => {
+            let base_expr = read_ssa_to_expr(base, scope, ssa_cache);
+            let callee = match prop {
+                Some(prop) => {
+                    let (prop, computed) =
+                        match str_as_clean_ident(read_ssa_to_expr(prop, scope, ssa_cache)) {
+                            Ok(ident) => (ast::Expr::Ident(ident), false),
+                            Err(prop) => (prop, true),
+                        };
+                    ast::Expr::Member(ast::MemberExpr {
+                        span: span(),
+                        obj: ast::ExprOrSuper::Expr(P(base_expr)),
+                        prop: P(prop),
+                        computed,
+                    })
+                }
+                None => base_expr,
+            };
             let args = args
                 .into_iter()
                 .map(|(kind, val)| ast::ExprOrSpread {
@@ -583,13 +604,13 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
             match kind {
                 ir::CallKind::Call => ast::Expr::Call(ast::CallExpr {
                     span: span(),
-                    callee: ast::ExprOrSuper::Expr(callee),
+                    callee: ast::ExprOrSuper::Expr(P(callee)),
                     args,
                     type_args: None,
                 }),
                 ir::CallKind::New => ast::Expr::New(ast::NewExpr {
                     span: span(),
-                    callee,
+                    callee: P(callee),
                     args: Some(args),
                     type_args: None,
                 }),

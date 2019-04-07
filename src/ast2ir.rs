@@ -1452,12 +1452,18 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 ),
                 _ => unreachable!(),
             };
-            let callee_ref = ir::Ref::new("_fun");
             let (mut statements, callee_value) = convert_expr_or_super(callee, scope);
-            statements.push(ir::Stmt::Expr {
-                target: callee_ref.clone(),
-                expr: callee_value,
-            });
+            let (base_ref, prop_ref) = match callee_value {
+                ir::Expr::ReadMember { obj, prop } => (obj, Some(prop)),
+                _ => {
+                    let callee_ref = ir::Ref::new("_fun");
+                    statements.push(ir::Stmt::Expr {
+                        target: callee_ref.clone(),
+                        expr: callee_value,
+                    });
+                    (callee_ref, None)
+                }
+            };
             let arguments = arguments
                 .into_iter()
                 .map(|ast::ExprOrSpread { spread, expr }| {
@@ -1479,7 +1485,8 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 statements,
                 ir::Expr::Call {
                     kind: call_kind,
-                    func: callee_ref,
+                    base: base_ref,
+                    prop: prop_ref,
                     args: arguments,
                 },
             )

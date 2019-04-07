@@ -1,8 +1,8 @@
 ---
-created: "2019-04-06T05:47:31.976201700Z"
+created: "2019-04-07T06:13:24.754589700Z"
 creator: insta@0.7.1
 source: src/tests/ir2ast.rs
-expression: "\n    var obj = {\n        x: 1,\n        ['bad>']: 2,\n        0: 7,\n    };\n    obj.y = 3;\n    obj['#bad'] = 4;\n    obj.z;\n    obj['%bad'];\n    delete obj.w;\n    delete obj['^bad'];\n"
+expression: "\n    var obj = {\n        x: 1,\n        ['bad>']: 2,\n        0: 7,\n    };\n    obj.y = 3;\n    obj['#bad'] = 4;\n    obj.z;\n    obj['%bad'];\n    delete obj.w;\n    delete obj['^bad'];\n    obj.some();\n    obj['*bad']();\n"
 ---
 var obj;
 obj = {
@@ -18,4 +18,6 @@ obj.z;
 obj['%bad'];
 delete obj.w;
 delete obj['^bad'];
+obj.some();
+obj['*bad']();
 

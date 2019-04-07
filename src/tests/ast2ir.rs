@@ -287,3 +287,10 @@ case!(
     }
 "#
 );
+
+case!(
+    preserves_prop_calls,
+    r#"
+    console.log.bind(console);
+"#
+);

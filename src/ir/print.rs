@@ -318,12 +318,22 @@ fn print_expr<'a, 'b: 'a>(expr: &ir::Expr, scope: &scope::Ir, w: &'a mut WriteIn
             w.write_str("<await> ");
             print_ssa(val, scope, w);
         }
-        ir::Expr::Call { kind, func, args } => {
+        ir::Expr::Call {
+            kind,
+            base,
+            prop,
+            args,
+        } => {
             w.write_str(match kind {
                 ir::CallKind::Call => "",
                 ir::CallKind::New => "<new> ",
             });
-            print_ssa(func, scope, w);
+            print_ssa(base, scope, w);
+            if let Some(prop) = prop {
+                w.write_str("[");
+                print_ssa(prop, scope, w);
+                w.write_str("]");
+            }
             w.write_str("(");
             for (i, (kind, val)) in args.iter().enumerate() {
                 w.write_str(match kind {

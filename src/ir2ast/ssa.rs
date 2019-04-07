@@ -238,11 +238,14 @@ impl<'a> Visitor<'a> for CollectSingleUseInliningInfo<'a> {
                     ir::Expr::Await { val } => self.use_ref(Effect::Write, val),
                     ir::Expr::Call {
                         kind: _,
-                        func,
+                        base,
+                        prop,
                         args,
                     } => self.use_refs(
                         Effect::Write,
-                        iter::once(func).chain(args.iter().map(|(_, arg)| arg)),
+                        iter::once(base)
+                            .chain(prop)
+                            .chain(args.iter().map(|(_, arg)| arg)),
                     ),
                     ir::Expr::Function { .. } => Effect::Pure,
                     ir::Expr::CurrentFunction | ir::Expr::Argument { .. } => Effect::Read,

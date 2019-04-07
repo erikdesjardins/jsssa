@@ -95,9 +95,15 @@ impl Folder for Reads {
                     ir::Expr::Await { val } => ir::Expr::Await {
                         val: self.remap(val),
                     },
-                    ir::Expr::Call { kind, func, args } => ir::Expr::Call {
+                    ir::Expr::Call {
                         kind,
-                        func: self.remap(func),
+                        base,
+                        prop,
+                        args,
+                    } => ir::Expr::Call {
+                        kind,
+                        base: self.remap(base),
+                        prop: prop.map(|prop| self.remap(prop)),
                         args: args
                             .into_iter()
                             .map(|(kind, arg)| (kind, self.remap(arg)))

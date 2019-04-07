@@ -140,7 +140,8 @@ pub enum Expr {
     },
     Call {
         kind: CallKind,
-        func: Ref<Ssa>,
+        base: Ref<Ssa>,
+        prop: Option<Ref<Ssa>>,
         args: Vec<(EleKind, Ref<Ssa>)>,
     },
     Function {
