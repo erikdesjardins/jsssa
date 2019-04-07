@@ -1,0 +1,27 @@
+---
+created: "2019-04-07T06:57:00.694792700Z"
+creator: insta@0.7.1
+source: src/opt/tests/redundant.rs
+expression: "\n    let f;\n    while (foo) {\n        f += 1; // do not drop\n        if (bar) {\n            break;\n        }\n        f = 3;\n    }\n"
+---
+_ini = <void>
+f <= _ini
+<loop>:
+    _whl = <global foo>
+    <if> _whl:
+        <empty>
+    <else>:
+        <break>
+    _lhs = *f
+    _rhs = 1
+    _val = _lhs + _rhs
+    f <- _val
+    <dead> = _val
+    _iff = <global bar>
+    <if> _iff:
+        <break>
+    <else>:
+        <empty>
+    _val$1 = 3
+    f <- _val$1
+    <dead> = _val$1

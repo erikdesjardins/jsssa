@@ -109,3 +109,33 @@ case!(
     outer;
 "#
 );
+
+case!(
+    across_conditional_breaks_write,
+    |cx| cx.converge::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let f;
+    while (foo) {
+        f += 1; // do not drop
+        if (bar) {
+            break;
+        }
+        f = 3;
+    }
+"#
+);
+
+case!(
+    across_conditional_breaks_read,
+    |cx| cx.converge::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let f;
+    while (foo) {
+        f += 1;
+        if (bar) {
+            break;
+        }
+        f; // forward
+    }
+"#
+);

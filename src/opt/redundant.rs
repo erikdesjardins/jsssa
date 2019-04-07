@@ -67,7 +67,8 @@ struct CollectLoadStoreInfo<'a> {
     cur_index: StmtIndex,
     last_op_for_reads: HashMap<&'a ir::Ref<ir::Mut>, (StmtIndex, MutOp<'a>)>,
     last_op_for_writes: HashMap<&'a ir::Ref<ir::Mut>, (StmtIndex, MutOp<'a>)>,
-    invalid_for_parent_scope: Invalid<'a>,
+    invalid_for_parent_reads: Invalid<'a>,
+    invalid_for_parent_writes: Invalid<'a>,
 }
 
 #[derive(Clone)]
@@ -100,14 +101,28 @@ impl<'a> Invalid<'a> {
 }
 
 impl<'a> CollectLoadStoreInfo<'a> {
-    fn invalidate_from_child(&mut self, invalid: Invalid<'a>) {
-        match invalid {
-            Invalid::Everything => self.invalidate_everything(),
+    fn invalidate_from_child(&mut self, child: Self) {
+        match child.invalid_for_parent_reads {
+            Invalid::Everything => {
+                self.last_op_for_reads.clear();
+                self.invalid_for_parent_reads = Invalid::Everything;
+            }
             Invalid::Refs(refs) => {
                 for ref_ in refs {
                     self.last_op_for_reads.remove(&ref_);
+                    self.invalid_for_parent_reads.insert_ref(ref_);
+                }
+            }
+        }
+        match child.invalid_for_parent_writes {
+            Invalid::Everything => {
+                self.last_op_for_writes.clear();
+                self.invalid_for_parent_writes = Invalid::Everything;
+            }
+            Invalid::Refs(refs) => {
+                for ref_ in refs {
                     self.last_op_for_writes.remove(&ref_);
-                    self.invalid_for_parent_scope.insert_ref(ref_);
+                    self.invalid_for_parent_writes.insert_ref(ref_);
                 }
             }
         }
@@ -116,7 +131,13 @@ impl<'a> CollectLoadStoreInfo<'a> {
     fn invalidate_everything(&mut self) {
         self.last_op_for_reads.clear();
         self.last_op_for_writes.clear();
-        self.invalid_for_parent_scope = Invalid::Everything;
+        self.invalid_for_parent_reads = Invalid::Everything;
+        self.invalid_for_parent_writes = Invalid::Everything;
+    }
+
+    fn invalidate_for_writes(&mut self) {
+        self.last_op_for_writes.clear();
+        self.invalid_for_parent_writes = Invalid::Everything;
     }
 
     fn invalidate_local(&mut self) {
@@ -128,7 +149,6 @@ impl<'a> CollectLoadStoreInfo<'a> {
         let op = (self.cur_index, MutOp::Declare(val));
         self.last_op_for_reads.insert(target, op.clone());
         self.last_op_for_writes.insert(target, op);
-        self.invalid_for_parent_scope.insert_ref(target);
     }
 
     fn write_mut(&mut self, target: &'a ir::Ref<ir::Mut>, val: &'a ir::Ref<ir::Ssa>) {
@@ -149,7 +169,8 @@ impl<'a> CollectLoadStoreInfo<'a> {
         };
         self.last_op_for_reads.insert(target, op.clone());
         self.last_op_for_writes.insert(target, op);
-        self.invalid_for_parent_scope.insert_ref(target);
+        self.invalid_for_parent_reads.insert_ref(target);
+        self.invalid_for_parent_writes.insert_ref(target);
     }
 
     fn read_mut(&mut self, target: &'a ir::Ref<ir::Ssa>, source: &'a ir::Ref<ir::Mut>) {
@@ -199,7 +220,7 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
                 mem::swap(&mut inner.mut_ops_to_replace, &mut self.mut_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 // invalidate any vars written in the inner scope
-                self.invalidate_from_child(inner.invalid_for_parent_scope);
+                self.invalidate_from_child(inner);
                 r
             }
             ScopeTy::Nonlinear => {
@@ -211,7 +232,7 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
                 mem::swap(&mut inner.mut_ops_to_replace, &mut self.mut_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 // invalidate any vars written in the inner scope
-                self.invalidate_from_child(inner.invalid_for_parent_scope);
+                self.invalidate_from_child(inner);
                 r
             }
         }
@@ -246,14 +267,14 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
             },
             ir::Stmt::DeclareMutable { target, val } => self.declare_mut(target, val),
             ir::Stmt::WriteMutable { target, val } => self.write_mut(target, val),
+            ir::Stmt::Return { .. }
+            | ir::Stmt::Throw { .. }
+            | ir::Stmt::Break { .. }
+            | ir::Stmt::Continue { .. } => self.invalidate_for_writes(),
             ir::Stmt::Debugger { .. } => self.invalidate_everything(),
             ir::Stmt::SwitchCase { .. } => self.invalidate_local(),
             ir::Stmt::WriteGlobal { .. }
             | ir::Stmt::WriteMember { .. }
-            | ir::Stmt::Return { .. }
-            | ir::Stmt::Throw { .. }
-            | ir::Stmt::Break { .. }
-            | ir::Stmt::Continue { .. }
             | ir::Stmt::Label { .. }
             | ir::Stmt::Loop { .. }
             | ir::Stmt::ForEach { .. }
