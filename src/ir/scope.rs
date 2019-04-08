@@ -2,50 +2,46 @@ use std::collections::{HashMap, HashSet};
 
 use swc_atoms::JsWord;
 
+use crate::collections::StackedMap;
 use crate::ir::{Lbl, Mut, Ref, Ssa};
 use crate::utils::default_hash;
 
 #[derive(Default)]
 pub struct Ast<'a> {
-    parent: Option<&'a Ast<'a>>,
-    ident_to_mut_ref: HashMap<JsWord, Ref<Mut>>,
-    ident_to_label_ref: HashMap<JsWord, Ref<Lbl>>,
+    ident_to_mut_ref: StackedMap<'a, JsWord, Ref<Mut>>,
+    ident_to_label_ref: StackedMap<'a, JsWord, Ref<Lbl>>,
 }
 
 impl<'a> Ast<'a> {
     pub fn nested(&'a self) -> Ast<'a> {
         Self {
-            parent: Some(self),
-            ident_to_mut_ref: Default::default(),
-            ident_to_label_ref: Default::default(),
+            ident_to_mut_ref: self.ident_to_mut_ref.child(),
+            ident_to_label_ref: self.ident_to_label_ref.child(),
         }
     }
 
     pub fn get_mutable(&self, ident: &JsWord) -> Option<&Ref<Mut>> {
-        self.get_mutable_in_current(ident)
-            .or_else(|| self.parent.and_then(|p| p.get_mutable(ident)))
+        self.ident_to_mut_ref.get_all(ident)
     }
 
     pub fn get_mutable_in_current(&self, ident: &JsWord) -> Option<&Ref<Mut>> {
-        self.ident_to_mut_ref.get(ident)
+        self.ident_to_mut_ref.get_self(ident)
     }
 
     pub fn declare_mutable(&mut self, ident: JsWord) -> Ref<Mut> {
         let ref_ = Ref::new(&ident);
-        let old_ref = self.ident_to_mut_ref.insert(ident, ref_.clone());
+        let old_ref = self.ident_to_mut_ref.insert_self(ident, ref_.clone());
         assert!(old_ref.is_none(), "mutable vars can only be declared once");
         ref_
     }
 
     pub fn get_label(&self, ident: &JsWord) -> Option<&Ref<Lbl>> {
-        self.ident_to_label_ref
-            .get(ident)
-            .or_else(|| self.parent.and_then(|p| p.get_label(ident)))
+        self.ident_to_label_ref.get_all(ident)
     }
 
     pub fn declare_label(&mut self, ident: JsWord) -> Ref<Lbl> {
         let ref_ = Ref::new(&ident);
-        let old_ref = self.ident_to_label_ref.insert(ident, ref_.clone());
+        let old_ref = self.ident_to_label_ref.insert_self(ident, ref_.clone());
         assert!(old_ref.is_none(), "labels can only be declared once");
         ref_
     }
