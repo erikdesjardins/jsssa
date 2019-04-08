@@ -17,17 +17,6 @@ case!(
 );
 
 case!(
-    empty_for,
-    |cx| cx.run::<constant::ConstProp>("const-prop"),
-    r#"
-    for (var x in {}) bad;
-    for (var x of []) bad;
-    for (var x in { z: 1 }) good;
-    for (var x of [1]) good;
-"#
-);
-
-case!(
     dead_if,
     |cx| cx.run::<constant::ConstProp>("const-prop"),
     r#"

@@ -1,0 +1,14 @@
+---
+created: "2019-04-07T17:31:14.941035600Z"
+creator: insta@0.7.1
+source: src/tests/all_phases.rs
+expression: "\n    let x = {};\n    foo();\n    x.y = 1;\n    for (let k in x) log(k);\n"
+---
+var _ini = {
+};
+foo();
+_ini.y = 1;
+for(var _for in _ini){
+    log(_for);
+}
+

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::f64;
 
-use crate::collections::ZeroOneMany::{self, Many, One, Zero};
+use crate::collections::ZeroOneMany::{self, Many, One};
 use crate::ir;
 use crate::ir::traverse::Folder;
 
@@ -28,9 +28,9 @@ impl ConstProp {
             ir::Expr::Undefined => ir::Expr::Undefined,
             ir::Expr::This => ir::Expr::This,
             // avoid cloning refs inside array
-            ir::Expr::Array { elems } if elems.is_empty() => ir::Expr::Array { elems: vec![] },
+            ir::Expr::Array { elems: _ } => ir::Expr::Array { elems: vec![] },
             // avoid cloning refs inside object
-            ir::Expr::Object { props } if props.is_empty() => ir::Expr::Object { props: vec![] },
+            ir::Expr::Object { props: _ } => ir::Expr::Object { props: vec![] },
             ir::Expr::RegExp { regex, flags } => ir::Expr::RegExp {
                 regex: regex.clone(),
                 flags: flags.clone(),
@@ -137,18 +137,6 @@ impl Folder for ConstProp {
 
                 One(ir::Stmt::Expr { target, expr })
             }
-            ir::Stmt::ForEach {
-                ref kind,
-                ref init,
-                body: _,
-            } => match self.shallow_values.get(&init.weak()) {
-                Some(init_val) => match (kind, init_val) {
-                    (ir::ForKind::In, Object { props }) if props.is_empty() => Zero,
-                    (ir::ForKind::Of, Array { elems }) if elems.is_empty() => Zero,
-                    _ => One(stmt),
-                },
-                None => One(stmt),
-            },
             ir::Stmt::IfElse {
                 cond,
                 cons,
