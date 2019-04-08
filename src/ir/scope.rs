@@ -88,7 +88,7 @@ impl<'a> Ir<'a> {
 
     pub fn nested(&'a self) -> Ir<'a> {
         Self {
-            minified_name_counter: self.minified_name_counter.clone(),
+            minified_name_counter: self.minified_name_counter,
             seen_prefix_hashes: self.seen_prefix_hashes.child(),
             mutable_names: self.mutable_names.child(),
             label_names: self.label_names.child(),

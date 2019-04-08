@@ -6,6 +6,7 @@ use std::option;
 use std::vec;
 
 /// Container holding 0/1/n items, avoiding allocation in the 0/1 cases
+#[allow(dead_code)]
 pub enum ZeroOneMany<T> {
     Zero,
     One(T),
@@ -88,6 +89,7 @@ where
     }
 }
 
+#[allow(dead_code)]
 impl<'a, K, V> StackedMap<'a, K, V>
 where
     K: Eq + Hash,
