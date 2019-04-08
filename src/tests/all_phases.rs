@@ -14,8 +14,15 @@ macro_rules! case {
                 let (ast, files) = parse::parse(g, $string)?;
                 let ir = ast2ir::convert(g, ast);
                 let ir = opt::run_passes(g, ir);
-                let ast = ir2ast::convert(g, ir, ir2ast::Inline::Yes);
-                let js = emit::emit(g, ast, files)?;
+                let ast = ir2ast::convert(
+                    g,
+                    ir,
+                    ir2ast::Opt {
+                        inline: true,
+                        minify: false,
+                    },
+                );
+                let js = emit::emit(g, ast, files, emit::Opt { minify: false })?;
                 insta::assert_snapshot_matches!(stringify!($name), js, $string);
                 Ok(())
             })

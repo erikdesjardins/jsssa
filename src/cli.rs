@@ -19,6 +19,10 @@ pub struct Options {
     #[structopt(short = "o", default_value = "-")]
     pub output: String,
 
+    /// Minify when emitting JS
+    #[structopt(short = "M", long = "minify")]
+    pub minify: bool,
+
     /// Run optimizations (implies all --opt-* flags)
     #[structopt(short = "O", long = "optimize")]
     pub optimize: bool,

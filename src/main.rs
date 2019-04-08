@@ -35,6 +35,7 @@ fn main() -> Result<(), NiceError> {
         verbose,
         input,
         output,
+        minify,
         optimize: _,
         opt_ir,
         opt_inline_ssa,
@@ -81,14 +82,17 @@ fn main() -> Result<(), NiceError> {
             log::info!("Done printing @ {}", Time(start.elapsed()));
             ppr
         } else {
-            let inline_ssa = match opt_inline_ssa {
-                true => ir2ast::Inline::Yes,
-                false => ir2ast::Inline::No,
-            };
-            let ast = ir2ast::convert(g, ir, inline_ssa);
+            let ast = ir2ast::convert(
+                g,
+                ir,
+                ir2ast::Opt {
+                    inline: opt_inline_ssa,
+                    minify,
+                },
+            );
             log::info!("Done ir2ast @ {}", Time(start.elapsed()));
 
-            let js = emit::emit(g, ast, files)?;
+            let js = emit::emit(g, ast, files, emit::Opt { minify })?;
             log::info!("Done emitting @ {}", Time(start.elapsed()));
             js
         };

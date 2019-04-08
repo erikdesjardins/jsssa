@@ -11,13 +11,13 @@ use crate::utils::P;
 
 mod ssa;
 
-pub enum Inline {
-    Yes,
-    No,
+pub struct Opt {
+    pub inline: bool,
+    pub minify: bool,
 }
 
 #[inline(never)] // for better profiling
-pub fn convert(_: &swc_globals::Initialized, ir: ir::Block, ssa_inlining: Inline) -> ast::Script {
+pub fn convert(_: &swc_globals::Initialized, ir: ir::Block, options: Opt) -> ast::Script {
     let mut globals = HashSet::new();
 
     visit_with(&ir, |stmt| match stmt {
@@ -40,11 +40,16 @@ pub fn convert(_: &swc_globals::Initialized, ir: ir::Block, ssa_inlining: Inline
         _ => {}
     });
 
-    let scope = scope::Ir::with_globals(globals);
+    let scope = scope::Ir::with_globals(
+        globals,
+        scope::Opt {
+            minify: options.minify,
+        },
+    );
 
-    let mut ssa_cache = match ssa_inlining {
-        Inline::Yes => ssa::Cache::prepare_for_inlining(&ir),
-        Inline::No => ssa::Cache::empty(),
+    let mut ssa_cache = match options.inline {
+        true => ssa::Cache::prepare_for_inlining(&ir),
+        false => ssa::Cache::empty(),
     };
 
     let body = convert_block(ir, &scope, &mut ssa_cache);

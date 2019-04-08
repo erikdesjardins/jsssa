@@ -12,8 +12,15 @@ macro_rules! case {
             swc_globals::with(|g| {
                 let (ast, files) = parse::parse(g, $string)?;
                 let ir = ast2ir::convert(g, ast);
-                let ast2 = ir2ast::convert(g, ir, ir2ast::Inline::Yes);
-                let js = emit::emit(g, ast2, files)?;
+                let ast2 = ir2ast::convert(
+                    g,
+                    ir,
+                    ir2ast::Opt {
+                        inline: true,
+                        minify: false,
+                    },
+                );
+                let js = emit::emit(g, ast2, files, emit::Opt { minify: false })?;
                 insta::assert_snapshot_matches!(stringify!($name), js, $string);
                 Ok(())
             })
@@ -41,9 +48,48 @@ fn no_inlining() -> Result<(), NiceError> {
     swc_globals::with(|g| {
         let (ast, files) = parse::parse(g, "let x = y;")?;
         let ir = ast2ir::convert(g, ast);
-        let ast2 = ir2ast::convert(g, ir, ir2ast::Inline::No);
-        let js = emit::emit(g, ast2, files)?;
+        let ast2 = ir2ast::convert(
+            g,
+            ir,
+            ir2ast::Opt {
+                inline: false,
+                minify: false,
+            },
+        );
+        let js = emit::emit(g, ast2, files, emit::Opt { minify: false })?;
         insta::assert_snapshot_matches!("no_inlining", js);
+        Ok(())
+    })
+}
+
+#[test]
+fn minify_names() -> Result<(), NiceError> {
+    swc_globals::with(|g| {
+        let (ast, files) = parse::parse(
+            g,
+            r#"
+            var x = 1;
+            if (x) {
+                let x = 3;
+                log(x);
+            } else {
+                let x = 7;
+                log(x);
+            }
+            log(x);
+        "#,
+        )?;
+        let ir = ast2ir::convert(g, ast);
+        let ast2 = ir2ast::convert(
+            g,
+            ir,
+            ir2ast::Opt {
+                inline: true,
+                minify: true,
+            },
+        );
+        let js = emit::emit(g, ast2, files, emit::Opt { minify: false })?;
+        insta::assert_snapshot_matches!("minify", js);
         Ok(())
     })
 }

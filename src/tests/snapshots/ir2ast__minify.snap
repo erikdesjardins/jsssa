@@ -1,0 +1,17 @@
+---
+created: "2019-04-08T05:30:34.193434900Z"
+creator: insta@0.7.1
+source: src/tests/ir2ast.rs
+expression: js
+---
+var a;
+a = 1;
+if (a) {
+    var b = 3;
+    log(b);
+} else {
+    var b = 7;
+    log(b);
+}
+log(a);
+

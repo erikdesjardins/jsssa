@@ -9,7 +9,7 @@ macro_rules! case {
         fn $name() -> Result<(), NiceError> {
             swc_globals::with(|g| {
                 let (ast, files) = parse::parse(g, $string)?;
-                let js = emit::emit(g, ast, files)?;
+                let js = emit::emit(g, ast, files, emit::Opt { minify: false })?;
                 insta::assert_snapshot_matches!(stringify!($name), js, $string);
                 Ok(())
             })
@@ -40,7 +40,7 @@ fn no_octal_escapes() -> Result<(), NiceError> {
             "\x008"; // === "\0" + "8"
         "#,
         )?;
-        let js = emit::emit(g, ast, files)?;
+        let js = emit::emit(g, ast, files, emit::Opt { minify: false })?;
         // record current incorrect behaviour
         assert_eq!(
             js,
@@ -48,6 +48,23 @@ fn no_octal_escapes() -> Result<(), NiceError> {
 '\08';
 "#
         );
+        Ok(())
+    })
+}
+
+#[test]
+fn minify() -> Result<(), NiceError> {
+    swc_globals::with(|g| {
+        let (ast, files) = parse::parse(
+            g,
+            r#"
+            if (x) {
+                y;
+            }
+        "#,
+        )?;
+        let js = emit::emit(g, ast, files, emit::Opt { minify: true })?;
+        insta::assert_snapshot_matches!("minify", js);
         Ok(())
     })
 }
