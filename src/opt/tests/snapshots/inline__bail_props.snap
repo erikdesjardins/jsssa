@@ -1,0 +1,10 @@
+---
+created: "2019-04-09T06:24:19.293340300Z"
+creator: insta@0.7.1
+source: src/opt/tests/inline.rs
+expression: "\n    (function() {\n        foo;\n    }).x();\n"
+---
+_obj = <function>:
+    <dead> = <global foo>
+_prp = "x"
+<dead> = _obj[_prp]()

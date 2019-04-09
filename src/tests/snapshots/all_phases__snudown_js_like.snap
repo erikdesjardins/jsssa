@@ -1,10 +1,9 @@
 ---
-created: "2019-04-07T17:31:14.981033Z"
+created: "2019-04-09T06:24:19.621343100Z"
 creator: insta@0.7.1
 source: src/tests/all_phases.rs
 expression: "\n    var r;\n    something;\n    r || (r = {});\n    var s = {};\n    var o;\n    for (o in r) s[o] = r[o];\n    r.x = 1;\n    for (o in s) r[o] = s[o];\n    var stuff = (function(r_inner) {\n        return {\n            xy: r_inner.x * 2\n        };\n    })(r);\n    var xy = stuff.xy;\n    window.foo = function foo(z) {\n        return z + xy;\n    };\n"
 ---
-var xy;
 something;
 var _val = {
 };
@@ -17,12 +16,10 @@ _val.x = 1;
 for(var _for in _ini){
     _val[_for] = _ini[_for];
 }
-xy = function(r_inner) {
-    return {
-        xy: r_inner.x * 2
-    };
-}(_val).xy;
+var _ini$1 = {
+    xy: _val.x * 2
+}.xy;
 window.foo = function(z) {
-    return z + xy;
+    return z + _ini$1;
 };
 

@@ -20,5 +20,6 @@ mod all_passes;
 mod constant;
 mod dce;
 mod forward;
+mod inline;
 mod mut2ssa;
 mod redundant;

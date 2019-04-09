@@ -1,0 +1,9 @@
+---
+created: "2019-04-09T06:28:27.579487900Z"
+creator: insta@0.7.1
+source: src/tests/all_phases.rs
+expression: "\n    g = (function f(a, b, c) {\n        log();\n        return a + b + c + 4;\n    })(1, 2, 3);\n"
+---
+log();
+g = 10;
+

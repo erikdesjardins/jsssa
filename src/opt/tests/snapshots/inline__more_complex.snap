@@ -1,0 +1,23 @@
+---
+created: "2019-04-09T06:24:19.474342500Z"
+creator: insta@0.7.1
+source: src/opt/tests/inline.rs
+expression: "\n    let r = (function f(a, b, c) {\n        log();\n        return a + b + c;\n    })(1, 2);\n"
+---
+_arg = 1
+_arg$1 = 2
+_mis = <void>
+a = _arg
+a$1 <= a
+b = _arg$1
+b$1 <= b
+c = _mis
+c$1 <= c
+_fun = <global log>
+<dead> = _fun()
+_lhs = *a$1
+_rhs = *b$1
+_lhs$1 = _lhs + _rhs
+_rhs$1 = *c$1
+_ret = _lhs$1 + _rhs$1
+<dead> = _ret

@@ -1,0 +1,14 @@
+---
+created: "2019-04-09T06:24:19.290342200Z"
+creator: insta@0.7.1
+source: src/opt/tests/inline.rs
+expression: "\n    (function() {\n        if (foo) { return; }\n    })();\n"
+---
+_fun = <function>:
+    _iff = <global foo>
+    <if> _iff:
+        _ret = <void>
+        <return> _ret
+    <else>:
+        <empty>
+<dead> = _fun()

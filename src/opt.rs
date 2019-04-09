@@ -6,6 +6,7 @@ use crate::utils::default_hash;
 mod constant;
 mod dce;
 mod forward;
+mod inline;
 mod mut2ssa;
 mod redundant;
 
@@ -18,8 +19,10 @@ pub fn run_passes(_: &swc_globals::Initialized, ir: ir::Block) -> ir::Block {
         .converge_with("main-opt-loop", |cx| {
             cx.converge::<redundant::LoadStore>("redundant-load-store")
                 .run::<mut2ssa::Mut2Ssa>("mut2ssa")
-                .run::<forward::Reads>("forward-reads")
+                .run::<forward::Reads>("forward-reads-redundancy")
                 .run::<constant::ConstProp>("const-prop")
+                .run::<inline::Inline>("inline")
+                .run::<forward::Reads>("forward-reads-inline")
                 .converge::<dce::Dce>("dce")
         })
         .into_inner()

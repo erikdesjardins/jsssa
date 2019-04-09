@@ -1,15 +1,9 @@
 ---
-created: "2019-04-05T07:02:49.768108700Z"
+created: "2019-04-09T06:24:19.554345Z"
 creator: insta@0.7.1
 source: src/tests/all_phases.rs
 expression: "\n    foo();\n    function foo() { foo_; }\n\n    (function() {\n        bar();\n        function bar() { bar_; }\n    })();\n"
 ---
-function() {
-    foo_;
-}();
-function() {
-    function() {
-        bar_;
-    }();
-}();
+foo_;
+bar_;
 

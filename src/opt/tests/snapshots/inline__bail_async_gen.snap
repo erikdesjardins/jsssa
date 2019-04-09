@@ -1,0 +1,15 @@
+---
+created: "2019-04-09T06:24:19.289342500Z"
+creator: insta@0.7.1
+source: src/opt/tests/inline.rs
+expression: "\n    (function*() {\n        foo;\n    })();\n    (async function() {\n        foo;\n    })();\n    (async () => {\n        foo;\n    })();\n"
+---
+_fun = <function generator>:
+    <dead> = <global foo>
+<dead> = _fun()
+_fun$1 = <function async>:
+    <dead> = <global foo>
+<dead> = _fun$1()
+_fun$2 = <arrow async>:
+    <dead> = <global foo>
+<dead> = _fun$2()

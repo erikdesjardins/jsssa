@@ -1,0 +1,16 @@
+---
+created: "2019-04-09T06:24:19.297341400Z"
+creator: insta@0.7.1
+source: src/opt/tests/inline.rs
+expression: "\n    (function f() {\n        if (foo) { f(); }\n    })();\n"
+---
+_fun = <function>:
+    f = <current function>
+    f$1 <= f
+    _iff = <global foo>
+    <if> _iff:
+        _fun$1 = *f$1
+        <dead> = _fun$1()
+    <else>:
+        <empty>
+<dead> = _fun()

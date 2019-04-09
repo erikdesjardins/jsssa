@@ -331,3 +331,23 @@ case!(
     for (let k in x) log(k);
 "#
 );
+
+case!(
+    do_not_inline_multi_use,
+    r#"
+    const f = () => { foo; };
+    f();
+    f();
+"#
+);
+
+case!(
+    basic_inlining,
+    r#"
+    function f(a, b, c) {
+        log();
+        return a + b + c + 4;
+    }
+    g = f(1, 2, 3);
+"#
+);

@@ -139,4 +139,11 @@ impl Used {
             _ => false,
         }
     }
+
+    pub fn is_once(&self) -> bool {
+        match self {
+            Used::Once => true,
+            _ => false,
+        }
+    }
 }
