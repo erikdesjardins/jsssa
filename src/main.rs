@@ -3,6 +3,7 @@
 #![allow(
     clippy::unneeded_field_pattern,
     clippy::cognitive_complexity,
+    clippy::option_map_unit_fn,
     clippy::map_clone,
     clippy::match_bool,
     clippy::single_match
