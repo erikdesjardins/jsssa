@@ -138,7 +138,7 @@ impl Folder for Mut2Ssa {
             self.mut_vars_to_replace = collector
                 .mut_ops
                 .into_iter()
-                .flat_map(|(ref_, saw)| match saw {
+                .filter_map(|(ref_, saw)| match saw {
                     State::ReadOnly { frozen: _ } => {
                         Some((ref_.weak(), What::Convert(ir::Ref::new(ref_.name_hint()))))
                     }
