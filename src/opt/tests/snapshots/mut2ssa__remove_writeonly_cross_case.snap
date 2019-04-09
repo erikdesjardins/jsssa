@@ -1,0 +1,17 @@
+---
+created: "2019-04-09T16:44:15.562568200Z"
+creator: insta@0.7.1
+source: src/opt/tests/mut2ssa.rs
+expression: "\n    switch (foo) {\n        case 0:\n            let x = 1;\n        default:\n            g = function() { x = 2 };\n    }\n"
+---
+_swi = <global foo>
+_tst = 0
+<switch> _swi:
+    <case> _tst:
+    <dead> = 1
+    <default>:
+    _val = <function>:
+        _val$1 = 2
+        <dead> = _val$1
+    <global g> <- _val
+    <dead> = _val

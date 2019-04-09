@@ -53,3 +53,16 @@ case!(
     }
 "#
 );
+
+case!(
+    remove_writeonly_cross_case,
+    |cx| cx.run::<mut2ssa::Mut2Ssa>("mut2ssa"),
+    r#"
+    switch (foo) {
+        case 0:
+            let x = 1;
+        default:
+            g = function() { x = 2 };
+    }
+"#
+);

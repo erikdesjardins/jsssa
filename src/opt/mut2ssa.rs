@@ -108,11 +108,7 @@ impl<'a> Visitor<'a> for CollectMutOpInfo<'a> {
             }
             ir::Stmt::SwitchCase { .. } => {
                 for ref_ in self.declared_at_toplevel_of_switch.drain() {
-                    match self
-                        .mut_ops
-                        .entry(ref_)
-                        .or_insert(State::ReadOnly { frozen: true })
-                    {
+                    match self.mut_ops.entry(ref_).or_insert(State::WriteOnly) {
                         State::ReadOnly { frozen } => {
                             *frozen = true;
                         }
