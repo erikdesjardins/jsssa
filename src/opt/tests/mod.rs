@@ -23,3 +23,4 @@ mod forward;
 mod inline;
 mod mut2ssa;
 mod redundant;
+mod writeonly;

@@ -1,0 +1,10 @@
+---
+created: "2019-04-09T17:16:06.418765600Z"
+creator: insta@0.7.1
+source: src/opt/tests/writeonly.rs
+expression: "\n    window.x = 1;\n"
+---
+_obj = <global window>
+_prp = "x"
+_val = 1
+_obj[_prp] <- _val

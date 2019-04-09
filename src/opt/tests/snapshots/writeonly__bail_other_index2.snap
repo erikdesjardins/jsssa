@@ -1,0 +1,12 @@
+---
+created: "2019-04-09T17:16:06.421762400Z"
+creator: insta@0.7.1
+source: src/opt/tests/writeonly.rs
+expression: "\n    const x = {};\n    log();\n    z[x] = 1;\n"
+---
+_ini = {  }
+_fun = <global log>
+<dead> = _fun()
+_obj = <global z>
+_val = 1
+_obj[_ini] <- _val
