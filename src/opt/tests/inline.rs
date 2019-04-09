@@ -92,3 +92,25 @@ case!(
     })(1, 2);
 "#
 );
+
+case!(
+    do_not_inline_multi_use,
+    all_passes,
+    r#"
+    const f = () => { foo; };
+    f();
+    f();
+"#
+);
+
+case!(
+    basic_inlining,
+    all_passes,
+    r#"
+    function f(a, b, c) {
+        log();
+        return a + b + c + 4;
+    }
+    g = f(1, 2, 3);
+"#
+);

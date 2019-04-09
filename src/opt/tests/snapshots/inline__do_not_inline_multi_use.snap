@@ -1,0 +1,10 @@
+---
+created: "2019-04-09T17:28:06.960145900Z"
+creator: insta@0.7.1
+source: src/opt/tests/inline.rs
+expression: "\n    const f = () => { foo; };\n    f();\n    f();\n"
+---
+_ini = <arrow>:
+    <dead> = <global foo>
+<dead> = _ini()
+<dead> = _ini()

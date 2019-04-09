@@ -125,3 +125,14 @@ case!(
     }
 "#
 );
+
+case!(
+    do_not_eliminate_for_in_with_assignments,
+    all_passes,
+    r#"
+    let x = {};
+    foo();
+    x.y = 1;
+    for (let k in x) log(k);
+"#
+);

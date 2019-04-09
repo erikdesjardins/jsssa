@@ -1,0 +1,16 @@
+---
+created: "2019-04-09T17:28:06.937151400Z"
+creator: insta@0.7.1
+source: src/opt/tests/dce.rs
+expression: "\n    let x = {};\n    foo();\n    x.y = 1;\n    for (let k in x) log(k);\n"
+---
+_ini = {  }
+_fun = <global foo>
+<dead> = _fun()
+_prp = "y"
+_val = 1
+_ini[_prp] <- _val
+<foreach in> _ini:
+    _for = <argument 0>
+    _fun$1 = <global log>
+    <dead> = _fun$1(_for)
