@@ -226,7 +226,7 @@ impl<'a> Visitor<'a> for CollectSingleUseInliningInfo<'a> {
                         Effect::Pure,
                         props
                             .iter()
-                            .flat_map(|(_, obj, prop)| iter::once(obj).chain(iter::once(prop))),
+                            .flat_map(|(_, key, val)| iter::once(key).chain(iter::once(val))),
                     ),
                     ir::Expr::RegExp { .. } => Effect::Read,
                     ir::Expr::Unary { op: _, val } => self.use_ref(Effect::Pure, val),
