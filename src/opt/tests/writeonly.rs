@@ -1,6 +1,3 @@
-use crate::opt::dce;
-use crate::opt::forward;
-use crate::opt::mut2ssa;
 use crate::opt::writeonly;
 
 case!(
@@ -13,11 +10,7 @@ case!(
 
 case!(
     basic_var,
-    |cx| cx
-        .run::<mut2ssa::Mut2Ssa>("mut2ssa")
-        .run::<forward::Reads>("forward-reads")
-        .converge::<dce::Dce>("dce")
-        .converge::<writeonly::Objects>("writeonly-objects"),
+    all_passes,
     r#"
     const x = {};
     log();
@@ -27,11 +20,7 @@ case!(
 
 case!(
     basic_bail,
-    |cx| cx
-        .run::<mut2ssa::Mut2Ssa>("mut2ssa")
-        .run::<forward::Reads>("forward-reads")
-        .converge::<dce::Dce>("dce")
-        .converge::<writeonly::Objects>("writeonly-objects"),
+    all_passes,
     r#"
     const x = {};
     log();
@@ -44,11 +33,7 @@ case!(
 
 case!(
     bail_escape,
-    |cx| cx
-        .run::<mut2ssa::Mut2Ssa>("mut2ssa")
-        .run::<forward::Reads>("forward-reads")
-        .converge::<dce::Dce>("dce")
-        .converge::<writeonly::Objects>("writeonly-objects"),
+    all_passes,
     r#"
     const x = {};
     log();
@@ -61,11 +46,7 @@ case!(
 
 case!(
     bail_other_index,
-    |cx| cx
-        .run::<mut2ssa::Mut2Ssa>("mut2ssa")
-        .run::<forward::Reads>("forward-reads")
-        .converge::<dce::Dce>("dce")
-        .converge::<writeonly::Objects>("writeonly-objects"),
+    all_passes,
     r#"
     const x = {};
     log();
@@ -75,11 +56,7 @@ case!(
 
 case!(
     bail_other_index2,
-    |cx| cx
-        .run::<mut2ssa::Mut2Ssa>("mut2ssa")
-        .run::<forward::Reads>("forward-reads")
-        .converge::<dce::Dce>("dce")
-        .converge::<writeonly::Objects>("writeonly-objects"),
+    all_passes,
     r#"
     const x = {};
     log();
@@ -89,11 +66,7 @@ case!(
 
 case!(
     bail_not_an_object,
-    |cx| cx
-        .run::<mut2ssa::Mut2Ssa>("mut2ssa")
-        .run::<forward::Reads>("forward-reads")
-        .converge::<dce::Dce>("dce")
-        .converge::<writeonly::Objects>("writeonly-objects"),
+    all_passes,
     r#"
     window.x = 1;
 "#

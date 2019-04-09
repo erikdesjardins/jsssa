@@ -1,4 +1,3 @@
-use crate::opt::dce;
 use crate::opt::inline;
 
 case!(
@@ -82,11 +81,9 @@ case!(
 
 case!(
     more_complex,
-    |cx| cx
-        .converge::<dce::Dce>("dce")
-        .converge::<inline::Inline>("inline"),
+    all_passes,
     r#"
-    let r = (function f(a, b, c) {
+    g = (function f(a, b, c) {
         log();
         return a + b + c;
     })(1, 2);
