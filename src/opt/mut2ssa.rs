@@ -7,7 +7,7 @@ use crate::ir::traverse::{Folder, RunVisitor, ScopeTy, Visitor};
 /// Converts read-only mutable vars to SSA, and removes write-only mutable vars.
 ///
 /// Does not profit from multiple passes.
-/// Profits from DCE running first, to remove unused reads; may also create opportunities for DCE.
+/// May profit from DCE running first; may create opportunities for DCE.
 /// May create opportunities for read forwarding.
 #[derive(Default)]
 pub struct Mut2Ssa {
