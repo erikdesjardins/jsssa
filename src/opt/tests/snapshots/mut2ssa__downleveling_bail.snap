@@ -1,7 +1,7 @@
 ---
-created: "2019-04-09T06:24:19.262340900Z"
+created: "2019-04-09T17:20:29.161120600Z"
 creator: insta@0.7.1
-source: src/opt/tests/all_passes.rs
+source: src/opt/tests/mut2ssa.rs
 expression: "\n    let x = 1;\n    x = 2;\n    x = 3;\n    if (foo) log(x);\n\n    let y = 10;\n    log(y);\n    log(y + 1);\n    if (bar) (function() {\n        y = 5;\n    })();\n"
 ---
 _val = 3

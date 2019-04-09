@@ -41,3 +41,12 @@ case!(
     }
 "#
 );
+
+case!(
+    precompute,
+    all_passes,
+    r#"
+    x = 1 + 1 + 1 + 1;
+    y = "foo" + " " + "bar";
+"#
+);
