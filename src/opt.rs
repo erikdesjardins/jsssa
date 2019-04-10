@@ -10,6 +10,7 @@ mod inline;
 mod mut2ssa;
 mod redundant;
 mod redundant_obj;
+mod sroa;
 mod writeonly;
 
 #[cfg(test)]
@@ -23,6 +24,7 @@ pub fn run_passes(_: &swc_globals::Initialized, ir: ir::Block) -> ir::Block {
                 .run::<mut2ssa::Mut2Ssa>("mut2ssa")
                 .run::<forward::Reads>("forward-reads-redundancy")
                 .converge::<dce::Dce>("dce-forwarded-reads")
+                .run::<sroa::Replace>("scalar-replace")
                 .run::<redundant_obj::LoadStore>("redundant-obj")
                 .run::<writeonly::Objects>("writeonly-objects")
                 .run::<constant::ConstProp>("const-prop")

@@ -1,0 +1,43 @@
+---
+created: "2019-04-10T05:53:15.485769600Z"
+creator: insta@0.7.1
+source: src/opt/tests/sroa.rs
+expression: "\n    let obj = { foo: 1, bar: 2, not_written: 2 };\n    if (something) {\n        obj.foo;\n        obj.foo = 3;\n        obj.bar;\n        if (something2) {\n            obj.bar = 4;\n        }\n        obj.foo;\n        obj.not_written;\n    }\n    obj.foo;\n    obj.bar;\n    obj.not_written;\n"
+---
+<dead> = "foo"
+_val = 1
+<dead> = "bar"
+_val$1 = 2
+<dead> = "not_written"
+_val$2 = 2
+foo <= _val
+bar <= _val$1
+not_written <= _val$2
+_iff = <global something>
+<if> _iff:
+    <dead> = "foo"
+    <dead> = *foo
+    <dead> = "foo"
+    _val$3 = 3
+    foo <- _val$3
+    <dead> = "bar"
+    <dead> = *bar
+    _iff$1 = <global something2>
+    <if> _iff$1:
+        <dead> = "bar"
+        _val$4 = 4
+        bar <- _val$4
+    <else>:
+        <empty>
+    <dead> = "foo"
+    <dead> = *foo
+    <dead> = "not_written"
+    <dead> = *not_written
+<else>:
+    <empty>
+<dead> = "foo"
+<dead> = *foo
+<dead> = "bar"
+<dead> = *bar
+<dead> = "not_written"
+<dead> = *not_written

@@ -1,0 +1,17 @@
+---
+created: "2019-04-10T05:53:15.482769700Z"
+creator: insta@0.7.1
+source: src/opt/tests/sroa.rs
+expression: "\n    let something = { x: 1 };\n    if (foo) {\n        g = something;\n    }\n    g1 = something.x;\n"
+---
+_key = "x"
+_val = 1
+_ini = { [_key]: _val }
+_iff = <global foo>
+<if> _iff:
+    <global g> <- _ini
+<else>:
+    <empty>
+_prp = "x"
+_val$1 = _ini[_prp]
+<global g1> <- _val$1

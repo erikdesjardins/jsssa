@@ -1,0 +1,26 @@
+---
+created: "2019-04-10T05:53:15.488765200Z"
+creator: insta@0.7.1
+source: src/opt/tests/sroa.rs
+expression: "\n    let obj = { foo: 1 };\n    obj.foo = 2;\n    obj.foo = 3;\n    obj.foo = 4;\n    obj.foo = 5;\n    invalidate();\n    g = obj.foo;\n"
+---
+<dead> = "foo"
+_val = 1
+foo <= _val
+<dead> = "foo"
+_val$1 = 2
+foo <- _val$1
+<dead> = "foo"
+_val$2 = 3
+foo <- _val$2
+<dead> = "foo"
+_val$3 = 4
+foo <- _val$3
+<dead> = "foo"
+_val$4 = 5
+foo <- _val$4
+_fun = <global invalidate>
+<dead> = _fun()
+<dead> = "foo"
+_val$5 = *foo
+<global g> <- _val$5

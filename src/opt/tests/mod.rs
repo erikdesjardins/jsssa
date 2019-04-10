@@ -37,4 +37,5 @@ mod inline;
 mod mut2ssa;
 mod redundant;
 mod redundant_obj;
+mod sroa;
 mod writeonly;
