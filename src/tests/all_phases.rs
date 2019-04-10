@@ -321,3 +321,13 @@ case!(
     console.log.bind(console);
 "#
 );
+
+case!(
+    inserts_parens_where_necessary,
+    r#"
+    g = (x + 1) * 2;
+    (function f() {
+        f();
+    })();
+"#
+);

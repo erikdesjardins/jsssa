@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use swc_common::SourceMap;
+use swc_common::{FoldWith, SourceMap};
 use swc_ecma_ast as ast;
 use swc_ecma_codegen::{text_writer::JsWriter, Config, Emitter, Handlers};
 
@@ -20,6 +20,8 @@ pub fn emit(
 ) -> Result<String, Error> {
     let mut wr = vec![];
 
+    let fixed_ast = ast.fold_with(&mut swc_fixer::fixer());
+
     {
         let mut emitter = Emitter {
             cfg: Config {
@@ -35,7 +37,7 @@ pub fn emit(
             },
             pos_of_leading_comments: Default::default(),
         };
-        emitter.emit_script(&ast)?;
+        emitter.emit_script(&fixed_ast)?;
     }
 
     Ok(String::from_utf8_lossy(&wr).into_owned())

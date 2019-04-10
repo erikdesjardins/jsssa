@@ -375,6 +375,7 @@ dependencies = [
  "swc_ecma_ast 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "swc_ecma_codegen 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "swc_ecma_parser 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_fixer 0.0.0",
 ]
 
 [[package]]
@@ -1062,6 +1063,14 @@ dependencies = [
  "quote 0.6.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "swc_macros_common 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.15.29 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "swc_fixer"
+version = "0.0.0"
+dependencies = [
+ "swc_common 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_ast 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

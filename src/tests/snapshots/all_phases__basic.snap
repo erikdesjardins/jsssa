@@ -1,10 +1,10 @@
 ---
-created: "2019-04-07T06:35:52.624966400Z"
+created: "2019-04-10T00:24:53.744169500Z"
 creator: insta@0.7.1
 source: src/tests/all_phases.rs
 expression: "\n    function f(x) {\n        while (true);\n        x = y.bar;\n        z.foo = x ? true : 'hi';\n        return +[1 || x, { x }, f + 1, ++g];\n    }\n    f(1), true;\n"
 ---
-function f() {
+(function f() {
     for(;;){
     }
     var _val = y.bar;
@@ -21,5 +21,5 @@ function f() {
     return +[1, {
             x: _val
         }, f + 1, _wri];
-}(1);
+})(1);
 

@@ -1,0 +1,8 @@
+[package]
+name = "swc_fixer"
+version = "0.0.0"
+edition = "2018"
+
+[dependencies]
+swc_common = "0.3"
+swc_ecma_ast = { version = "0.8", features = ["fold"] }

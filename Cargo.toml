@@ -13,6 +13,7 @@ swc_common = "0.3"
 swc_ecma_ast = "0.8"
 swc_ecma_codegen = "0.6"
 swc_ecma_parser = "0.9"
+swc_fixer = { path = "./swc_fixer" }
 
 [dev-dependencies]
 insta = "0.7"
