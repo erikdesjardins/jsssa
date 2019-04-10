@@ -1,0 +1,24 @@
+---
+created: "2019-04-10T04:16:02.053082500Z"
+creator: insta@0.7.1
+source: src/opt/tests/redundant_obj.rs
+expression: "\n    let a = { outer: 1 };\n    switch (x) {\n        case 1:\n            a.inner = 2;\n            a.inner;\n        case 2:\n            a.inner; // don't forward\n    }\n    a.outer;\n"
+---
+_key = "outer"
+_val = 1
+_ini = { [_key]: _val }
+_swi = <global x>
+_tst = 1
+_tst$1 = 2
+<switch> _swi:
+    <case> _tst:
+    _prp = "inner"
+    _val$1 = 2
+    _ini[_prp] <- _val$1
+    <dead> = "inner"
+    <dead> = _val$1
+    <case> _tst$1:
+    _prp$1 = "inner"
+    <dead> = _ini[_prp$1]
+<dead> = "outer"
+<dead> = _val

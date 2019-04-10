@@ -1,0 +1,19 @@
+---
+created: "2019-04-10T04:16:01.863097500Z"
+creator: insta@0.7.1
+source: src/opt/tests/redundant_obj.rs
+expression: "\n    let obj = { foo: 1 };\n    obj.foo = 2;\n    obj.foo = 3;\n    obj.foo = 4;\n    obj.foo = 5;\n    g = obj;\n"
+---
+_key = "foo"
+_val = 1
+_ini = { [_key]: _val }
+<dead> = "foo"
+<dead> = 2
+<dead> = "foo"
+<dead> = 3
+<dead> = "foo"
+<dead> = 4
+_prp = "foo"
+_val$1 = 5
+_ini[_prp] <- _val$1
+<global g> <- _ini

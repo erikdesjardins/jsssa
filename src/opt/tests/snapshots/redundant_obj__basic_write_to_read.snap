@@ -1,0 +1,15 @@
+---
+created: "2019-04-10T04:16:01.851086400Z"
+creator: insta@0.7.1
+source: src/opt/tests/redundant_obj.rs
+expression: "\n    let something = {};\n    foo(something);\n    something.x = x;\n    g = something.x;\n"
+---
+_ini = {  }
+_fun = <global foo>
+<dead> = _fun(_ini)
+_prp = "x"
+_val = <global x>
+_ini[_prp] <- _val
+<dead> = "x"
+_val$1 = _val
+<global g> <- _val$1

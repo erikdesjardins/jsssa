@@ -1,0 +1,27 @@
+---
+created: "2019-04-10T04:16:01.871087800Z"
+creator: insta@0.7.1
+source: src/opt/tests/redundant_obj.rs
+expression: "\n    let something = { x: 1 };\n    let no_write = { y: 2 };\n    if (foo) {\n        something[foo] = 1;\n        no_write[foo];\n    }\n    g1 = something.x;\n    g2 = no_write.y; // forward\n"
+---
+_key = "x"
+_val = 1
+_ini = { [_key]: _val }
+_key$1 = "y"
+_val$1 = 2
+_ini$1 = { [_key$1]: _val$1 }
+_iff = <global foo>
+<if> _iff:
+    _prp$1 = <global foo>
+    _val$4 = 1
+    _ini[_prp$1] <- _val$4
+    _prp$2 = <global foo>
+    <dead> = _ini$1[_prp$2]
+<else>:
+    <empty>
+_prp = "x"
+_val$2 = _ini[_prp]
+<global g1> <- _val$2
+<dead> = "y"
+_val$3 = _val$1
+<global g2> <- _val$3
