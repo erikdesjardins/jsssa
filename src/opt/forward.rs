@@ -29,7 +29,8 @@ impl Folder for Reads {
                     expr: ir::Expr::Read { source },
                 } => match self.ssa_remappings.get(&source.weak()) {
                     Some(orig_ref) => {
-                        self.ssa_remappings.insert(target.weak(), orig_ref.clone());
+                        let orig_ref = orig_ref.clone();
+                        self.ssa_remappings.insert(target.weak(), orig_ref);
                     }
                     None => {
                         self.ssa_remappings.insert(target.weak(), source.clone());

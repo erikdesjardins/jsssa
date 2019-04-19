@@ -349,7 +349,8 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
                     self.last_use_was_safe = true;
                     match self.known_strings.get(prop) {
                         Some(prop) => {
-                            self.read_prop(target, obj, *prop);
+                            let prop = *prop;
+                            self.read_prop(target, obj, prop);
                         }
                         None => {
                             // no need to invalidate obj itself, reading an unknown prop is fine
@@ -363,6 +364,7 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
                             ir::PropKind::Simple => {
                                 match self.known_strings.get(prop) {
                                     Some(prop) => {
+                                        let prop = *prop;
                                         self.declare_prop(target, prop, val);
                                     }
                                     None => {
@@ -403,6 +405,7 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
                 self.last_use_was_safe = true;
                 match self.known_strings.get(prop) {
                     Some(prop) => {
+                        let prop = *prop;
                         self.write_prop(obj, prop, val);
                     }
                     None => {
