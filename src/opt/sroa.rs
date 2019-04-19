@@ -56,7 +56,7 @@ impl<'a> Visitor<'a> for CollectObjInfo<'a> {
                             // don't overwrite if already invalidated
                             self.known_objs
                                 .entry(target)
-                                .or_insert(State::HasProps(props));
+                                .or_insert_with(|| State::HasProps(props));
                         }
                         Err(()) => {
                             self.known_objs.insert(target, State::Invalid);
