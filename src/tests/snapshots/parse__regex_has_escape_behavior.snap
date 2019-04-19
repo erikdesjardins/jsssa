@@ -1,18 +1,18 @@
 ---
-created: "2019-04-04T18:42:26.929952900Z"
-creator: insta@0.7.1
+created: "2019-04-19T19:57:32.204139Z"
+creator: insta@0.7.4
 source: src/tests/parse.rs
 expression: ast
 ---
 Script {
     span: Span {
         lo: BytePos(
-            5
+            5,
         ),
         hi: BytePos(
-            37
+            37,
         ),
-        ctxt: #0
+        ctxt: #0,
     },
     body: [
         Expr(
@@ -21,30 +21,30 @@ Script {
                     Regex {
                         span: Span {
                             lo: BytePos(
-                                5
+                                5,
                             ),
                             hi: BytePos(
-                                10
+                                10,
                             ),
-                            ctxt: #0
+                            ctxt: #0,
                         },
                         exp: Str {
                             span: Span {
                                 lo: BytePos(
-                                    6
+                                    6,
                                 ),
                                 hi: BytePos(
-                                    9
+                                    9,
                                 ),
-                                ctxt: #0
+                                ctxt: #0,
                             },
                             value: Atom('foo' type=inline),
-                            has_escape: false
+                            has_escape: false,
                         },
-                        flags: None
-                    }
-                )
-            )
+                        flags: None,
+                    },
+                ),
+            ),
         ),
         Expr(
             Lit(
@@ -52,30 +52,30 @@ Script {
                     Regex {
                         span: Span {
                             lo: BytePos(
-                                16
+                                16,
                             ),
                             hi: BytePos(
-                                23
+                                23,
                             ),
-                            ctxt: #0
+                            ctxt: #0,
                         },
                         exp: Str {
                             span: Span {
                                 lo: BytePos(
-                                    17
+                                    17,
                                 ),
                                 hi: BytePos(
-                                    22
+                                    22,
                                 ),
-                                ctxt: #0
+                                ctxt: #0,
                             },
                             value: Atom('bar\.' type=inline),
-                            has_escape: false
+                            has_escape: false,
                         },
-                        flags: None
-                    }
-                )
-            )
+                        flags: None,
+                    },
+                ),
+            ),
         ),
         Expr(
             Lit(
@@ -83,31 +83,31 @@ Script {
                     Regex {
                         span: Span {
                             lo: BytePos(
-                                29
+                                29,
                             ),
                             hi: BytePos(
-                                36
+                                36,
                             ),
-                            ctxt: #0
+                            ctxt: #0,
                         },
                         exp: Str {
                             span: Span {
                                 lo: BytePos(
-                                    30
+                                    30,
                                 ),
                                 hi: BytePos(
-                                    35
+                                    35,
                                 ),
-                                ctxt: #0
+                                ctxt: #0,
                             },
                             value: Atom('ba\/z' type=inline),
-                            has_escape: false
+                            has_escape: false,
                         },
-                        flags: None
-                    }
-                )
-            )
-        )
+                        flags: None,
+                    },
+                ),
+            ),
+        ),
     ],
-    shebang: None
+    shebang: None,
 }

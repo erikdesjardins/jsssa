@@ -1,18 +1,18 @@
 ---
-created: "2019-04-04T18:42:26.929952900Z"
-creator: insta@0.7.1
+created: "2019-04-19T19:57:32.209146800Z"
+creator: insta@0.7.4
 source: src/tests/parse.rs
 expression: ast
 ---
 Script {
     span: Span {
         lo: BytePos(
-            5
+            5,
         ),
         hi: BytePos(
-            36
+            36,
         ),
-        ctxt: #0
+        ctxt: #0,
     },
     body: [
         Expr(
@@ -21,18 +21,18 @@ Script {
                     Str {
                         span: Span {
                             lo: BytePos(
-                                5
+                                5,
                             ),
                             hi: BytePos(
-                                10
+                                10,
                             ),
-                            ctxt: #0
+                            ctxt: #0,
                         },
                         value: Atom('foo' type=inline),
-                        has_escape: false
-                    }
-                )
-            )
+                        has_escape: false,
+                    },
+                ),
+            ),
         ),
         Expr(
             Lit(
@@ -40,18 +40,18 @@ Script {
                     Str {
                         span: Span {
                             lo: BytePos(
-                                16
+                                16,
                             ),
                             hi: BytePos(
-                                22
+                                22,
                             ),
-                            ctxt: #0
+                            ctxt: #0,
                         },
                         value: Atom('ba' type=inline),
-                        has_escape: true
-                    }
-                )
-            )
+                        has_escape: true,
+                    },
+                ),
+            ),
         ),
         Expr(
             Lit(
@@ -59,19 +59,19 @@ Script {
                     Str {
                         span: Span {
                             lo: BytePos(
-                                28
+                                28,
                             ),
                             hi: BytePos(
-                                35
+                                35,
                             ),
-                            ctxt: #0
+                            ctxt: #0,
                         },
                         value: Atom('ba\z' type=inline),
-                        has_escape: true
-                    }
-                )
-            )
-        )
+                        has_escape: true,
+                    },
+                ),
+            ),
+        ),
     ],
-    shebang: None
+    shebang: None,
 }
