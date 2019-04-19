@@ -2,6 +2,7 @@
 // Apache License
 
 #![feature(box_syntax, box_patterns, specialization)]
+#![allow(clippy::all)]
 
 use swc_common::{
     util::{map::Map, move_map::MoveMap},
