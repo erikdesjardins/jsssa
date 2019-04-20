@@ -179,3 +179,14 @@ case!(
     }
 "#
 );
+
+case!(
+    call_receiver,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: function() {} };
+    something.x(); // receives `this`: do not opt
+    let something2 = { x: function() {} };
+    (0, something2.x)(); // does not receive `this`: opt
+"#
+);
