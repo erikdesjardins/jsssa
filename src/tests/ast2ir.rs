@@ -294,3 +294,10 @@ case!(
     console.log.bind(console);
 "#
 );
+
+case!(
+    does_not_preserve_indirect_calls,
+    r#"
+    (0, console.log)();
+"#
+);

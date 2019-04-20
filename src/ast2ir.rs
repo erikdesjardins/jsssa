@@ -1452,10 +1452,18 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 ),
                 _ => unreachable!(),
             };
+            let is_direct_prop_call = match &callee {
+                ast::ExprOrSuper::Expr(expr) => match expr.as_ref() {
+                    ast::Expr::Member(_) => true,
+                    _ => false,
+                },
+                _ => false,
+            };
             let (mut statements, callee_value) = convert_expr_or_super(callee, scope);
-            let (base_ref, prop_ref) = match callee_value {
-                ir::Expr::ReadMember { obj, prop } => (obj, Some(prop)),
-                _ => {
+            let (base_ref, prop_ref) = match (is_direct_prop_call, callee_value) {
+                (true, ir::Expr::ReadMember { obj, prop }) => (obj, Some(prop)),
+                (true, _) => unreachable!("direct prop call receiver was not a read"),
+                (false, callee_value) => {
                     let callee_ref = ir::Ref::new("_fun");
                     statements.push(ir::Stmt::Expr {
                         target: callee_ref.clone(),
