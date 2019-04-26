@@ -6,7 +6,7 @@ use crate::ir::traverse::{Folder, RunVisitor, ScopeTy, Visitor};
 
 /// Remove or forward redundant loads and stores of mutable vars.
 ///
-/// May profit from multiple passes.
+/// Does not profit from multiple passes.
 /// Does not profit from DCE running first; may create opportunities for DCE.
 /// May create opportunities for mut-to-ssa downleveling.
 /// May create opportunities for read forwarding.
@@ -65,17 +65,16 @@ enum What {
 struct CollectLoadStoreInfo<'a> {
     mut_ops_to_replace: HashMap<StmtIndex, What>,
     cur_index: StmtIndex,
-    last_op_for_reads: HashMap<&'a ir::Ref<ir::Mut>, (StmtIndex, MutOp<'a>)>,
-    last_op_for_writes: HashMap<&'a ir::Ref<ir::Mut>, (StmtIndex, MutOp<'a>)>,
+    last_op_for_reads: HashMap<&'a ir::Ref<ir::Mut>, (StmtIndex, WriteOp<'a>)>,
+    last_op_for_writes: HashMap<&'a ir::Ref<ir::Mut>, (StmtIndex, WriteOp<'a>)>,
     invalid_for_parent_reads: Invalid<'a>,
     invalid_for_parent_writes: Invalid<'a>,
 }
 
 #[derive(Clone)]
-enum MutOp<'a> {
+enum WriteOp<'a> {
     Declare(&'a ir::Ref<ir::Ssa>),
     Write(&'a ir::Ref<ir::Ssa>),
-    Read(&'a ir::Ref<ir::Ssa>),
 }
 
 enum Invalid<'a> {
@@ -146,7 +145,7 @@ impl<'a> CollectLoadStoreInfo<'a> {
     }
 
     fn declare_mut(&mut self, target: &'a ir::Ref<ir::Mut>, val: &'a ir::Ref<ir::Ssa>) {
-        let op = (self.cur_index, MutOp::Declare(val));
+        let op = (self.cur_index, WriteOp::Declare(val));
         self.last_op_for_reads.insert(target, op.clone());
         self.last_op_for_writes.insert(target, op);
     }
@@ -154,18 +153,18 @@ impl<'a> CollectLoadStoreInfo<'a> {
     fn write_mut(&mut self, target: &'a ir::Ref<ir::Mut>, val: &'a ir::Ref<ir::Ssa>) {
         let op = match self.last_op_for_writes.get(&target) {
             // write -> write (decl)
-            Some((declare_index, MutOp::Declare(_))) => {
+            Some((declare_index, WriteOp::Declare(_))) => {
                 self.mut_ops_to_replace.insert(*declare_index, What::Remove);
                 self.mut_ops_to_replace
                     .insert(self.cur_index, What::BecomeDecl);
-                (self.cur_index, MutOp::Declare(val))
+                (self.cur_index, WriteOp::Declare(val))
             }
             // write -> write
-            Some((write_index, MutOp::Write(_))) => {
+            Some((write_index, WriteOp::Write(_))) => {
                 self.mut_ops_to_replace.insert(*write_index, What::Remove);
-                (self.cur_index, MutOp::Write(val))
+                (self.cur_index, WriteOp::Write(val))
             }
-            Some((_, MutOp::Read(_))) | None => (self.cur_index, MutOp::Write(val)),
+            None => (self.cur_index, WriteOp::Write(val)),
         };
         self.last_op_for_reads.insert(target, op.clone());
         self.last_op_for_writes.insert(target, op);
@@ -173,20 +172,15 @@ impl<'a> CollectLoadStoreInfo<'a> {
         self.invalid_for_parent_writes.insert_ref(target);
     }
 
-    fn read_mut(&mut self, target: &'a ir::Ref<ir::Ssa>, source: &'a ir::Ref<ir::Mut>) {
-        let op = match self.last_op_for_reads.get(&source) {
-            // write -> read, read -> read
-            Some((_, MutOp::Declare(val)))
-            | Some((_, MutOp::Write(val)))
-            | Some((_, MutOp::Read(val))) => {
+    fn read_mut(&mut self, _target: &'a ir::Ref<ir::Ssa>, source: &'a ir::Ref<ir::Mut>) {
+        match self.last_op_for_reads.get(&source) {
+            // write -> read
+            Some((_, WriteOp::Declare(val))) | Some((_, WriteOp::Write(val))) => {
                 self.mut_ops_to_replace
                     .insert(self.cur_index, What::ReadSsa((*val).clone()));
-                (self.cur_index, MutOp::Read(*val))
             }
-            None => (self.cur_index, MutOp::Read(target)),
-        };
-        self.last_op_for_reads.insert(source, op.clone());
-        self.last_op_for_writes.insert(source, op);
+            None => {}
+        }
     }
 }
 
@@ -210,7 +204,6 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
             }
             ScopeTy::Normal | ScopeTy::Toplevel => {
                 // r->r and w->r can go into scopes, but not w->w (since it might not execute)
-                // and in particular, r->r can't go _out_ of scopes
                 let mut inner = Self::default();
                 mem::swap(&mut inner.mut_ops_to_replace, &mut self.mut_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);

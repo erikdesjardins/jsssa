@@ -20,7 +20,7 @@ pub fn run_passes(_: &swc_globals::Initialized, ir: ir::Block) -> ir::Block {
     OptCx::new(ir)
         .converge_with("main-opt-loop", |cx| {
             cx.converge::<dce::Dce>("dce")
-                .converge::<redundant::LoadStore>("redundant-load-store")
+                .run::<redundant::LoadStore>("redundant-load-store")
                 .run::<mut2ssa::Mut2Ssa>("mut2ssa")
                 .run::<forward::Reads>("forward-reads-redundancy")
                 .converge::<dce::Dce>("dce-forwarded-reads")

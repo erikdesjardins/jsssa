@@ -1,19 +1,8 @@
 use crate::opt::redundant;
 
 case!(
-    basic_read_to_read,
-    |cx| cx.converge::<redundant::LoadStore>("redundant-load-store"),
-    r#"
-    let something = 1;
-    foo();
-    let x = something;
-    let y = something;
-"#
-);
-
-case!(
     basic_write_to_read,
-    |cx| cx.converge::<redundant::LoadStore>("redundant-load-store"),
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
     r#"
     let something = 1;
     foo();
@@ -24,7 +13,7 @@ case!(
 
 case!(
     basic_write_to_write,
-    |cx| cx.converge::<redundant::LoadStore>("redundant-load-store"),
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
     r#"
     let something = 1;
     foo();
@@ -35,7 +24,7 @@ case!(
 
 case!(
     write_to_write_decl,
-    |cx| cx.converge::<redundant::LoadStore>("redundant-load-store"),
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
     r#"
     let something = 1;
     something = x;
@@ -45,8 +34,18 @@ case!(
 );
 
 case!(
+    forwarded_write_is_redundant,
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let something = 1;
+    g = something;
+    something = 2;
+"#
+);
+
+case!(
     invalidate_inner_scope_writes,
-    |cx| cx.converge::<redundant::LoadStore>("redundant-load-store"),
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
     r#"
     let foo = 1;
     let bar = 2;
@@ -70,7 +69,7 @@ case!(
 
 case!(
     many_writes,
-    |cx| cx.converge::<redundant::LoadStore>("redundant-load-store"),
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
     r#"
     let foo = 1;
     foo = 2;
@@ -82,7 +81,7 @@ case!(
 
 case!(
     reads_dont_propagate_to_parent,
-    |cx| cx.converge::<redundant::LoadStore>("redundant-load-store"),
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
     r#"
     let foo = 1;
     invalidate();
@@ -96,7 +95,7 @@ case!(
 
 case!(
     switch_invalidate_local,
-    |cx| cx.converge::<redundant::LoadStore>("redundant-load-store"),
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
     r#"
     let outer = 1;
     switch (x) {
@@ -112,7 +111,7 @@ case!(
 
 case!(
     across_conditional_breaks_write,
-    |cx| cx.converge::<redundant::LoadStore>("redundant-load-store"),
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
     r#"
     let f;
     while (foo) {
@@ -127,7 +126,7 @@ case!(
 
 case!(
     across_conditional_breaks_read,
-    |cx| cx.converge::<redundant::LoadStore>("redundant-load-store"),
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
     r#"
     let f;
     while (foo) {

@@ -1,0 +1,13 @@
+---
+created: "2019-04-26T23:23:05.671387100Z"
+creator: insta@0.7.4
+source: src/opt/tests/redundant.rs
+expression: "\n    let something = 1;\n    g = something;\n    something = 2;\n"
+---
+_ini = 1
+_val = _ini
+<global g> <- _val
+<dead> = _val
+_val$1 = 2
+something <= _val$1
+<dead> = _val$1
