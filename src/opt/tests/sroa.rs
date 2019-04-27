@@ -59,7 +59,7 @@ case!(
 );
 
 case!(
-    no_time_travel,
+    time_travel,
     |cx| passes!(cx),
     r#"
     g = function() {

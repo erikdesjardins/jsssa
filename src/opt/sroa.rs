@@ -1,4 +1,6 @@
 use std::collections::{HashMap, HashSet};
+use std::iter;
+use std::mem;
 
 use crate::collections::ZeroOneMany::{self, Many, One};
 use crate::ir;
@@ -25,6 +27,7 @@ struct CollectObjInfo<'a> {
 
 #[derive(Debug)]
 enum State<'a> {
+    NoObjYet(HashSet<&'a str>),
     HasProps(HashSet<&'a str>),
     Invalid,
 }
@@ -51,25 +54,44 @@ impl<'a> Visitor<'a> for CollectObjInfo<'a> {
                             }
                         })
                         .collect::<Result<_, _>>();
-                    match safe_props {
-                        Ok(props) => {
-                            // don't overwrite if already invalidated
-                            self.known_objs
-                                .entry(target)
-                                .or_insert_with(|| State::HasProps(props));
+                    match (self.known_objs.get_mut(target), safe_props) {
+                        (None, Ok(props)) => {
+                            self.known_objs.insert(target, State::HasProps(props));
                         }
-                        Err(()) => {
+                        (Some(State::NoObjYet(seen_props)), Ok(ref mut props)) => {
+                            if seen_props.is_subset(&props) {
+                                let props = mem::replace(props, Default::default());
+                                self.known_objs.insert(target, State::HasProps(props));
+                            } else {
+                                self.known_objs.insert(target, State::Invalid);
+                            }
+                        }
+                        (Some(State::HasProps(_)), _) => unreachable!("multiple ssa defns"),
+                        (Some(State::Invalid), _) => { /* already invalid */ }
+                        (_, Err(())) => {
                             self.known_objs.insert(target, State::Invalid);
                         }
                     }
                 }
                 ir::Expr::ReadMember { obj, prop } => {
                     self.last_use_was_safe = true;
-                    match (self.known_objs.get(obj), self.known_strings.get(prop)) {
-                        (Some(State::HasProps(props)), Some(prop)) if props.contains(prop) => {
-                            // known object, known prop: good
+                    match (self.known_objs.get_mut(obj), self.known_strings.get(prop)) {
+                        (None, Some(prop)) => {
+                            self.known_objs
+                                .insert(obj, State::NoObjYet(iter::once(*prop).collect()));
                         }
-                        _ => {
+                        (Some(State::NoObjYet(props)), Some(prop)) => {
+                            props.insert(prop);
+                        }
+                        (Some(State::HasProps(props)), Some(prop)) => {
+                            if props.contains(prop) {
+                                // known object, known prop: good
+                            } else {
+                                self.known_objs.insert(obj, State::Invalid);
+                            }
+                        }
+                        (Some(State::Invalid), _) => { /* already invalid */ }
+                        (_, None) => {
                             self.known_objs.insert(obj, State::Invalid);
                         }
                     }
@@ -79,11 +101,23 @@ impl<'a> Visitor<'a> for CollectObjInfo<'a> {
             },
             ir::Stmt::WriteMember { obj, prop, val } => {
                 self.last_use_was_safe = true;
-                match (self.known_objs.get(obj), self.known_strings.get(prop)) {
-                    (Some(State::HasProps(props)), Some(prop)) if props.contains(prop) => {
-                        // known object, known prop: good
+                match (self.known_objs.get_mut(obj), self.known_strings.get(prop)) {
+                    (None, Some(prop)) => {
+                        self.known_objs
+                            .insert(obj, State::NoObjYet(iter::once(*prop).collect()));
                     }
-                    _ => {
+                    (Some(State::NoObjYet(props)), Some(prop)) => {
+                        props.insert(prop);
+                    }
+                    (Some(State::HasProps(props)), Some(prop)) => {
+                        if props.contains(prop) {
+                            // known object, known prop: good
+                        } else {
+                            self.known_objs.insert(obj, State::Invalid);
+                        }
+                    }
+                    (Some(State::Invalid), _) => { /* already invalid */ }
+                    (_, None) => {
                         self.known_objs.insert(obj, State::Invalid);
                     }
                 }
@@ -124,7 +158,7 @@ impl Folder for Replace {
                             .collect();
                         Some((obj.weak(), prop_vars))
                     }
-                    State::Invalid => None,
+                    State::NoObjYet(_) | State::Invalid => None,
                 })
                 .collect();
             self.known_strings = collector

@@ -1,16 +1,15 @@
 ---
-created: "2019-04-10T05:53:15.488765200Z"
-creator: insta@0.7.1
+created: "2019-04-27T22:01:40.179877500Z"
+creator: insta@0.7.4
 source: src/opt/tests/sroa.rs
 expression: "\n    g = function() {\n        something.x;\n    }\n    let something = { x: 1 };\n    something.x;\n"
 ---
 _val = <function>:
-    _prp$1 = "x"
-    <dead> = something[_prp$1]
+    <dead> = "x"
+    <dead> = *x
 <global g> <- _val
-_key = "x"
+<dead> = "x"
 _val$1 = 1
-_ini = { [_key]: _val$1 }
-something = _ini
-_prp = "x"
-<dead> = _ini[_prp]
+x <= _val$1
+<dead> = "x"
+<dead> = *x
