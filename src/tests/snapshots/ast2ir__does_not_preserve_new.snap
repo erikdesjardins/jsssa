@@ -1,0 +1,10 @@
+---
+created: "2019-04-27T23:52:35.254099200Z"
+creator: insta@0.7.4
+source: src/tests/ast2ir.rs
+expression: "\n    new console.log();\n"
+---
+_obj = <global console>
+_prp = "log"
+_fun = _obj[_prp]
+<dead> = <new> _fun()

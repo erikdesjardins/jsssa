@@ -301,3 +301,10 @@ case!(
     (0, console.log)();
 "#
 );
+
+case!(
+    does_not_preserve_new,
+    r#"
+    new console.log();
+"#
+);

@@ -1452,12 +1452,13 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 ),
                 _ => unreachable!(),
             };
-            let is_direct_prop_call = match &callee {
-                ast::ExprOrSuper::Expr(expr) => match expr.as_ref() {
+            let is_direct_prop_call = match (&call_kind, &callee) {
+                (ir::CallKind::Call, ast::ExprOrSuper::Expr(expr)) => match expr.as_ref() {
                     ast::Expr::Member(_) => true,
                     _ => false,
                 },
-                _ => false,
+                (ir::CallKind::Call, _) => false,
+                (ir::CallKind::New, _) => false,
             };
             let (mut statements, callee_value) = convert_expr_or_super(callee, scope);
             let (base_ref, prop_ref) = match (is_direct_prop_call, callee_value) {
