@@ -1,6 +1,6 @@
 ---
-created: "2019-04-10T04:16:01.869082800Z"
-creator: insta@0.7.1
+created: "2019-04-27T22:01:39.979868800Z"
+creator: insta@0.7.4
 source: src/opt/tests/redundant_obj.rs
 expression: "\n    let obj = { foo: 1, bar: 2, not_written: 2 };\n    // every ref should be forwarded except the two at the bottom\n    if (something) {\n        obj.foo;\n        obj.foo = 3;\n        obj.bar;\n        if (something2) {\n            obj.bar = 4;\n        }\n        obj.foo;\n        obj.not_written;\n    }\n    obj.foo; // do not forward\n    obj.bar; // do not forward\n    obj.not_written;\n"
 ---
@@ -10,21 +10,21 @@ _key$1 = "bar"
 _val$1 = 2
 _key$2 = "not_written"
 _val$2 = 2
-_ini = { [_key]: _val, [_key$1]: _val$1, [_key$2]: _val$2 }
+obj = { [_key]: _val, [_key$1]: _val$1, [_key$2]: _val$2 }
 _iff = <global something>
 <if> _iff:
     <dead> = "foo"
     <dead> = _val
     _prp$2 = "foo"
     _val$3 = 3
-    _ini[_prp$2] <- _val$3
+    obj[_prp$2] <- _val$3
     <dead> = "bar"
     <dead> = _val$1
     _iff$1 = <global something2>
     <if> _iff$1:
         _prp$3 = "bar"
         _val$4 = 4
-        _ini[_prp$3] <- _val$4
+        obj[_prp$3] <- _val$4
     <else>:
         <empty>
     <dead> = "foo"
@@ -34,8 +34,8 @@ _iff = <global something>
 <else>:
     <empty>
 _prp = "foo"
-<dead> = _ini[_prp]
+<dead> = obj[_prp]
 _prp$1 = "bar"
-<dead> = _ini[_prp$1]
+<dead> = obj[_prp$1]
 <dead> = "not_written"
 <dead> = _val$2

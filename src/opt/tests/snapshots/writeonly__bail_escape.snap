@@ -1,15 +1,15 @@
 ---
-created: "2019-04-09T17:16:06.415759500Z"
-creator: insta@0.7.1
+created: "2019-04-27T22:01:40.192875900Z"
+creator: insta@0.7.4
 source: src/opt/tests/writeonly.rs
 expression: "\n    const x = {};\n    log();\n    x.z = 3;\n    g = function f() {\n        n = x;\n    };\n"
 ---
-_ini = {  }
+x = {  }
 _fun = <global log>
 <dead> = _fun()
 _prp = "z"
 _val = 3
-_ini[_prp] <- _val
+x[_prp] <- _val
 _val$1 = <function>:
-    <global n> <- _ini
+    <global n> <- x
 <global g> <- _val$1

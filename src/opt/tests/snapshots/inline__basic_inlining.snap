@@ -1,10 +1,10 @@
 ---
-created: "2019-04-09T17:28:06.970145200Z"
-creator: insta@0.7.1
+created: "2019-04-27T22:01:39.675664100Z"
+creator: insta@0.7.4
 source: src/opt/tests/inline.rs
 expression: "\n    function f(a, b, c) {\n        log();\n        return a + b + c + 4;\n    }\n    g = f(1, 2, 3);\n"
 ---
 _fun = <global log>
 <dead> = _fun()
-_ret = 10
-<global g> <- _ret
+_val = 10
+<global g> <- _val

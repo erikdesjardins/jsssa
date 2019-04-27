@@ -1,6 +1,6 @@
 ---
-created: "2019-04-09T17:31:42.937587900Z"
-creator: insta@0.7.1
+created: "2019-04-27T22:01:39.675664100Z"
+creator: insta@0.7.4
 source: src/opt/tests/inline.rs
 expression: "\n    g = (function f(a, b, c) {\n        log();\n        return a + b + c;\n    })(1, 2);\n"
 ---
@@ -8,5 +8,5 @@ _mis = <void>
 _fun = <global log>
 <dead> = _fun()
 _lhs = 3
-_ret = _lhs + _mis
-<global g> <- _ret
+_val = _lhs + _mis
+<global g> <- _val

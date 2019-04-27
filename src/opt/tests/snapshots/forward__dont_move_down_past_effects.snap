@@ -1,8 +1,9 @@
 ---
-created: "2019-04-27T22:01:39.644416Z"
+created: "2019-04-27T23:31:01.222547100Z"
 creator: insta@0.7.4
 source: src/opt/tests/forward.rs
 expression: ppr
 ---
-c = <null>
-<dead> = c + c
+a = <null>
+<break>
+<dead> = a

@@ -1,15 +1,15 @@
 ---
-created: "2019-04-10T03:55:05.108857400Z"
-creator: insta@0.7.1
+created: "2019-04-27T22:01:39.852873700Z"
+creator: insta@0.7.4
 source: src/opt/tests/redundant_obj.rs
 expression: "\n    let something = {};\n    foo();\n    g1 = something.x;\n    g2 = something.y;\n"
 ---
-_ini = {  }
+something = {  }
 _fun = <global foo>
 <dead> = _fun()
 _prp = "x"
-_val = _ini[_prp]
+_val = something[_prp]
 <global g1> <- _val
 _prp$1 = "y"
-_val$1 = _ini[_prp$1]
+_val$1 = something[_prp$1]
 <global g2> <- _val$1

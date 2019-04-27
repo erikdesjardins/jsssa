@@ -1,5 +1,5 @@
 ---
-created: "2019-04-20T20:35:02.900961600Z"
+created: "2019-04-27T22:01:39.850873400Z"
 creator: insta@0.7.4
 source: src/opt/tests/redundant_obj.rs
 expression: "\n    let something = { x: function() {} };\n    something.x(); // receives `this`: do not opt\n    let something2 = { x: function() {} };\n    (0, something2.x)(); // does not receive `this`: opt\n"
@@ -7,9 +7,9 @@ expression: "\n    let something = { x: function() {} };\n    something.x(); // 
 _key = "x"
 _val = <function>:
     <empty>
-_ini = { [_key]: _val }
+_obj = { [_key]: _val }
 _prp = "x"
-<dead> = _ini[_prp]()
+<dead> = _obj[_prp]()
 _key$1 = "x"
 _val$1 = <function>:
     <empty>

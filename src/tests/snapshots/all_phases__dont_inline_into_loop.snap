@@ -1,12 +1,12 @@
 ---
-created: "2019-04-07T06:35:52.615963700Z"
-creator: insta@0.7.1
+created: "2019-04-27T22:01:40.350870800Z"
+creator: insta@0.7.4
 source: src/tests/all_phases.rs
 expression: "\n    let x = g;\n    do {\n        log(x);\n        g = 1;\n    } while (foo);\n"
 ---
-var _ini = g;
+var x = g;
 for(;;){
-    log(_ini);
+    log(x);
     g = 1;
     if (foo) {
     } else {
