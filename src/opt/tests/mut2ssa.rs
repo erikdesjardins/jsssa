@@ -74,6 +74,15 @@ case!(
 );
 
 case!(
+    time_travel_into_function_scope,
+    |cx| cx.run::<mut2ssa::Mut2Ssa>("mut2ssa"),
+    r#"
+    g = function() { return x };
+    let x = 1;
+"#
+);
+
+case!(
     no_cross_case,
     |cx| cx.run::<mut2ssa::Mut2Ssa>("mut2ssa"),
     r#"
