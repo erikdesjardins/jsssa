@@ -264,10 +264,10 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
             | ir::Stmt::Throw { .. }
             | ir::Stmt::Break { .. }
             | ir::Stmt::Continue { .. } => self.invalidate_for_writes(),
-            ir::Stmt::Debugger { .. } => self.invalidate_everything(),
             ir::Stmt::SwitchCase { .. } => self.invalidate_local(),
             ir::Stmt::WriteGlobal { .. }
             | ir::Stmt::WriteMember { .. }
+            | ir::Stmt::Debugger { .. }
             | ir::Stmt::Label { .. }
             | ir::Stmt::Loop { .. }
             | ir::Stmt::ForEach { .. }
