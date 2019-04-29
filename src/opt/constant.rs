@@ -105,10 +105,14 @@ impl Folder for ConstProp {
                             | (StrictEq, Bool { value: a }, Bool { value: b }) => Bool { value: a == b },
                             (EqEq, Number { value: a }, Number { value: b })
                             | (StrictEq, Number { value: a }, Number { value: b }) => Bool { value: a.0 == b.0 },
+                            (EqEq, String { value: a }, String { value: b })
+                            | (StrictEq, String { value: a }, String { value: b }) => Bool { value: a == b },
                             (NotEq, Bool { value: a }, Bool { value: b })
                             | (NotStrictEq, Bool { value: a }, Bool { value: b }) => Bool { value: a != b },
                             (NotEq, Number { value: a }, Number { value: b })
                             | (NotStrictEq, Number { value: a }, Number { value: b }) => Bool { value: a.0 != b.0 },
+                            (NotEq, String { value: a }, String { value: b })
+                            | (NotStrictEq, String { value: a }, String { value: b }) => Bool { value: a != b },
                             (Lt, Number { value: a }, Number { value: b }) => Bool { value: a.0 < b.0 },
                             (LtEq, Number { value: a }, Number { value: b }) => Bool { value: a.0 <= b.0 },
                             (Gt, Number { value: a }, Number { value: b }) => Bool { value: a.0 > b.0 },

@@ -50,3 +50,12 @@ case!(
     y = "foo" + " " + "bar";
 "#
 );
+
+case!(
+    string_eq,
+    |cx| cx.run::<constant::ConstProp>("const-prop"),
+    r#"
+    "foo" == "bar";
+    "foo" != "bar";
+"#
+);

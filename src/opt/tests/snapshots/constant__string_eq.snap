@@ -1,0 +1,12 @@
+---
+created: "2019-04-29T18:57:20.404204Z"
+creator: insta@0.7.4
+source: src/opt/tests/constant.rs
+expression: "\n    \"foo\" == \"bar\";\n    \"foo\" != \"bar\";\n"
+---
+<dead> = "foo"
+<dead> = "bar"
+<dead> = false
+<dead> = "foo"
+<dead> = "bar"
+<dead> = true
