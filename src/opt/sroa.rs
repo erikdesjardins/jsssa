@@ -32,6 +32,63 @@ enum State<'a> {
     Invalid,
 }
 
+impl<'a> CollectObjInfo<'a> {
+    fn declare_simple_object(
+        &mut self,
+        obj: &'a ir::Ref<ir::Ssa>,
+        props: impl IntoIterator<Item = &'a ir::Ref<ir::Ssa>>,
+    ) {
+        let known_props = props
+            .into_iter()
+            .map(|prop| match self.known_strings.get(prop) {
+                Some(prop) => Ok(*prop),
+                None => Err(()),
+            })
+            .collect::<Result<_, _>>();
+        match (self.known_objs.get_mut(obj), known_props) {
+            (None, Ok(props)) => {
+                self.known_objs.insert(obj, State::HasProps(props));
+            }
+            (Some(State::NoObjYet(seen_props)), Ok(ref mut props)) => {
+                if seen_props.is_subset(&props) {
+                    let props = mem::replace(props, Default::default());
+                    self.known_objs.insert(obj, State::HasProps(props));
+                } else {
+                    self.known_objs.insert(obj, State::Invalid);
+                }
+            }
+            (Some(State::HasProps(_)), _) => unreachable!("multiple ssa defns"),
+            (Some(State::Invalid), _) => { /* already invalid */ }
+            (_, Err(())) => {
+                self.known_objs.insert(obj, State::Invalid);
+            }
+        }
+    }
+
+    fn access_prop(&mut self, obj: &'a ir::Ref<ir::Ssa>, prop: &'a ir::Ref<ir::Ssa>) {
+        match (self.known_objs.get_mut(obj), self.known_strings.get(prop)) {
+            (None, Some(prop)) => {
+                self.known_objs
+                    .insert(obj, State::NoObjYet(iter::once(*prop).collect()));
+            }
+            (Some(State::NoObjYet(props)), Some(prop)) => {
+                props.insert(prop);
+            }
+            (Some(State::HasProps(props)), Some(prop)) => {
+                if props.contains(prop) {
+                    // known object, known prop: good
+                } else {
+                    self.known_objs.insert(obj, State::Invalid);
+                }
+            }
+            (Some(State::Invalid), _) => { /* already invalid */ }
+            (_, None) => {
+                self.known_objs.insert(obj, State::Invalid);
+            }
+        }
+    }
+}
+
 impl<'a> Visitor<'a> for CollectObjInfo<'a> {
     fn visit(&mut self, stmt: &'a ir::Stmt) {
         self.last_use_was_safe = false;
@@ -42,85 +99,32 @@ impl<'a> Visitor<'a> for CollectObjInfo<'a> {
                     self.known_strings.insert(target, &value);
                 }
                 ir::Expr::Object { props } => {
-                    let safe_props = props
+                    let all_simple_props = props
                         .iter()
                         .map(|(kind, prop, _val)| match kind {
-                            ir::PropKind::Simple => match self.known_strings.get(prop) {
-                                Some(prop) => Ok(*prop),
-                                None => Err(()),
-                            },
-                            ir::PropKind::Get | ir::PropKind::Set => {
-                                unimplemented!("getter/setter props not handled")
-                            }
+                            ir::PropKind::Simple => Ok(prop),
+                            ir::PropKind::Get | ir::PropKind::Set => Err(()),
                         })
-                        .collect::<Result<_, _>>();
-                    match (self.known_objs.get_mut(target), safe_props) {
-                        (None, Ok(props)) => {
-                            self.known_objs.insert(target, State::HasProps(props));
+                        .collect::<Result<Vec<_>, _>>();
+                    match all_simple_props {
+                        Ok(simple_props) => {
+                            self.declare_simple_object(target, simple_props);
                         }
-                        (Some(State::NoObjYet(seen_props)), Ok(ref mut props)) => {
-                            if seen_props.is_subset(&props) {
-                                let props = mem::replace(props, Default::default());
-                                self.known_objs.insert(target, State::HasProps(props));
-                            } else {
-                                self.known_objs.insert(target, State::Invalid);
-                            }
-                        }
-                        (Some(State::HasProps(_)), _) => unreachable!("multiple ssa defns"),
-                        (Some(State::Invalid), _) => { /* already invalid */ }
-                        (_, Err(())) => {
+                        Err(()) => {
                             self.known_objs.insert(target, State::Invalid);
                         }
                     }
                 }
                 ir::Expr::ReadMember { obj, prop } => {
                     self.last_use_was_safe = true;
-                    match (self.known_objs.get_mut(obj), self.known_strings.get(prop)) {
-                        (None, Some(prop)) => {
-                            self.known_objs
-                                .insert(obj, State::NoObjYet(iter::once(*prop).collect()));
-                        }
-                        (Some(State::NoObjYet(props)), Some(prop)) => {
-                            props.insert(prop);
-                        }
-                        (Some(State::HasProps(props)), Some(prop)) => {
-                            if props.contains(prop) {
-                                // known object, known prop: good
-                            } else {
-                                self.known_objs.insert(obj, State::Invalid);
-                            }
-                        }
-                        (Some(State::Invalid), _) => { /* already invalid */ }
-                        (_, None) => {
-                            self.known_objs.insert(obj, State::Invalid);
-                        }
-                    }
+                    self.access_prop(obj, prop);
                     self.known_objs.insert(prop, State::Invalid);
                 }
                 _ => {}
             },
             ir::Stmt::WriteMember { obj, prop, val } => {
                 self.last_use_was_safe = true;
-                match (self.known_objs.get_mut(obj), self.known_strings.get(prop)) {
-                    (None, Some(prop)) => {
-                        self.known_objs
-                            .insert(obj, State::NoObjYet(iter::once(*prop).collect()));
-                    }
-                    (Some(State::NoObjYet(props)), Some(prop)) => {
-                        props.insert(prop);
-                    }
-                    (Some(State::HasProps(props)), Some(prop)) => {
-                        if props.contains(prop) {
-                            // known object, known prop: good
-                        } else {
-                            self.known_objs.insert(obj, State::Invalid);
-                        }
-                    }
-                    (Some(State::Invalid), _) => { /* already invalid */ }
-                    (_, None) => {
-                        self.known_objs.insert(obj, State::Invalid);
-                    }
-                }
+                self.access_prop(obj, prop);
                 self.known_objs.insert(prop, State::Invalid);
                 self.known_objs.insert(val, State::Invalid);
             }
