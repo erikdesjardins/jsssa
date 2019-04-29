@@ -1,23 +1,11 @@
 ---
-created: "2019-04-10T03:59:57.212725Z"
-creator: insta@0.7.1
+created: "2019-04-29T02:16:31.693218100Z"
+creator: insta@0.7.4
 source: src/tests/all_phases.rs
 expression: "\n    var r;\n    something;\n    r || (r = {});\n    var s = {};\n    var o;\n    for (o in r) s[o] = r[o];\n    r.x = 1;\n    for (o in s) r[o] = s[o];\n    var stuff = (function(r_inner) {\n        return {\n            xy: r_inner.x * 2\n        };\n    })(r);\n    var xy = stuff.xy;\n    window.foo = function foo(z) {\n        return z + xy;\n    };\n"
 ---
 something;
-var _val = {
-};
-var _ini = {
-};
-for(var _for in _val){
-    _ini[_for] = _val[_for];
-}
-_val.x = 1;
-for(var _for in _ini){
-    _val[_for] = _ini[_for];
-}
-var _val$1 = _val.x * 2;
 window.foo = function(z) {
-    return z + _val$1;
+    return z + 2;
 };
 

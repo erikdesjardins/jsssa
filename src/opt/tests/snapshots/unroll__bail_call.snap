@@ -1,0 +1,17 @@
+---
+created: "2019-04-29T02:16:31.249217800Z"
+creator: insta@0.7.4
+source: src/opt/tests/unroll.rs
+expression: "\n    let something = {};\n    foo();\n    for (var x in something) {\n        log(x);\n    }\n"
+---
+_ini = <void>
+x <= _ini
+something = {  }
+_fun = <global foo>
+<dead> = _fun()
+<foreach in> something:
+    _for = <argument 0>
+    x <- _for
+    _fun$1 = <global log>
+    _arg = *x
+    <dead> = _fun$1(_arg)

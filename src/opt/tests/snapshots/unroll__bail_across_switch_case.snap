@@ -1,0 +1,22 @@
+---
+created: "2019-04-29T02:16:31.248222300Z"
+creator: insta@0.7.4
+source: src/opt/tests/unroll.rs
+expression: "\n    switch (foo) {\n        case 1:\n            let something = {};\n        default:\n            for (var x in something) {\n                log(x);\n            }\n    }\n"
+---
+_ini = <void>
+x <= _ini
+_swi = <global foo>
+_tst = 1
+<switch> _swi:
+    <case> _tst:
+    _ini$1 = {  }
+    something <= _ini$1
+    <default>:
+    _rhs = *something
+    <foreach in> _rhs:
+        _for = <argument 0>
+        x <- _for
+        _fun = <global log>
+        _arg = *x
+        <dead> = _fun(_arg)

@@ -1,0 +1,22 @@
+---
+created: "2019-04-29T02:16:31.447218400Z"
+creator: insta@0.7.4
+source: src/opt/tests/unroll.rs
+expression: "\n    let something = { x: 1 };\n    g = 1;\n    y.x = 2;\n    for (var x in something) {\n        log(x);\n    }\n"
+---
+_ini = <void>
+x <= _ini
+_key = "x"
+_val = 1
+<dead> = { [_key]: _val }
+_val$1 = 1
+<global g> <- _val$1
+_obj = <global y>
+_prp = "x"
+_val$2 = 2
+_obj[_prp] <- _val$2
+_for = _key
+x <- _for
+_fun = <global log>
+_arg = *x
+<dead> = _fun(_arg)

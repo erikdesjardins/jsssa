@@ -1,0 +1,12 @@
+---
+created: "2019-04-29T02:16:31.234219300Z"
+creator: insta@0.7.4
+source: src/opt/tests/unroll.rs
+expression: "\n    let something = {};\n    for (;;) {\n        g = log;\n    }\n    for (var x in something) {\n        log(x);\n    }\n"
+---
+_ini = <void>
+x <= _ini
+<dead> = {  }
+<loop>:
+    _val = <global log>
+    <global g> <- _val
