@@ -1,0 +1,11 @@
+---
+created: "2019-04-29T19:06:54.722545Z"
+creator: insta@0.7.4
+source: src/opt/tests/constant.rs
+expression: "\n    !void 0\n    ![]\n"
+---
+<dead> = 0
+<dead> = <void>
+<dead> = true
+<dead> = []
+<dead> = false

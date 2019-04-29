@@ -59,3 +59,12 @@ case!(
     "foo" != "bar";
 "#
 );
+
+case!(
+    not,
+    |cx| cx.run::<constant::ConstProp>("const-prop"),
+    r#"
+    !void 0
+    ![]
+"#
+);

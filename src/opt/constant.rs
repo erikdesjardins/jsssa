@@ -75,8 +75,16 @@ impl Folder for ConstProp {
                         Some(val_val) => match (op, val_val) {
                             (Plus, Number { value }) => Number { value: *value },
                             (Minus, Number { value }) => Number { value: F64(-value.0) },
-                            (Not, Number { value }) => Bool { value: value.0 == 0.0 },
                             (Not, Bool { value }) => Bool { value: !*value },
+                            (Not, Number { value }) => Bool { value: value.0 == 0.0 },
+                            (Not, String { value }) => Bool { value: value == "" },
+                            (Not, Null)
+                            | (Not, Undefined) => Bool { value: true },
+                            (Not, Array { .. })
+                            | (Not, Object { .. })
+                            | (Not, RegExp { .. })
+                            | (Not, Function { .. })
+                            | (Not, CurrentFunction) => Bool { value: false },
                             (Tilde, Number { value }) => Number { value: F64(!(value.0 as i32) as f64) },
                             (Typeof, Bool { .. }) => String { value: "boolean".into() },
                             (Typeof, Number { .. }) => String { value: "number".into() },
