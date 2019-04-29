@@ -32,20 +32,38 @@ enum State<'a> {
     Invalid,
 }
 
+fn is_safe_prop(prop: &str) -> bool {
+    const OBJ_PROTO_PROPS: [&str; 12] = [
+        "constructor",
+        "hasOwnProperty",
+        "isPrototypeOf",
+        "propertyIsEnumerable",
+        "toLocaleString",
+        "toString",
+        "valueOf",
+        "__defineGetter__",
+        "__defineSetter__",
+        "__lookupGetter__",
+        "__lookupSetter__",
+        "__proto__",
+    ];
+    !OBJ_PROTO_PROPS.contains(&prop)
+}
+
 impl<'a> CollectObjInfo<'a> {
     fn declare_simple_object(
         &mut self,
         obj: &'a ir::Ref<ir::Ssa>,
         props: impl IntoIterator<Item = &'a ir::Ref<ir::Ssa>>,
     ) {
-        let known_props = props
+        let known_safe_props = props
             .into_iter()
             .map(|prop| match self.known_strings.get(prop) {
-                Some(prop) => Ok(*prop),
-                None => Err(()),
+                Some(prop) if is_safe_prop(prop) => Ok(*prop),
+                _ => Err(()),
             })
             .collect::<Result<_, _>>();
-        match (self.known_objs.get_mut(obj), known_props) {
+        match (self.known_objs.get_mut(obj), known_safe_props) {
             (None, Ok(props)) => {
                 self.known_objs.insert(obj, State::HasProps(props));
             }
@@ -66,10 +84,14 @@ impl<'a> CollectObjInfo<'a> {
     }
 
     fn access_prop(&mut self, obj: &'a ir::Ref<ir::Ssa>, prop: &'a ir::Ref<ir::Ssa>) {
-        match (self.known_objs.get_mut(obj), self.known_strings.get(prop)) {
+        let known_safe_prop = match self.known_strings.get(prop) {
+            Some(prop) if is_safe_prop(prop) => Some(*prop),
+            _ => None,
+        };
+        match (self.known_objs.get_mut(obj), known_safe_prop) {
             (None, Some(prop)) => {
                 self.known_objs
-                    .insert(obj, State::NoObjYet(iter::once(*prop).collect()));
+                    .insert(obj, State::NoObjYet(iter::once(prop).collect()));
             }
             (Some(State::NoObjYet(props)), Some(prop)) => {
                 props.insert(prop);

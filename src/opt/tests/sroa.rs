@@ -131,3 +131,33 @@ case!(
     (0, something2.x)(); // does not receive `this`: opt
 "#
 );
+
+case!(
+    bail_bad_props1,
+    |cx| passes!(cx),
+    r#"
+    let something = { __proto__: 1, x: 2 };
+    g1 = something.x;
+    something.x = g2;
+"#
+);
+
+case!(
+    bail_bad_props2,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: 2 };
+    g1 = something.hasOwnProperty;
+    something.x = g2;
+"#
+);
+
+case!(
+    bail_bad_props3,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: 2 };
+    g1 = something.x;
+    something.constructor = g2;
+"#
+);
