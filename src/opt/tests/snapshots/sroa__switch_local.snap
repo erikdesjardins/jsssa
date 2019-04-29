@@ -1,6 +1,6 @@
 ---
-created: "2019-04-10T05:53:15.493769700Z"
-creator: insta@0.7.1
+created: "2019-04-29T04:47:06.101899Z"
+creator: insta@0.7.4
 source: src/opt/tests/sroa.rs
 expression: "\n    let a = { inner: 0, outer: 1 };\n    switch (x) {\n        case 1:\n            a.inner = 2;\n            a.inner;\n        case 2:\n            a.inner;\n    }\n    a.outer;\n"
 ---
@@ -8,6 +8,7 @@ expression: "\n    let a = { inner: 0, outer: 1 };\n    switch (x) {\n        ca
 _val = 0
 <dead> = "outer"
 _val$1 = 1
+<dead> = <void>
 inner <= _val
 outer <= _val$1
 _swi = <global x>

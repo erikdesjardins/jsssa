@@ -24,13 +24,22 @@ case!(
 );
 
 case!(
-    invalid_unknown_prop,
+    unknown_prop,
     |cx| passes!(cx),
     r#"
-    let something = { x: 1 };
-    foo();
-    something.prototype;
-    g = something.x;
+    let something = {};
+    g = something.foo;
+"#
+);
+
+case!(
+    unknown_prop_before_decl,
+    |cx| passes!(cx),
+    r#"
+    g = function() {
+        something.foo = 2;
+    }
+    let something = {};
 "#
 );
 

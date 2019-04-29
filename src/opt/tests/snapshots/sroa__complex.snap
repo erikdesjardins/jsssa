@@ -1,6 +1,6 @@
 ---
-created: "2019-04-10T05:53:15.485769600Z"
-creator: insta@0.7.1
+created: "2019-04-29T04:47:06.100901100Z"
+creator: insta@0.7.4
 source: src/opt/tests/sroa.rs
 expression: "\n    let obj = { foo: 1, bar: 2, not_written: 2 };\n    if (something) {\n        obj.foo;\n        obj.foo = 3;\n        obj.bar;\n        if (something2) {\n            obj.bar = 4;\n        }\n        obj.foo;\n        obj.not_written;\n    }\n    obj.foo;\n    obj.bar;\n    obj.not_written;\n"
 ---
@@ -10,6 +10,7 @@ _val = 1
 _val$1 = 2
 <dead> = "not_written"
 _val$2 = 2
+<dead> = <void>
 foo <= _val
 bar <= _val$1
 not_written <= _val$2

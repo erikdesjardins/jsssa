@@ -1,11 +1,12 @@
 ---
-created: "2019-04-10T05:53:15.488765200Z"
-creator: insta@0.7.1
+created: "2019-04-29T04:47:06.100901100Z"
+creator: insta@0.7.4
 source: src/opt/tests/sroa.rs
 expression: "\n    let obj = { foo: 1 };\n    obj.foo = 2;\n    obj.foo = 3;\n    obj.foo = 4;\n    obj.foo = 5;\n    invalidate();\n    g = obj.foo;\n"
 ---
 <dead> = "foo"
 _val = 1
+<dead> = <void>
 foo <= _val
 <dead> = "foo"
 _val$1 = 2

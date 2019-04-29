@@ -1,5 +1,5 @@
 ---
-created: "2019-04-27T22:01:40.065872800Z"
+created: "2019-04-29T04:47:06.092901300Z"
 creator: insta@0.7.4
 source: src/opt/tests/sroa.rs
 expression: "\n    let something = { x: function() {} };\n    something.x(); // receives `this`: do not opt\n    let something2 = { x: function() {} };\n    (0, something2.x)(); // does not receive `this`: opt\n"
@@ -13,6 +13,7 @@ _prp = "x"
 <dead> = "x"
 _val$1 = <function>:
     <empty>
+<dead> = <void>
 x <= _val$1
 <dead> = "x"
 _fun = *x

@@ -1,5 +1,5 @@
 ---
-created: "2019-04-27T22:01:40.179877500Z"
+created: "2019-04-29T04:47:06.110905100Z"
 creator: insta@0.7.4
 source: src/opt/tests/sroa.rs
 expression: "\n    g = function() {\n        something.x;\n    }\n    let something = { x: 1 };\n    something.x;\n"
@@ -10,6 +10,7 @@ _val = <function>:
 <global g> <- _val
 <dead> = "x"
 _val$1 = 1
+<dead> = <void>
 x <= _val$1
 <dead> = "x"
 <dead> = *x

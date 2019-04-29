@@ -1,0 +1,11 @@
+---
+created: "2019-04-29T04:47:06.109905700Z"
+creator: insta@0.7.4
+source: src/opt/tests/sroa.rs
+expression: "\n    let something = {};\n    g = something.foo;\n"
+---
+_mis = <void>
+foo <= _mis
+<dead> = "foo"
+_val = *foo
+<global g> <- _val

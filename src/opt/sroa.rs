@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 use std::iter;
-use std::mem;
 
 use crate::collections::ZeroOneMany::{self, Many, One};
 use crate::ir;
@@ -68,12 +67,8 @@ impl<'a> CollectObjInfo<'a> {
                 self.known_objs.insert(obj, State::HasProps(props));
             }
             (Some(State::NoObjYet(seen_props)), Ok(ref mut props)) => {
-                if seen_props.is_subset(&props) {
-                    let props = mem::replace(props, Default::default());
-                    self.known_objs.insert(obj, State::HasProps(props));
-                } else {
-                    self.known_objs.insert(obj, State::Invalid);
-                }
+                let all_props = seen_props.drain().chain(props.drain()).collect();
+                self.known_objs.insert(obj, State::HasProps(all_props));
             }
             (Some(State::HasProps(_)), _) => unreachable!("multiple ssa defns"),
             (Some(State::Invalid), _) => { /* already invalid */ }
@@ -97,11 +92,7 @@ impl<'a> CollectObjInfo<'a> {
                 props.insert(prop);
             }
             (Some(State::HasProps(props)), Some(prop)) => {
-                if props.contains(prop) {
-                    // known object, known prop: good
-                } else {
-                    self.known_objs.insert(obj, State::Invalid);
-                }
+                props.insert(prop);
             }
             (Some(State::Invalid), _) => { /* already invalid */ }
             (_, None) => {
@@ -203,19 +194,25 @@ impl Folder for Replace {
                 target,
                 expr: ir::Expr::Object { props },
             } => match self.objects_to_replace.get(&target.weak()) {
-                Some(prop_vars) => Many(
-                    props
+                Some(prop_vars) => {
+                    let mut prop_vars = prop_vars.clone();
+                    let undef_ref = ir::Ref::new("_mis");
+                    let undef = ir::Stmt::Expr {
+                        target: undef_ref.clone(),
+                        expr: ir::Expr::Undefined,
+                    };
+                    let props_with_values = props
                         .into_iter()
                         .map(|(kind, prop, val)| {
                             match (
                                 kind,
                                 self.known_strings
                                     .get(&prop.weak())
-                                    .and_then(|name| prop_vars.get(name)),
+                                    .and_then(|name| prop_vars.remove(name)),
                             ) {
                                 (ir::PropKind::Simple, Some(prop_var)) => {
                                     ir::Stmt::DeclareMutable {
-                                        target: prop_var.clone(),
+                                        target: prop_var,
                                         val,
                                     }
                                 }
@@ -224,8 +221,21 @@ impl Folder for Replace {
                                 }
                             }
                         })
-                        .collect(),
-                ),
+                        .collect::<Vec<_>>();
+                    let props_without_values =
+                        prop_vars
+                            .into_iter()
+                            .map(|(_, prop_var)| ir::Stmt::DeclareMutable {
+                                target: prop_var.clone(),
+                                val: undef_ref.clone(),
+                            });
+                    Many(
+                        iter::once(undef)
+                            .chain(props_with_values)
+                            .chain(props_without_values)
+                            .collect(),
+                    )
+                }
                 None => One(ir::Stmt::Expr {
                     target,
                     expr: ir::Expr::Object { props },

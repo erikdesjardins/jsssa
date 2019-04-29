@@ -1,0 +1,13 @@
+---
+created: "2019-04-29T04:47:06.115902Z"
+creator: insta@0.7.4
+source: src/opt/tests/sroa.rs
+expression: "\n    g = function() {\n        something.foo = 2;\n    }\n    let something = {};\n"
+---
+_val = <function>:
+    <dead> = "foo"
+    _val$1 = 2
+    foo <- _val$1
+<global g> <- _val
+_mis = <void>
+foo <= _mis
