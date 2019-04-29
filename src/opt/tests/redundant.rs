@@ -138,3 +138,15 @@ case!(
     }
 "#
 );
+
+case!(
+    into_nonlinear_scope,
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let f = 1;
+    for (;;) {
+        f;
+        f = 2;
+    }
+"#
+);

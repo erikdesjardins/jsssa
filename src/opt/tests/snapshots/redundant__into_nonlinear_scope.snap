@@ -1,0 +1,13 @@
+---
+created: "2019-04-29T02:16:31.185219500Z"
+creator: insta@0.7.4
+source: src/opt/tests/redundant.rs
+expression: "\n    let f = 1;\n    for (;;) {\n        f;\n        f = 2;\n    }\n"
+---
+_ini = 1
+f <= _ini
+<loop>:
+    <dead> = *f
+    _val = 2
+    f <- _val
+    <dead> = _val
