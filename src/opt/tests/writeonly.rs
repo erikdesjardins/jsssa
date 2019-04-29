@@ -1,4 +1,16 @@
+use crate::opt::dce;
+use crate::opt::forward;
+use crate::opt::mut2ssa;
 use crate::opt::writeonly;
+
+macro_rules! passes {
+    ( $cx:ident ) => {
+        $cx.run::<mut2ssa::Mut2Ssa>("mut2ssa")
+            .run::<forward::Reads>("forward-reads-redundancy")
+            .converge::<dce::Dce>("dce-forwarded-reads")
+            .converge::<writeonly::Objects>("writeonly-objects")
+    };
+}
 
 case!(
     basic,
@@ -10,7 +22,7 @@ case!(
 
 case!(
     basic_var,
-    all_passes,
+    |cx| passes!(cx),
     r#"
     const x = {};
     log();
@@ -20,7 +32,7 @@ case!(
 
 case!(
     basic_bail,
-    all_passes,
+    |cx| passes!(cx),
     r#"
     const x = {};
     log();
@@ -33,7 +45,7 @@ case!(
 
 case!(
     bail_escape,
-    all_passes,
+    |cx| passes!(cx),
     r#"
     const x = {};
     log();
@@ -46,7 +58,7 @@ case!(
 
 case!(
     bail_other_index,
-    all_passes,
+    |cx| passes!(cx),
     r#"
     const x = {};
     log();
@@ -56,7 +68,7 @@ case!(
 
 case!(
     bail_other_index2,
-    all_passes,
+    |cx| passes!(cx),
     r#"
     const x = {};
     log();
@@ -66,7 +78,7 @@ case!(
 
 case!(
     bail_not_an_object,
-    all_passes,
+    |cx| passes!(cx),
     r#"
     window.x = 1;
 "#

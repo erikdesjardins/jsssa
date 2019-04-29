@@ -1,8 +1,10 @@
 ---
-created: "2019-04-09T17:31:42.980594500Z"
-creator: insta@0.7.1
+created: "2019-04-29T04:46:06.513847400Z"
+creator: insta@0.7.4
 source: src/opt/tests/writeonly.rs
 expression: "\n    const x = {};\n    log();\n    x.z = 3;\n"
 ---
 _fun = <global log>
 <dead> = _fun()
+<dead> = "z"
+<dead> = 3
