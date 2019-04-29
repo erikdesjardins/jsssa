@@ -195,3 +195,18 @@ case!(
     }
 "#
 );
+
+case!(
+    bail_on_second_usage,
+    |cx| passes!(cx),
+    r#"
+    let something = {};
+    for (let x in something) {
+        g = x;
+    }
+    something.x = 1;
+    for (let x in something) {
+        g = x;
+    }
+"#
+);
