@@ -24,7 +24,7 @@ pub fn convert(_: &swc_globals::Initialized, ir: ir::Block, options: Opt) -> ast
         ir::Stmt::Expr {
             target: _,
             expr: ir::Expr::Number { value },
-        } if value.0.is_nan() => {
+        } if value.is_nan() => {
             globals.insert("NaN");
         }
         ir::Stmt::Expr {
@@ -391,11 +391,9 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
             span: span(),
             value,
         })),
-        ir::Expr::Number {
-            value: ir::F64(value),
-        } => ast::Expr::Lit(ast::Lit::Num(ast::Number {
+        ir::Expr::Number { value } => ast::Expr::Lit(ast::Lit::Num(ast::Number {
             span: span(),
-            value,
+            value: value.into_inner(),
         })),
         ir::Expr::String { value } => ast::Expr::Lit(ast::Lit::Str(ast::Str {
             span: span(),

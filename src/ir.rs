@@ -1,11 +1,10 @@
-use std::f64;
-use std::hash::{Hash, Hasher};
-
 use swc_atoms::JsWord;
 
+pub use self::float::F64;
 pub use self::print::print;
 pub use self::ref_::{Lbl, Mut, Ref, RefType, Ssa, Used, WeakRef};
 
+mod float;
 mod print;
 mod ref_;
 pub mod scope;
@@ -225,21 +224,6 @@ pub enum FnKind {
 pub enum YieldKind {
     Single,
     Delegate,
-}
-
-/// f64 wrapper which allows hashing via NaN canonicalization
-#[derive(Debug, Copy, Clone)]
-pub struct F64(pub f64);
-
-impl Hash for F64 {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        if self.0.is_nan() {
-            // use one specific NaN representation
-            state.write_u64(f64::NAN.to_bits());
-        } else {
-            state.write_u64(self.0.to_bits());
-        }
-    }
 }
 
 #[cfg(test)]

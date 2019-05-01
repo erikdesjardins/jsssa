@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::f64;
 
 use crate::collections::ZeroOneMany::{self, Many, One};
 use crate::ir;
@@ -66,7 +65,7 @@ impl Folder for ConstProp {
                 expr,
             } => {
                 let expr = match expr {
-                    ReadGlobal { ref source } if source == "NaN" => Number { value: F64(f64::NAN) },
+                    ReadGlobal { ref source } if source == "NaN" => Number { value: F64::NAN },
                     ReadGlobal { ref source } if source == "undefined" => Undefined,
                     Unary {
                         ref op,
@@ -74,9 +73,9 @@ impl Folder for ConstProp {
                     } => match self.shallow_values.get(&val.weak()) {
                         Some(val_val) => match (op, val_val) {
                             (Plus, Number { value }) => Number { value: *value },
-                            (Minus, Number { value }) => Number { value: F64(-value.0) },
+                            (Minus, Number { value }) => Number { value: -*value },
                             (Not, Bool { value }) => Bool { value: !*value },
-                            (Not, Number { value }) => Bool { value: value.0 == 0.0 },
+                            (Not, Number { value }) => Bool { value: !value.is_truthy() },
                             (Not, String { value }) => Bool { value: value == "" },
                             (Not, Null)
                             | (Not, Undefined) => Bool { value: true },
@@ -85,7 +84,7 @@ impl Folder for ConstProp {
                             | (Not, RegExp { .. })
                             | (Not, Function { .. })
                             | (Not, CurrentFunction) => Bool { value: false },
-                            (Tilde, Number { value }) => Number { value: F64(!(value.0 as i32) as f64) },
+                            (Tilde, Number { value }) => Number { value: !*value },
                             (Typeof, Bool { .. }) => String { value: "boolean".into() },
                             (Typeof, Number { .. }) => String { value: "number".into() },
                             (Typeof, String { .. }) => String { value: "string".into() },
@@ -112,31 +111,31 @@ impl Folder for ConstProp {
                             (EqEq, Bool { value: a }, Bool { value: b })
                             | (StrictEq, Bool { value: a }, Bool { value: b }) => Bool { value: a == b },
                             (EqEq, Number { value: a }, Number { value: b })
-                            | (StrictEq, Number { value: a }, Number { value: b }) => Bool { value: a.0 == b.0 },
+                            | (StrictEq, Number { value: a }, Number { value: b }) => Bool { value: a == b },
                             (EqEq, String { value: a }, String { value: b })
                             | (StrictEq, String { value: a }, String { value: b }) => Bool { value: a == b },
                             (NotEq, Bool { value: a }, Bool { value: b })
                             | (NotStrictEq, Bool { value: a }, Bool { value: b }) => Bool { value: a != b },
                             (NotEq, Number { value: a }, Number { value: b })
-                            | (NotStrictEq, Number { value: a }, Number { value: b }) => Bool { value: a.0 != b.0 },
+                            | (NotStrictEq, Number { value: a }, Number { value: b }) => Bool { value: a != b },
                             (NotEq, String { value: a }, String { value: b })
                             | (NotStrictEq, String { value: a }, String { value: b }) => Bool { value: a != b },
-                            (Lt, Number { value: a }, Number { value: b }) => Bool { value: a.0 < b.0 },
-                            (LtEq, Number { value: a }, Number { value: b }) => Bool { value: a.0 <= b.0 },
-                            (Gt, Number { value: a }, Number { value: b }) => Bool { value: a.0 > b.0 },
-                            (GtEq, Number { value: a }, Number { value: b }) => Bool { value: a.0 >= b.0 },
-                            (ShiftLeft, Number { value: a }, Number { value: b }) => Number { value: F64(((a.0 as i32) << b.0 as i32) as f64) },
-                            (ShiftRight, Number { value: a }, Number { value: b }) => Number { value: F64(((a.0 as i32) >> b.0 as i32) as f64) },
-                            (ShiftRightZero, Number { value: a }, Number { value: b }) => Number { value: F64(((a.0 as i32 as u32) >> b.0 as i32) as f64) },
-                            (Add, Number { value: a }, Number { value: b }) => Number { value: F64(a.0 + b.0) },
-                            (Sub, Number { value: a }, Number { value: b }) => Number { value: F64(a.0 - b.0) },
-                            (Mul, Number { value: a }, Number { value: b }) => Number { value: F64(a.0 * b.0) },
-                            (Div, Number { value: a }, Number { value: b }) => Number { value: F64(a.0 / b.0) },
-                            (Mod, Number { value: a }, Number { value: b }) => Number { value: F64(a.0 % b.0) },
-                            (BitOr, Number { value: a }, Number { value: b }) => Number { value: F64((a.0 as i32 | b.0 as i32) as f64) },
-                            (BitXor, Number { value: a }, Number { value: b }) => Number { value: F64((a.0 as i32 ^ b.0 as i32) as f64) },
-                            (BitAnd, Number { value: a }, Number { value: b }) => Number { value: F64((a.0 as i32 & b.0 as i32) as f64) },
-                            (Exp, Number { value: a }, Number { value: b }) => Number { value: F64(a.0.powf(b.0)) },
+                            (Lt, Number { value: a }, Number { value: b }) => Bool { value: a < b },
+                            (LtEq, Number { value: a }, Number { value: b }) => Bool { value: a <= b },
+                            (Gt, Number { value: a }, Number { value: b }) => Bool { value: a > b },
+                            (GtEq, Number { value: a }, Number { value: b }) => Bool { value: a >= b },
+                            (ShiftLeft, Number { value: a }, Number { value: b }) => Number { value: a.shl(*b) },
+                            (ShiftRight, Number { value: a }, Number { value: b }) => Number { value: a.shr(*b) },
+                            (ShiftRightZero, Number { value: a }, Number { value: b }) => Number { value: a.shr_zero(*b) },
+                            (Add, Number { value: a }, Number { value: b }) => Number { value: *a + *b },
+                            (Sub, Number { value: a }, Number { value: b }) => Number { value: *a - *b },
+                            (Mul, Number { value: a }, Number { value: b }) => Number { value: *a * *b },
+                            (Div, Number { value: a }, Number { value: b }) => Number { value: *a / *b },
+                            (Mod, Number { value: a }, Number { value: b }) => Number { value: *a % *b },
+                            (BitOr, Number { value: a }, Number { value: b }) => Number { value: *a | *b },
+                            (BitXor, Number { value: a }, Number { value: b }) => Number { value: *a ^ *b },
+                            (BitAnd, Number { value: a }, Number { value: b }) => Number { value: *a & *b },
+                            (Exp, Number { value: a }, Number { value: b }) => Number { value: a.powf(*b) },
                             (Add, String { value: a }, String { value: b }) => String { value: (a.to_string() + b).into() },
                             _ => expr,
                         },
@@ -163,8 +162,8 @@ impl Folder for ConstProp {
                     Bool { value: false }
                     | Null
                     | Undefined => Many(alt.0),
-                    Number { value } => if value.0 == 0. || value.0.is_nan() { Many(alt.0) } else { Many(cons.0) },
-                    String { value } => if value == "" { Many(alt.0) } else { Many(cons.0) },
+                    Number { value } => if value.is_truthy() { Many(cons.0) } else { Many(alt.0) },
+                    String { value } => if value != "" { Many(cons.0) } else { Many(alt.0) },
                     _ => One(ir::Stmt::IfElse { cond, cons, alt }),
                 },
                 None => One(ir::Stmt::IfElse { cond, cons, alt }),

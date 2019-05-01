@@ -623,7 +623,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             ast::Lit::Num(ast::Number { value, span: _ }) => (
                 vec![],
                 ir::Expr::Number {
-                    value: ir::F64(value),
+                    value: ir::F64::from(value),
                 },
             ),
             ast::Lit::JSXText(_) => unreachable!(),
@@ -1070,7 +1070,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 ir::Stmt::Expr {
                     target: one_ref.clone(),
                     expr: ir::Expr::Number {
-                        value: ir::F64(1.0),
+                        value: ir::F64::from(1.0),
                     },
                 },
                 ir::Stmt::Expr {
