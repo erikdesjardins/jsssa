@@ -44,8 +44,8 @@ fn no_octal_escapes() -> Result<(), NiceError> {
         // record current incorrect behaviour
         assert_eq!(
             js,
-            r#"'\01';
-'\08';
+            r#"'\x001';
+'\x008';
 "#
         );
         Ok(())

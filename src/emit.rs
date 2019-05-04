@@ -3,6 +3,7 @@ use std::sync::Arc;
 use swc_common::{FoldWith, SourceMap};
 use swc_ecma_ast as ast;
 use swc_ecma_codegen::{text_writer::JsWriter, Config, Emitter, Handlers};
+use swc_ecma_transforms as transforms;
 
 use crate::err::Error;
 use crate::swc_globals;
@@ -20,7 +21,7 @@ pub fn emit(
 ) -> Result<String, Error> {
     let mut wr = vec![];
 
-    let fixed_ast = ast.fold_with(&mut swc_fixer::fixer());
+    let fixed_ast = ast.fold_with(&mut transforms::fixer());
 
     {
         let mut emitter = Emitter {
