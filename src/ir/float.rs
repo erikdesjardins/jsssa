@@ -1,3 +1,5 @@
+#![allow(clippy::cast_lossless)]
+
 use std::f64;
 use std::fmt::{self, Display};
 use std::hash::{Hash, Hasher};
@@ -35,6 +37,7 @@ impl Display for F64 {
     }
 }
 
+#[allow(clippy::derive_hash_xor_eq)]
 impl Hash for F64 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         if self.0.is_nan() {
