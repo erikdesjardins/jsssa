@@ -41,7 +41,6 @@ fn no_octal_escapes() -> Result<(), NiceError> {
         "#,
         )?;
         let js = emit::emit(g, ast, files, emit::Opt { minify: false })?;
-        // record current incorrect behaviour
         assert_eq!(
             js,
             r#"'\x001';
