@@ -1,8 +1,0 @@
----
-created: "2019-04-07T06:13:24.452058900Z"
-creator: insta@0.7.1
-source: src/tests/all_phases.rs
-expression: "\n    console.log.bind(console);\n"
----
-console.log.bind(console);
-

@@ -26,7 +26,10 @@ fn basic() {
             .run::<forward::Reads>("forward-reads")
             .into_inner();
         let ppr = ir::print(g, &ir);
-        insta::assert_snapshot_matches!("basic", ppr);
+        insta::assert_snapshot!(ppr, @r###"
+        c = <null>
+        <dead> = c + c
+        "###);
     })
 }
 
@@ -77,7 +80,7 @@ fn move_down() {
             .run::<forward::Reads>("forward-reads")
             .into_inner();
         let ppr = ir::print(g, &ir);
-        insta::assert_snapshot_matches!("move_down", ppr);
+        insta::assert_snapshot!(ppr, @"<dead> = <null>");
     })
 }
 
@@ -101,6 +104,10 @@ fn dont_move_down_past_effects() {
             .run::<forward::Reads>("forward-reads")
             .into_inner();
         let ppr = ir::print(g, &ir);
-        insta::assert_snapshot_matches!("dont_move_down_past_effects", ppr);
+        insta::assert_snapshot!(ppr, @r###"
+        a = <null>
+        <break>
+        <dead> = a
+        "###);
     })
 }

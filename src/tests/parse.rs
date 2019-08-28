@@ -8,7 +8,7 @@ macro_rules! case {
         fn $name() -> Result<(), NiceError> {
             swc_globals::with(|g| {
                 let (ast, _) = parse::parse(g, $string)?;
-                insta::assert_debug_snapshot_matches!(stringify!($name), ast);
+                insta::assert_debug_snapshot!(stringify!($name), ast);
                 Ok(())
             })
         }
@@ -31,7 +31,7 @@ case!(
 #[test]
 fn parse_error() {
     swc_globals::with(|g| match parse::parse(g, "var ab-cd = 1;").err() {
-        Some(err) => insta::assert_display_snapshot_matches!("parse error", err),
+        Some(err) => insta::assert_display_snapshot!("parse error", err),
         None => panic!("parse unexpectedly succeeded"),
     });
 }

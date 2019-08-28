@@ -9,8 +9,8 @@ case!(
     (function() {});
     [];
     ({});
-"#
-);
+"#,
+@"<empty>");
 
 case!(
     basic_bail,
@@ -27,8 +27,28 @@ case!(
     (async function baz2() {
         await 1;
     })();
-"#
-);
+"#,
+@r###"
+<dead> = <global x>
+_ini = <void>
+foo <= _ini
+_obj = *foo
+_prp = "bar"
+<dead> = _obj[_prp]
+_obj$1 = *foo
+_prp$1 = "bar"
+<dead> = <delete> _obj$1[_prp$1]
+_fun = *foo
+<dead> = _fun()
+_fun$1 = <function generator>:
+    _yld = <void>
+    <dead> = <yield> _yld
+<dead> = _fun$1()
+_fun$2 = <function async>:
+    _awa = 1
+    <dead> = <await> _awa
+<dead> = _fun$2()
+"###);
 
 case!(
     bindings,
@@ -37,16 +57,29 @@ case!(
     var x = 1;
     const y = 1;
     function z() {}
-"#
-);
+"#,
+@r###"
+_ini = <void>
+z <= _ini
+_ini$1 = <void>
+x <= _ini$1
+_fun = <function>:
+    <empty>
+z <- _fun
+_ini$2 = 1
+x <- _ini$2
+"###);
 
 case!(
     nested_effects,
     |cx| cx.converge::<dce::Dce>("dce"),
     r#"
     [{ x: call() }];
-"#
-);
+"#,
+@r###"
+_fun = <global call>
+<dead> = _fun()
+"###);
 
 case!(
     drop_after_jumps_1,
@@ -63,8 +96,22 @@ case!(
         return 2;
         bad;
     })();
-"#
-);
+"#,
+@r###"
+_fun = <function>:
+    <dead> = <global good>
+    _iff = <global x>
+    <if> _iff:
+        <dead> = <global good>
+        _thr = 1
+        <throw> _thr
+    <else>:
+        <empty>
+    <dead> = <global good>
+    _ret = 2
+    <return> _ret
+<dead> = _fun()
+"###);
 
 case!(
     drop_after_jumps_2,
@@ -85,8 +132,25 @@ case!(
         }
         good;
     }
-"#
-);
+"#,
+@r###"
+<loop>:
+    <dead> = <global good>
+    _iff = <global x>
+    <if> _iff:
+        <dead> = <global good>
+        <continue>
+    <else>:
+        <empty>
+    <dead> = <global good>
+    _iff$1 = <global y>
+    <if> _iff$1:
+        <dead> = <global good>
+        <break>
+    <else>:
+        <empty>
+    <dead> = <global good>
+"###);
 
 case!(
     drop_after_jumps_depth,
@@ -101,8 +165,14 @@ case!(
         }
         bad;
     })();
-"#
-);
+"#,
+@r###"
+_fun = <function>:
+    <dead> = <global good>
+    _ret = 2
+    <return> _ret
+<dead> = _fun()
+"###);
 
 case!(
     empty_blocks,
@@ -110,8 +180,8 @@ case!(
     r#"
     if (x) {} else {}
     try {} catch (e) { bad(e); } finally {}
-"#
-);
+"#,
+@"<dead> = <global x>");
 
 case!(
     dont_drop_after_switch_break,
@@ -123,8 +193,18 @@ case!(
         case 2:
             log();
     }
-"#
-);
+"#,
+@r###"
+_swi = <global x>
+_tst = 1
+_tst$1 = 2
+<switch> _swi:
+    <case> _tst:
+    <break>
+    <case> _tst$1:
+    _fun = <global log>
+    <dead> = _fun()
+"###);
 
 case!(
     do_not_eliminate_for_in_with_assignments,
@@ -134,5 +214,16 @@ case!(
     foo();
     x.y = 1;
     for (let k in x) log(k);
-"#
-);
+"#,
+@r###"
+x = {  }
+_fun = <global foo>
+<dead> = _fun()
+_prp = "y"
+_val = 1
+x[_prp] <- _val
+<foreach in> x:
+    _for = <argument 0>
+    _fun$1 = <global log>
+    <dead> = _fun$1(_for)
+"###);

@@ -1,9 +1,0 @@
----
-created: "2019-04-09T06:24:19.291342400Z"
-creator: insta@0.7.1
-source: src/opt/tests/inline.rs
-expression: "\n    new (function() {\n        foo;\n    })();\n"
----
-_fun = <function>:
-    <dead> = <global foo>
-<dead> = <new> _fun()

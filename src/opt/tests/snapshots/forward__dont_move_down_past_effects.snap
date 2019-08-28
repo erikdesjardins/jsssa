@@ -1,9 +1,0 @@
----
-created: "2019-04-27T23:31:01.222547100Z"
-creator: insta@0.7.4
-source: src/opt/tests/forward.rs
-expression: ppr
----
-a = <null>
-<break>
-<dead> = a

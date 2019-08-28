@@ -1,9 +1,0 @@
----
-created: "2019-04-29T02:16:31.433219100Z"
-creator: insta@0.7.4
-source: src/opt/tests/unroll.rs
-expression: "\n    let something = {};\n    for (var x in something) {\n        log(x);\n    }\n"
----
-_ini = <void>
-x <= _ini
-<dead> = {  }

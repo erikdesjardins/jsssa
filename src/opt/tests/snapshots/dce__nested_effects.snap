@@ -1,8 +1,0 @@
----
-created: "2019-03-30T06:30:06.084608500Z"
-creator: insta@0.7.1
-source: src/opt/tests/dce.rs
-expression: "\n    [{ x: call() }];\n"
----
-_fun = <global call>
-<dead> = _fun()

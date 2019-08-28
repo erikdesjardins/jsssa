@@ -1,5 +1,5 @@
 macro_rules! case {
-    ( $name:ident, |$cx:ident| $cx_expr:expr, $string:expr ) => {
+    ( $name:ident, |$cx:ident| $cx_expr:expr, $string:expr, @ $expected:literal ) => {
         #[test]
         fn $name() -> Result<(), crate::err::NiceError> {
             use crate::{ast2ir, ir, opt, parse, swc_globals};
@@ -9,12 +9,12 @@ macro_rules! case {
                 let $cx = opt::OptCx::new(ir);
                 let ir = opt::OptCx::into_inner($cx_expr);
                 let ppr = ir::print(g, &ir);
-                insta::assert_snapshot_matches!(stringify!($name), ppr, $string);
+                insta::assert_snapshot!(ppr, @ $expected);
                 Ok(())
             })
         }
     };
-    ( $name:ident, all_passes, $string:expr ) => {
+    ( $name:ident, all_passes, $string:expr, @ $expected:literal ) => {
         #[test]
         fn $name() -> Result<(), crate::err::NiceError> {
             use crate::{ast2ir, ir, opt, parse, swc_globals};
@@ -23,7 +23,7 @@ macro_rules! case {
                 let ir = ast2ir::convert(g, ast);
                 let ir = opt::run_passes(g, ir);
                 let ppr = ir::print(g, &ir);
-                insta::assert_snapshot_matches!(stringify!($name), ppr, $string);
+                insta::assert_snapshot!(ppr, @ $expected);
                 Ok(())
             })
         }

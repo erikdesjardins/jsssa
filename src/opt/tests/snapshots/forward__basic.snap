@@ -1,8 +1,0 @@
----
-created: "2019-04-27T22:01:39.644416Z"
-creator: insta@0.7.4
-source: src/opt/tests/forward.rs
-expression: ppr
----
-c = <null>
-<dead> = c + c

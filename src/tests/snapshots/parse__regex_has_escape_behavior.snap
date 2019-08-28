@@ -1,6 +1,4 @@
 ---
-created: "2019-04-19T19:57:32.204139Z"
-creator: insta@0.7.4
 source: src/tests/parse.rs
 expression: ast
 ---

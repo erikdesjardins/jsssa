@@ -4,13 +4,13 @@ use crate::parse;
 use crate::swc_globals;
 
 macro_rules! case {
-    ( $name:ident, $string:expr ) => {
+    ( $name:ident, $string:expr, @ $expected:literal ) => {
         #[test]
         fn $name() -> Result<(), NiceError> {
             swc_globals::with(|g| {
                 let (ast, files) = parse::parse(g, $string)?;
                 let js = emit::emit(g, ast, files, emit::Opt { minify: false })?;
-                insta::assert_snapshot_matches!(stringify!($name), js, $string);
+                insta::assert_snapshot!(js, @ $expected);
                 Ok(())
             })
         }
@@ -26,8 +26,19 @@ case!(
         z.foo = x ? true : 'hi';
         return +[1 || x, { x }, f + 1, ++g];
     }
-    f(1), true;
-"#
+    f(2), true;
+"#,
+    @r###"
+function f(x) {
+    while(true);
+    x = y.bar;
+    z.foo = x ? true : 'hi';
+    return +[1 || x, {
+            x
+        }, f + 1, ++g];
+}
+f(2), true;
+"###
 );
 
 #[test]
@@ -63,7 +74,7 @@ fn minify() -> Result<(), NiceError> {
         "#,
         )?;
         let js = emit::emit(g, ast, files, emit::Opt { minify: true })?;
-        insta::assert_snapshot_matches!("minify", js);
+        insta::assert_snapshot!(js, @"if(x){y;}");
         Ok(())
     })
 }

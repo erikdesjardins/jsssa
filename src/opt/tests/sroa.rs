@@ -20,8 +20,21 @@ case!(
     foo();
     g1 = something.x;
     something.x = g2;
-"#
-);
+"#,
+@r###"
+<dead> = "x"
+_val = 1
+<dead> = <void>
+x <= _val
+_fun = <global foo>
+<dead> = _fun()
+<dead> = "x"
+_val$1 = *x
+<global g1> <- _val$1
+<dead> = "x"
+_val$2 = <global g2>
+x <- _val$2
+"###);
 
 case!(
     unknown_prop,
@@ -29,8 +42,14 @@ case!(
     r#"
     let something = {};
     g = something.foo;
-"#
-);
+"#,
+@r###"
+_mis = <void>
+foo <= _mis
+<dead> = "foo"
+_val = *foo
+<global g> <- _val
+"###);
 
 case!(
     unknown_prop_before_decl,
@@ -40,8 +59,16 @@ case!(
         something.foo = 2;
     }
     let something = {};
-"#
-);
+"#,
+@r###"
+_val = <function>:
+    <dead> = "foo"
+    _val$1 = 2
+    foo <- _val$1
+<global g> <- _val
+_mis = <void>
+foo <= _mis
+"###);
 
 case!(
     invalidate_escape,
@@ -52,8 +79,20 @@ case!(
         g = something;
     }
     g1 = something.x;
-"#
-);
+"#,
+@r###"
+_key = "x"
+_val = 1
+something = { [_key]: _val }
+_iff = <global foo>
+<if> _iff:
+    <global g> <- something
+<else>:
+    <empty>
+_prp = "x"
+_val$1 = something[_prp]
+<global g1> <- _val$1
+"###);
 
 case!(
     invalidate_escape_to_other_object,
@@ -64,8 +103,22 @@ case!(
         g = { foo: something };
     }
     g1 = something.x;
-"#
-);
+"#,
+@r###"
+_key = "x"
+_val = 1
+something = { [_key]: _val }
+_iff = <global foo>
+<if> _iff:
+    _key$1 = "foo"
+    _val$2 = { [_key$1]: something }
+    <global g> <- _val$2
+<else>:
+    <empty>
+_prp = "x"
+_val$1 = something[_prp]
+<global g1> <- _val$1
+"###);
 
 case!(
     time_travel,
@@ -76,8 +129,19 @@ case!(
     }
     let something = { x: 1 };
     something.x;
-"#
-);
+"#,
+@r###"
+_val = <function>:
+    <dead> = "x"
+    <dead> = *x
+<global g> <- _val
+<dead> = "x"
+_val$1 = 1
+<dead> = <void>
+x <= _val$1
+<dead> = "x"
+<dead> = *x
+"###);
 
 case!(
     complex,
@@ -97,8 +161,47 @@ case!(
     obj.foo;
     obj.bar;
     obj.not_written;
-"#
-);
+"#,
+@r###"
+<dead> = "foo"
+_val = 1
+<dead> = "bar"
+_val$1 = 2
+<dead> = "not_written"
+_val$2 = 2
+<dead> = <void>
+foo <= _val
+bar <= _val$1
+not_written <= _val$2
+_iff = <global something>
+<if> _iff:
+    <dead> = "foo"
+    <dead> = *foo
+    <dead> = "foo"
+    _val$3 = 3
+    foo <- _val$3
+    <dead> = "bar"
+    <dead> = *bar
+    _iff$1 = <global something2>
+    <if> _iff$1:
+        <dead> = "bar"
+        _val$4 = 4
+        bar <- _val$4
+    <else>:
+        <empty>
+    <dead> = "foo"
+    <dead> = *foo
+    <dead> = "not_written"
+    <dead> = *not_written
+<else>:
+    <empty>
+<dead> = "foo"
+<dead> = *foo
+<dead> = "bar"
+<dead> = *bar
+<dead> = "not_written"
+<dead> = *not_written
+"###);
 
 case!(
     many_writes,
@@ -111,8 +214,30 @@ case!(
     obj.foo = 5;
     invalidate();
     g = obj.foo;
-"#
-);
+"#,
+@r###"
+<dead> = "foo"
+_val = 1
+<dead> = <void>
+foo <= _val
+<dead> = "foo"
+_val$1 = 2
+foo <- _val$1
+<dead> = "foo"
+_val$2 = 3
+foo <- _val$2
+<dead> = "foo"
+_val$3 = 4
+foo <- _val$3
+<dead> = "foo"
+_val$4 = 5
+foo <- _val$4
+_fun = <global invalidate>
+<dead> = _fun()
+<dead> = "foo"
+_val$5 = *foo
+<global g> <- _val$5
+"###);
 
 case!(
     switch_local,
@@ -127,8 +252,31 @@ case!(
             a.inner;
     }
     a.outer;
-"#
-);
+"#,
+@r###"
+<dead> = "inner"
+_val = 0
+<dead> = "outer"
+_val$1 = 1
+<dead> = <void>
+inner <= _val
+outer <= _val$1
+_swi = <global x>
+_tst = 1
+_tst$1 = 2
+<switch> _swi:
+    <case> _tst:
+    <dead> = "inner"
+    _val$2 = 2
+    inner <- _val$2
+    <dead> = "inner"
+    <dead> = *inner
+    <case> _tst$1:
+    <dead> = "inner"
+    <dead> = *inner
+<dead> = "outer"
+<dead> = *outer
+"###);
 
 case!(
     call_receiver,
@@ -138,8 +286,23 @@ case!(
     something.x(); // receives `this`: do not opt
     let something2 = { x: function() {} };
     (0, something2.x)(); // does not receive `this`: opt
-"#
-);
+"#,
+@r###"
+_key = "x"
+_val = <function>:
+    <empty>
+_obj = { [_key]: _val }
+_prp = "x"
+<dead> = _obj[_prp]()
+<dead> = "x"
+_val$1 = <function>:
+    <empty>
+<dead> = <void>
+x <= _val$1
+<dead> = "x"
+_fun = *x
+<dead> = _fun()
+"###);
 
 case!(
     bail_bad_props1,
@@ -148,8 +311,20 @@ case!(
     let something = { __proto__: 1, x: 2 };
     g1 = something.x;
     something.x = g2;
-"#
-);
+"#,
+@r###"
+_key = "__proto__"
+_val = 1
+_key$1 = "x"
+_val$1 = 2
+something = { [_key]: _val, [_key$1]: _val$1 }
+_prp = "x"
+_val$2 = something[_prp]
+<global g1> <- _val$2
+_prp$1 = "x"
+_val$3 = <global g2>
+something[_prp$1] <- _val$3
+"###);
 
 case!(
     bail_bad_props2,
@@ -158,8 +333,18 @@ case!(
     let something = { x: 2 };
     g1 = something.hasOwnProperty;
     something.x = g2;
-"#
-);
+"#,
+@r###"
+_key = "x"
+_val = 2
+something = { [_key]: _val }
+_prp = "hasOwnProperty"
+_val$1 = something[_prp]
+<global g1> <- _val$1
+_prp$1 = "x"
+_val$2 = <global g2>
+something[_prp$1] <- _val$2
+"###);
 
 case!(
     bail_bad_props3,
@@ -168,5 +353,15 @@ case!(
     let something = { x: 2 };
     g1 = something.x;
     something.constructor = g2;
-"#
-);
+"#,
+@r###"
+_key = "x"
+_val = 2
+something = { [_key]: _val }
+_prp = "x"
+_val$1 = something[_prp]
+<global g1> <- _val$1
+_prp$1 = "constructor"
+_val$2 = <global g2>
+something[_prp$1] <- _val$2
+"###);
