@@ -93,8 +93,8 @@ impl<'a, K, V> StackedMap<'a, K, V>
 where
     K: Eq + Hash,
 {
-    pub fn child(&'a self) -> Self {
-        Self {
+    pub fn child(&self) -> StackedMap<'_, K, V> {
+        StackedMap {
             parent: Some(self),
             map: Default::default(),
         }
