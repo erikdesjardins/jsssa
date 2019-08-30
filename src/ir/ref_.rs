@@ -18,7 +18,7 @@ pub enum Mut {}
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Lbl {}
 
-pub trait RefType {
+pub trait RefType: Clone + PartialEq + Eq + Hash {
     const NAME: &'static str;
 }
 
