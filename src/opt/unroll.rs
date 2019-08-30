@@ -1,5 +1,7 @@
 use std::collections::{HashMap, HashSet};
+use std::mem;
 
+use crate::anal;
 use crate::collections::ZeroOneMany::{self, Many, One, Zero};
 use crate::ir;
 use crate::ir::traverse::{Folder, ScopeTy};
@@ -12,48 +14,56 @@ use crate::ir::traverse::{Folder, ScopeTy};
 /// May create opportunities for SROA.
 #[derive(Default)]
 pub struct Loops {
+    refs_used_in_only_one_fn_scope: HashSet<ir::WeakRef<ir::Ssa>>,
     known_small_objects: HashMap<ir::WeakRef<ir::Ssa>, Option<ir::Ref<ir::Ssa>>>,
-    invalid_for_parent_scope: Invalid,
+    invalid: Invalid,
 }
 
-enum Invalid {
-    Everything,
-    Refs(HashSet<ir::WeakRef<ir::Ssa>>),
-}
-
-impl Default for Invalid {
-    fn default() -> Self {
-        Invalid::Refs(Default::default())
-    }
-}
-
-impl Invalid {
-    fn insert_ref(&mut self, ref_: ir::WeakRef<ir::Ssa>) {
-        match self {
-            Invalid::Everything => {}
-            Invalid::Refs(our_refs) => {
-                our_refs.insert(ref_);
-            }
-        }
-    }
+#[derive(Default)]
+struct Invalid {
+    all_refs_used_across_fn_scopes: bool,
+    except: HashSet<ir::WeakRef<ir::Ssa>>,
+    in_parent: HashSet<ir::WeakRef<ir::Ssa>>,
 }
 
 impl Loops {
     fn invalidate_from_child(&mut self, child: Self) {
-        match child.invalid_for_parent_scope {
-            Invalid::Everything => self.invalidate_everything(),
-            Invalid::Refs(refs) => refs.into_iter().for_each(|ref_| self.invalidate_ref(ref_)),
+        if child.invalid.all_refs_used_across_fn_scopes {
+            self.invalidate_everything_used_across_fn_scopes();
+        }
+        for invalid_ref in child.invalid.in_parent {
+            self.invalidate_ref(invalid_ref);
         }
     }
 
-    fn invalidate_everything(&mut self) {
-        self.known_small_objects.clear();
-        self.invalid_for_parent_scope = Invalid::Everything;
+    fn invalidate_everything_used_across_fn_scopes(&mut self) {
+        self.invalid.all_refs_used_across_fn_scopes = true;
+        self.invalid.except.clear();
     }
 
     fn invalidate_ref(&mut self, ref_: ir::WeakRef<ir::Ssa>) {
         self.known_small_objects.remove(&ref_);
-        self.invalid_for_parent_scope.insert_ref(ref_);
+        self.invalid.in_parent.insert(ref_);
+    }
+
+    fn declare_small_object(&mut self, ref_: ir::WeakRef<ir::Ssa>, prop: Option<ir::Ref<ir::Ssa>>) {
+        self.known_small_objects.insert(ref_.clone(), prop);
+        self.invalid.except.insert(ref_);
+    }
+
+    fn get_small_object(
+        &mut self,
+        ref_: &ir::WeakRef<ir::Ssa>,
+    ) -> Option<&Option<ir::Ref<ir::Ssa>>> {
+        let prop = self.known_small_objects.get(ref_)?;
+        if self.invalid.all_refs_used_across_fn_scopes
+            && !self.refs_used_in_only_one_fn_scope.contains(ref_)
+            && !self.invalid.except.contains(ref_)
+        {
+            None
+        } else {
+            Some(prop)
+        }
     }
 }
 
@@ -66,11 +76,26 @@ impl Folder for Loops {
         block: ir::Block,
         enter: impl FnOnce(&mut Self, ir::Block) -> R,
     ) -> R {
+        if let ScopeTy::Toplevel = ty {
+            self.refs_used_in_only_one_fn_scope = anal::refs::used_in_only_one_fn_scope(&block)
+                .map(ir::Ref::weak)
+                .collect();
+        }
+
         match ty {
             ScopeTy::Function => {
                 // functions are analyzed separately
                 let mut inner = Self::default();
-                enter(&mut inner, block)
+                mem::swap(
+                    &mut inner.refs_used_in_only_one_fn_scope,
+                    &mut self.refs_used_in_only_one_fn_scope,
+                );
+                let r = enter(&mut inner, block);
+                mem::swap(
+                    &mut inner.refs_used_in_only_one_fn_scope,
+                    &mut self.refs_used_in_only_one_fn_scope,
+                );
+                r
             }
             ScopeTy::Normal | ScopeTy::Toplevel => {
                 // we deal only with ssa refs, so it doesn't matter if usage info escapes normal scopes,
@@ -80,7 +105,15 @@ impl Folder for Loops {
             ScopeTy::Nonlinear => {
                 // no information can be carried into a nonlinear scope, but invalidations must be applied
                 let mut inner = Self::default();
+                mem::swap(
+                    &mut inner.refs_used_in_only_one_fn_scope,
+                    &mut self.refs_used_in_only_one_fn_scope,
+                );
                 let r = enter(&mut inner, block);
+                mem::swap(
+                    &mut inner.refs_used_in_only_one_fn_scope,
+                    &mut self.refs_used_in_only_one_fn_scope,
+                );
                 self.invalidate_from_child(inner);
                 r
             }
@@ -97,12 +130,12 @@ impl Folder for Loops {
                     let mut props = props.iter();
                     if let (maybe_first, None) = (props.next(), props.next()) {
                         let maybe_key = maybe_first.map(|(_kind, key, _val)| key.clone());
-                        self.known_small_objects.insert(target.weak(), maybe_key);
+                        self.declare_small_object(target.weak(), maybe_key);
                     }
                     One(stmt)
                 }
                 ir::Expr::Yield { .. } | ir::Expr::Await { .. } | ir::Expr::Call { .. } => {
-                    self.invalidate_everything();
+                    self.invalidate_everything_used_across_fn_scopes();
                     One(stmt)
                 }
                 ir::Expr::Bool { .. }
@@ -128,7 +161,7 @@ impl Folder for Loops {
                 kind: kind @ ir::ForKind::In,
                 init,
                 body,
-            } => match self.known_small_objects.get(&init.weak()) {
+            } => match self.get_small_object(&init.weak()) {
                 Some(maybe_key) => match maybe_key {
                     Some(single_key) => {
                         let ir::Block(children) = body;

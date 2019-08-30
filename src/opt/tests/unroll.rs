@@ -132,6 +132,7 @@ case!(
     |cx| passes!(cx),
     r#"
     let something = {};
+    let foo = function() { g = something; };
     foo();
     for (var x in something) {
         log(x);
@@ -141,7 +142,9 @@ case!(
 _ini = <void>
 x <= _ini
 something = {  }
-_fun = <global foo>
+_ini$1 = <function>:
+    <global g> <- something
+_fun = _ini$1
 <dead> = _fun()
 <foreach in> something:
     _for = <argument 0>
@@ -149,6 +152,131 @@ _fun = <global foo>
     _fun$1 = <global log>
     _arg = *x
     <dead> = _fun$1(_arg)
+"###);
+
+case!(
+    bail_call_in_nonlinear,
+    |cx| passes!(cx),
+    r#"
+    let something = {};
+    let foo = function() { g = something; };
+    while (g)
+        foo();
+    for (var x in something) {
+        log(x);
+    }
+"#,
+@r###"
+_ini = <void>
+x <= _ini
+something = {  }
+_ini$1 = <function>:
+    <global g> <- something
+<loop>:
+    _whl = <global g>
+    <if> _whl:
+        <empty>
+    <else>:
+        <break>
+    <dead> = _ini$1()
+<foreach in> something:
+    _for = <argument 0>
+    x <- _for
+    _fun = <global log>
+    _arg = *x
+    <dead> = _fun(_arg)
+"###);
+
+case!(
+    bail_call_cross_scope,
+    |cx| passes!(cx),
+    r#"
+    let something = {};
+    (function() {
+        foo();
+        for (var x in something) {
+            log(x);
+        }
+    })();
+"#,
+@r###"
+something = {  }
+_fun = <function>:
+    _ini = <void>
+    x <= _ini
+    _fun$1 = <global foo>
+    <dead> = _fun$1()
+    <foreach in> something:
+        _for = <argument 0>
+        x <- _for
+        _fun$2 = <global log>
+        _arg = *x
+        <dead> = _fun$2(_arg)
+<dead> = _fun()
+"###);
+
+case!(
+    call_no_cross_scope,
+    |cx| passes!(cx),
+    r#"
+    let something = {};
+    foo();
+    for (var x in something) {
+        log(x);
+    }
+"#,
+@r###"
+_ini = <void>
+x <= _ini
+<dead> = {  }
+_fun = <global foo>
+<dead> = _fun()
+"###);
+
+case!(
+    call_no_cross_scope_inner,
+    |cx| passes!(cx),
+    r#"
+    (function() {
+        let something = {};
+        foo();
+        for (var x in something) {
+            log(x);
+        }
+    })();
+"#,
+@r###"
+_fun = <function>:
+    _ini = <void>
+    x <= _ini
+    <dead> = {  }
+    _fun$1 = <global foo>
+    <dead> = _fun$1()
+<dead> = _fun()
+"###);
+
+case!(
+    cross_scope_after_call,
+    |cx| passes!(cx),
+    r#"
+    foo();
+    let something = {};
+    for (var x in something) {
+        log(x);
+    }
+    (function() {
+        g = something;
+    })();
+"#,
+@r###"
+_ini = <void>
+x <= _ini
+_fun = <global foo>
+<dead> = _fun()
+something = {  }
+_fun$1 = <function>:
+    <global g> <- something
+<dead> = _fun$1()
 "###);
 
 case!(
