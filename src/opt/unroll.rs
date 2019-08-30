@@ -1,6 +1,5 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-use crate::collections::InvertibleSet;
 use crate::collections::ZeroOneMany::{self, Many, One, Zero};
 use crate::ir;
 use crate::ir::traverse::{Folder, ScopeTy};
@@ -14,7 +13,48 @@ use crate::ir::traverse::{Folder, ScopeTy};
 #[derive(Default)]
 pub struct Loops {
     known_small_objects: HashMap<ir::WeakRef<ir::Ssa>, Option<ir::Ref<ir::Ssa>>>,
-    invalid_objects: InvertibleSet<ir::WeakRef<ir::Ssa>>,
+    invalid_for_parent_scope: Invalid,
+}
+
+enum Invalid {
+    Everything,
+    Refs(HashSet<ir::WeakRef<ir::Ssa>>),
+}
+
+impl Default for Invalid {
+    fn default() -> Self {
+        Invalid::Refs(Default::default())
+    }
+}
+
+impl Invalid {
+    fn insert_ref(&mut self, ref_: ir::WeakRef<ir::Ssa>) {
+        match self {
+            Invalid::Everything => {}
+            Invalid::Refs(our_refs) => {
+                our_refs.insert(ref_);
+            }
+        }
+    }
+}
+
+impl Loops {
+    fn invalidate_from_child(&mut self, child: Self) {
+        match child.invalid_for_parent_scope {
+            Invalid::Everything => self.invalidate_everything(),
+            Invalid::Refs(refs) => refs.into_iter().for_each(|ref_| self.invalidate_ref(ref_)),
+        }
+    }
+
+    fn invalidate_everything(&mut self) {
+        self.known_small_objects.clear();
+        self.invalid_for_parent_scope = Invalid::Everything;
+    }
+
+    fn invalidate_ref(&mut self, ref_: ir::WeakRef<ir::Ssa>) {
+        self.known_small_objects.remove(&ref_);
+        self.invalid_for_parent_scope.insert_ref(ref_);
+    }
 }
 
 impl Folder for Loops {
@@ -41,7 +81,7 @@ impl Folder for Loops {
                 // no information can be carried into a nonlinear scope, but invalidations must be applied
                 let mut inner = Self::default();
                 let r = enter(&mut inner, block);
-                self.invalid_objects.union_with(inner.invalid_objects);
+                self.invalidate_from_child(inner);
                 r
             }
         }
@@ -62,7 +102,7 @@ impl Folder for Loops {
                     One(stmt)
                 }
                 ir::Expr::Yield { .. } | ir::Expr::Await { .. } | ir::Expr::Call { .. } => {
-                    self.invalid_objects.insert_everything_except(vec![]);
+                    self.invalidate_everything();
                     One(stmt)
                 }
                 ir::Expr::Bool { .. }
@@ -88,11 +128,8 @@ impl Folder for Loops {
                 kind: kind @ ir::ForKind::In,
                 init,
                 body,
-            } => match (
-                self.invalid_objects.contains(&init.weak()),
-                self.known_small_objects.get(&init.weak()),
-            ) {
-                (false, Some(maybe_key)) => match maybe_key {
+            } => match self.known_small_objects.get(&init.weak()) {
+                Some(maybe_key) => match maybe_key {
                     Some(single_key) => {
                         let ir::Block(children) = body;
                         let single_iteration = children
@@ -114,7 +151,7 @@ impl Folder for Loops {
                     }
                     None => Zero,
                 },
-                _ => One(ir::Stmt::ForEach { kind, init, body }),
+                None => One(ir::Stmt::ForEach { kind, init, body }),
             },
             ir::Stmt::DeclareMutable { .. }
             | ir::Stmt::WriteMutable { .. }
@@ -137,7 +174,7 @@ impl Folder for Loops {
 
     fn fold_ref_use(&mut self, ref_: ir::Ref<ir::Ssa>) -> ir::Ref<ir::Ssa> {
         // todo inefficient: this invalidates every single ref, even if it's not an object
-        self.invalid_objects.insert(ref_.weak());
+        self.invalidate_ref(ref_.weak());
         ref_
     }
 }
