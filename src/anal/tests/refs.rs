@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::anal::refs;
 use crate::ir;
 
@@ -6,7 +8,7 @@ macro_rules! case {
         #[test]
         fn $name() {
             let (ir, expected): (ir::Block, Vec<ir::Ref<ir::Ssa>>) = $ir_and_expected;
-            let refs = refs::used_in_only_one_fn_scope(&ir);
+            let refs = refs::used_in_only_one_fn_scope(&ir).collect::<HashSet<_>>();
             assert_eq!(refs, expected.iter().collect())
         }
     };
