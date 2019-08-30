@@ -3,7 +3,11 @@ use std::collections::HashMap;
 use crate::ir;
 use crate::ir::traverse::{RunVisitor, ScopeTy, Visitor};
 
-pub fn used_in_only_one_fn_scope(ir: &ir::Block) -> impl Iterator<Item = &ir::Ref<ir::Ssa>> {
+pub fn used_in_only_one_fn_scope<'a, K>(ir: &'a ir::Block) -> impl Iterator<Item = &'a ir::Ref<K>>
+where
+    K: ir::RefType + 'a,
+    UsedInOnlyOneFnScope<'a, K>: Visitor<'a>,
+{
     let mut collector = UsedInOnlyOneFnScope::default();
     collector.run_visitor(ir);
     collector
@@ -17,9 +21,8 @@ pub fn used_in_only_one_fn_scope(ir: &ir::Block) -> impl Iterator<Item = &ir::Re
 
 type LevelNumber = u64;
 
-#[derive(Default)]
-struct UsedInOnlyOneFnScope<'a> {
-    refs: HashMap<&'a ir::Ref<ir::Ssa>, State>,
+pub struct UsedInOnlyOneFnScope<'a, K: ir::RefType> {
+    refs: HashMap<&'a ir::Ref<K>, State>,
     cur_level: LevelNumber,
 }
 
@@ -28,8 +31,17 @@ enum State {
     Invalid,
 }
 
-impl<'a> UsedInOnlyOneFnScope<'a> {
-    fn visit_ref(&mut self, ref_: &'a ir::Ref<ir::Ssa>) {
+impl<'a, K: ir::RefType> Default for UsedInOnlyOneFnScope<'a, K> {
+    fn default() -> Self {
+        Self {
+            refs: Default::default(),
+            cur_level: Default::default(),
+        }
+    }
+}
+
+impl<'a, K: ir::RefType> UsedInOnlyOneFnScope<'a, K> {
+    fn visit_ref(&mut self, ref_: &'a ir::Ref<K>) {
         let state = self
             .refs
             .entry(ref_)
@@ -45,7 +57,7 @@ impl<'a> UsedInOnlyOneFnScope<'a> {
     }
 }
 
-impl<'a> Visitor<'a> for UsedInOnlyOneFnScope<'a> {
+impl<'a> Visitor<'a> for UsedInOnlyOneFnScope<'a, ir::Ssa> {
     fn wrap_scope<R>(
         &mut self,
         ty: &ScopeTy,
@@ -74,5 +86,44 @@ impl<'a> Visitor<'a> for UsedInOnlyOneFnScope<'a> {
 
     fn visit_ref_use(&mut self, ref_: &'a ir::Ref<ir::Ssa>) {
         self.visit_ref(ref_);
+    }
+}
+
+impl<'a> Visitor<'a> for UsedInOnlyOneFnScope<'a, ir::Mut> {
+    fn wrap_scope<R>(
+        &mut self,
+        ty: &ScopeTy,
+        block: &'a ir::Block,
+        enter: impl FnOnce(&mut Self, &'a ir::Block) -> R,
+    ) -> R {
+        match ty {
+            ScopeTy::Function => {
+                self.cur_level += 1;
+                let r = enter(self, block);
+                self.cur_level -= 1;
+                r
+            }
+            ScopeTy::Toplevel | ScopeTy::Normal | ScopeTy::Nonlinear => enter(self, block),
+        }
+    }
+
+    fn visit(&mut self, stmt: &'a ir::Stmt) {
+        match stmt {
+            ir::Stmt::Expr {
+                target: _,
+                expr: ir::Expr::ReadMutable { source: ref_ },
+            }
+            | ir::Stmt::DeclareMutable {
+                target: ref_,
+                val: _,
+            }
+            | ir::Stmt::WriteMutable {
+                target: ref_,
+                val: _,
+            } => {
+                self.visit_ref(ref_);
+            }
+            _ => {}
+        }
     }
 }
