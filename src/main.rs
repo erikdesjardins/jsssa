@@ -17,6 +17,7 @@ use std::time::Instant;
 use crate::err::NiceError;
 use crate::utils::Time;
 
+mod anal;
 mod ast2ir;
 mod cli;
 mod collections;
