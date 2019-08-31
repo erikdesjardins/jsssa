@@ -1,3 +1,5 @@
+use crate::ir;
+use crate::ir::traverse::Folder;
 use crate::opt::dce;
 use crate::opt::forward;
 use crate::opt::mut2ssa;
@@ -96,6 +98,46 @@ _val$1 = something[_prp$1]
 "###);
 
 case!(
+    invalidate_write_to_write_single_pass,
+    |cx| passes!(cx),
+    r#"
+    let something = {};
+    something.x = 1; // do not drop
+    g = something.x;
+    something.x = 2;
+"#,
+@r###"
+something = {  }
+_prp = "x"
+_val = 1
+something[_prp] <- _val
+<dead> = "x"
+_val$1 = _val
+<global g> <- _val$1
+_prp$1 = "x"
+_val$2 = 2
+something[_prp$1] <- _val$2
+"###);
+
+case!(
+    execute_write_to_write_multi_pass,
+    |cx| cx.converge_with("conv", |cx| passes!(cx)),
+    r#"
+    let something = {};
+    something.x = 1; // drop
+    g = something.x;
+    something.x = 2;
+"#,
+@r###"
+something = {  }
+_val = 1
+<global g> <- _val
+_prp = "x"
+_val$1 = 2
+something[_prp] <- _val$1
+"###);
+
+case!(
     invalidate_escape,
     |cx| passes!(cx),
     r#"
@@ -125,6 +167,132 @@ _val$2 = something[_prp]
 <dead> = "y"
 _val$3 = _val$1
 <global g2> <- _val$3
+"###);
+
+case!(
+    invalidate_escape_local,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: 1 };
+    g = something;
+    g1 = something.x; // do not forward
+"#,
+@r###"
+_key = "x"
+_val = 1
+something = { [_key]: _val }
+<global g> <- something
+_prp = "x"
+_val$1 = something[_prp]
+<global g1> <- _val$1
+"###);
+
+case!(
+    invalidate_escape_deep,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: 1 };
+    if (foo) if (foo) {
+        g = something;
+    }
+    g1 = something.x;
+"#,
+@r###"
+_key = "x"
+_val = 1
+something = { [_key]: _val }
+_iff = <global foo>
+<if> _iff:
+    _iff$1 = <global foo>
+    <if> _iff$1:
+        <global g> <- something
+    <else>:
+        <empty>
+<else>:
+    <empty>
+_prp = "x"
+_val$1 = something[_prp]
+<global g1> <- _val$1
+"###);
+
+case!(
+    invalidate_escape_for_write,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: 1 };
+    something.x = 1; // do not remove
+    if (foo) {
+        g = something;
+    }
+    something.x = 2;
+"#,
+@r###"
+_key = "x"
+_val = 1
+something = { [_key]: _val }
+_prp = "x"
+_val$1 = 1
+something[_prp] <- _val$1
+_iff = <global foo>
+<if> _iff:
+    <global g> <- something
+<else>:
+    <empty>
+_prp$1 = "x"
+_val$2 = 2
+something[_prp$1] <- _val$2
+"###);
+
+case!(
+    invalidate_escape_local_for_write,
+    |cx| passes!(cx),
+    r#"
+    let something = {};
+    something.x = 1; // do not drop
+    g = something;
+    something.x = 2;
+"#,
+@r###"
+something = {  }
+_prp = "x"
+_val = 1
+something[_prp] <- _val
+<global g> <- something
+_prp$1 = "x"
+_val$1 = 2
+something[_prp$1] <- _val$1
+"###);
+
+case!(
+    invalidate_escape_deep_for_write,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: 1 };
+    something.x = 1; // do not remove
+    if (foo) if (foo) {
+        g = something;
+    }
+    something.x = 2;
+"#,
+@r###"
+_key = "x"
+_val = 1
+something = { [_key]: _val }
+_prp = "x"
+_val$1 = 1
+something[_prp] <- _val$1
+_iff = <global foo>
+<if> _iff:
+    _iff$1 = <global foo>
+    <if> _iff$1:
+        <global g> <- something
+    <else>:
+        <empty>
+<else>:
+    <empty>
+_prp$1 = "x"
+_val$2 = 2
+something[_prp$1] <- _val$2
 "###);
 
 case!(
@@ -223,6 +391,70 @@ _prp$1 = "bar"
 "###);
 
 case!(
+    invalidate_inner_scope_writes_for_write,
+    |cx| passes!(cx),
+    r#"
+    let obj = { foo: 1 };
+    obj.foo = 1; // do not remove
+    if (something) {
+        obj.foo = g;
+    }
+    obj.foo = 2;
+"#,
+@r###"
+_key = "foo"
+_val = 1
+obj = { [_key]: _val }
+_prp = "foo"
+_val$1 = 1
+obj[_prp] <- _val$1
+_iff = <global something>
+<if> _iff:
+    _prp$2 = "foo"
+    _val$3 = <global g>
+    obj[_prp$2] <- _val$3
+<else>:
+    <empty>
+_prp$1 = "foo"
+_val$2 = 2
+obj[_prp$1] <- _val$2
+"###);
+
+case!(
+    invalidate_inner_scope_writes_for_write_deep,
+    |cx| passes!(cx),
+    r#"
+    let obj = { foo: 1 };
+    obj.foo = 1; // do not remove
+    if (something) if (something) {
+        obj.foo = g;
+    }
+    obj.foo = 2;
+"#,
+@r###"
+_key = "foo"
+_val = 1
+obj = { [_key]: _val }
+_prp = "foo"
+_val$1 = 1
+obj[_prp] <- _val$1
+_iff = <global something>
+<if> _iff:
+    _iff$1 = <global something>
+    <if> _iff$1:
+        _prp$2 = "foo"
+        _val$3 = <global g>
+        obj[_prp$2] <- _val$3
+    <else>:
+        <empty>
+<else>:
+    <empty>
+_prp$1 = "foo"
+_val$2 = 2
+obj[_prp$1] <- _val$2
+"###);
+
+case!(
     invalidate_calls,
     |cx| passes!(cx),
     r#"
@@ -243,6 +475,32 @@ _val$1 = <function>:
     _ret = <global foo>
     <return> _ret
 <global h> <- _val$1
+"###);
+
+case!(
+    invalidate_calls_for_write,
+    |cx| passes!(cx),
+    r#"
+    let obj = {};
+    obj.foo = 1; // do not drop
+    invalidate();
+    obj.foo = 2;
+    h = function() { return foo; };
+"#,
+@r###"
+obj = {  }
+_prp = "foo"
+_val = 1
+obj[_prp] <- _val
+_fun = <global invalidate>
+<dead> = _fun()
+_prp$1 = "foo"
+_val$1 = 2
+obj[_prp$1] <- _val$1
+_val$2 = <function>:
+    _ret = <global foo>
+    <return> _ret
+<global h> <- _val$2
 "###);
 
 case!(
@@ -273,6 +531,77 @@ _val$1 = <function>:
     _ret = <global foo>
     <return> _ret
 <global h> <- _val$1
+"###);
+
+case!(
+    invalidate_deep_inner_scope_calls,
+    |cx| passes!(cx),
+    r#"
+    let obj = { foo: 1 };
+    while (x) while (x)
+        invalidate();
+    obj.foo; // do not forward
+    h = function() { return foo; };
+"#,
+@r###"
+_key = "foo"
+_val = 1
+obj = { [_key]: _val }
+<loop>:
+    _whl = <global x>
+    <if> _whl:
+        <empty>
+    <else>:
+        <break>
+    <loop>:
+        _whl$1 = <global x>
+        <if> _whl$1:
+            <empty>
+        <else>:
+            <break>
+        _fun = <global invalidate>
+        <dead> = _fun()
+_prp = "foo"
+<dead> = obj[_prp]
+_val$1 = <function>:
+    _ret = <global foo>
+    <return> _ret
+<global h> <- _val$1
+"###);
+
+case!(
+    invalidate_deep_inner_scope_calls_for_write,
+    |cx| passes!(cx),
+    r#"
+    let obj = {};
+    obj.foo = 1; // do not drop
+    if (x) if (x)
+        invalidate();
+    obj.foo = 2;
+    h = function() { return foo; };
+"#,
+@r###"
+obj = {  }
+_prp = "foo"
+_val = 1
+obj[_prp] <- _val
+_iff = <global x>
+<if> _iff:
+    _iff$1 = <global x>
+    <if> _iff$1:
+        _fun = <global invalidate>
+        <dead> = _fun()
+    <else>:
+        <empty>
+<else>:
+    <empty>
+_prp$1 = "foo"
+_val$1 = 2
+obj[_prp$1] <- _val$1
+_val$2 = <function>:
+    _ret = <global foo>
+    <return> _ret
+<global h> <- _val$2
 "###);
 
 case!(
@@ -366,11 +695,29 @@ _tst$1 = 2
 <dead> = _val
 "###);
 
+#[derive(Default)]
+struct DropDeadSsaReads;
+
+impl Folder for DropDeadSsaReads {
+    type Output = Option<ir::Stmt>;
+
+    fn fold(&mut self, stmt: ir::Stmt) -> Self::Output {
+        match stmt {
+            ir::Stmt::Expr {
+                ref target,
+                expr: ir::Expr::Read { source: _ },
+            } if target.used().is_never() => None,
+            _ => Some(stmt),
+        }
+    }
+}
+
 case!(
     across_break_write,
     |cx| cx
         .run::<mut2ssa::Mut2Ssa>("mut2ssa")
         .run::<forward::Reads>("forward-reads-redundancy")
+        .run::<DropDeadSsaReads>("avoid-premature-invalidation")
         .run::<redundant_obj::LoadStore>("redundant-obj"),
     r#"
     let o = { f: 0 };
@@ -390,19 +737,15 @@ o = { [_key]: _val }
         <empty>
     <else>:
         <break>
-    <dead> = o
     _prp = "f"
     _lhs = o[_prp]
     _rhs = 1
     _val$1 = _lhs + _rhs
     o[_prp] <- _val$1
-    <dead> = _val$1
     <break>
-    <dead> = o
     _prp$1 = "f"
     _val$2 = 3
     o[_prp$1] <- _val$2
-    <dead> = _val$2
 "###);
 
 case!(
