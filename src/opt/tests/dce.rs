@@ -175,6 +175,33 @@ _fun = <function>:
 "###);
 
 case!(
+    dont_drop_hoisted_fns,
+    |cx| cx.converge::<dce::Dce>("dce"),
+    r#"
+    (function() {
+        foo();
+        return;
+        function foo() {
+            log();
+        }
+    })();
+"#,
+@r###"
+_fun = <function>:
+    _ini = <void>
+    foo <= _ini
+    _fun$1 = <function>:
+        _fun$3 = <global log>
+        <dead> = _fun$3()
+    foo <- _fun$1
+    _fun$2 = *foo
+    <dead> = _fun$2()
+    _ret = <void>
+    <return> _ret
+<dead> = _fun()
+"###);
+
+case!(
     empty_blocks,
     |cx| cx.converge::<dce::Dce>("dce"),
     r#"
