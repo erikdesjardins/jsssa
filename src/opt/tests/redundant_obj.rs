@@ -77,6 +77,27 @@ something[_prp] <- _val
 "###);
 
 case!(
+    write_to_read_to_write,
+    |cx| passes!(cx),
+    r#"
+    let something = {};
+    something.x = 1; // drop
+    g = something.x; // forward
+    something.x = 2;
+"#,
+@r###"
+something = {  }
+<dead> = "x"
+_val = 1
+<dead> = "x"
+_val$1 = _val
+<global g> <- _val$1
+_prp = "x"
+_val$2 = 2
+something[_prp] <- _val$2
+"###);
+
+case!(
     invalid_different_props,
     |cx| passes!(cx),
     r#"
@@ -95,46 +116,6 @@ _val = something[_prp]
 _prp$1 = "y"
 _val$1 = something[_prp$1]
 <global g2> <- _val$1
-"###);
-
-case!(
-    invalidate_write_to_write_single_pass,
-    |cx| passes!(cx),
-    r#"
-    let something = {};
-    something.x = 1; // do not drop
-    g = something.x;
-    something.x = 2;
-"#,
-@r###"
-something = {  }
-_prp = "x"
-_val = 1
-something[_prp] <- _val
-<dead> = "x"
-_val$1 = _val
-<global g> <- _val$1
-_prp$1 = "x"
-_val$2 = 2
-something[_prp$1] <- _val$2
-"###);
-
-case!(
-    execute_write_to_write_multi_pass,
-    |cx| cx.converge_with("conv", |cx| passes!(cx)),
-    r#"
-    let something = {};
-    something.x = 1; // drop
-    g = something.x;
-    something.x = 2;
-"#,
-@r###"
-something = {  }
-_val = 1
-<global g> <- _val
-_prp = "x"
-_val$1 = 2
-something[_prp] <- _val$1
 "###);
 
 case!(

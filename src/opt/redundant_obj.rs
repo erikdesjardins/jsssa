@@ -267,18 +267,21 @@ impl<'a> CollectLoadStoreInfo<'a> {
             Some((_, Op::Declare(val))) | Some((_, Op::Write(val))) | Some((_, Op::Read(val))) => {
                 self.obj_ops_to_replace
                     .insert(self.cur_index, What::ReadSsa((*val).clone()));
-                (self.cur_index, Op::Read(*val))
+                // this read will be dropped, don't add an op (this allows write-write with an intervening read that is forwarded out)
+                None
             }
-            None => (self.cur_index, Op::Read(target)),
+            None => Some((self.cur_index, Op::Read(target))),
         };
-        self.last_op_for_reads
-            .entry(obj)
-            .or_default()
-            .insert(prop, op.clone());
-        self.last_op_for_writes
-            .entry(obj)
-            .or_default()
-            .insert(prop, op);
+        if let Some(op) = op {
+            self.last_op_for_reads
+                .entry(obj)
+                .or_default()
+                .insert(prop, op.clone());
+            self.last_op_for_writes
+                .entry(obj)
+                .or_default()
+                .insert(prop, op);
+        }
     }
 }
 
