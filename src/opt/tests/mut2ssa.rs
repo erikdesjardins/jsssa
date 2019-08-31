@@ -116,9 +116,9 @@ case!(
     let y = 10;
     log(y);
     log(y + 1);
-    if (bar) (function() {
+    bar = function() {
         y = 5;
-    })();
+    };
 "#,
 @r###"
 _val = 3
@@ -137,12 +137,10 @@ _lhs = *y
 _rhs = 1
 _arg = _lhs + _rhs
 <dead> = _fun$1(_arg)
-_iff$1 = <global bar>
-<if> _iff$1:
-    _val$1 = 5
-    y <- _val$1
-<else>:
-    <empty>
+_val$1 = <function>:
+    _val$2 = 5
+    y <- _val$2
+<global bar> <- _val$1
 "###);
 
 case!(

@@ -238,19 +238,16 @@ case!(
     all_passes,
     r#"
     let x = {};
-    foo();
     x.y = 1;
     for (let k in x) log(k);
 "#,
 @r###"
-x = {  }
-_fun = <global foo>
-<dead> = _fun()
+_ini = {  }
 _prp = "y"
 _val = 1
-x[_prp] <- _val
-<foreach in> x:
+_ini[_prp] <- _val
+<foreach in> _ini:
     _for = <argument 0>
-    _fun$1 = <global log>
-    <dead> = _fun$1(_for)
+    _fun = <global log>
+    <dead> = _fun(_for)
 "###);

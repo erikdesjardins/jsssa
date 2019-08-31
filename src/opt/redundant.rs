@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::mem;
 
+use crate::anal;
 use crate::ir;
 use crate::ir::traverse::{Folder, RunVisitor, ScopeTy, Visitor};
 
@@ -63,12 +64,13 @@ enum What {
 
 #[derive(Default)]
 struct CollectLoadStoreInfo<'a> {
+    refs_used_in_only_one_fn_scope: HashSet<&'a ir::Ref<ir::Mut>>,
     mut_ops_to_replace: HashMap<StmtIndex, What>,
     cur_index: StmtIndex,
     last_op_for_reads: HashMap<&'a ir::Ref<ir::Mut>, (StmtIndex, WriteOp<'a>)>,
     last_op_for_writes: HashMap<&'a ir::Ref<ir::Mut>, (StmtIndex, WriteOp<'a>)>,
-    invalid_for_parent_reads: Invalid<'a>,
-    invalid_for_parent_writes: Invalid<'a>,
+    invalid_for_reads: Invalid<'a>,
+    invalid_for_writes: Invalid<'a>,
 }
 
 #[derive(Clone)]
@@ -77,81 +79,102 @@ enum WriteOp<'a> {
     Write(&'a ir::Ref<ir::Ssa>),
 }
 
-enum Invalid<'a> {
-    Everything,
-    Refs(HashSet<&'a ir::Ref<ir::Mut>>),
-}
-
-impl Default for Invalid<'_> {
-    fn default() -> Self {
-        Invalid::Refs(Default::default())
-    }
-}
-
-impl<'a> Invalid<'a> {
-    fn insert_ref(&mut self, ref_: &'a ir::Ref<ir::Mut>) {
-        match self {
-            Invalid::Everything => {}
-            Invalid::Refs(our_refs) => {
-                our_refs.insert(ref_);
-            }
-        }
-    }
+#[derive(Default)]
+struct Invalid<'a> {
+    all_refs_used_across_fn_scopes: bool,
+    except: HashSet<&'a ir::Ref<ir::Mut>>,
+    everything_in_parent: bool,
+    in_parent: HashSet<&'a ir::Ref<ir::Mut>>,
 }
 
 impl<'a> CollectLoadStoreInfo<'a> {
     fn invalidate_from_child(&mut self, child: Self) {
-        match child.invalid_for_parent_reads {
-            Invalid::Everything => {
-                self.last_op_for_reads.clear();
-                self.invalid_for_parent_reads = Invalid::Everything;
+        fn invalidate<'a>(
+            ops: &mut HashMap<&'a ir::Ref<ir::Mut>, (StmtIndex, WriteOp<'a>)>,
+            self_invalid: &mut Invalid<'a>,
+            child_invalid: Invalid<'a>,
+        ) {
+            if child_invalid.all_refs_used_across_fn_scopes {
+                self_invalid.all_refs_used_across_fn_scopes = true;
+                self_invalid.except.clear();
             }
-            Invalid::Refs(refs) => {
-                for ref_ in refs {
-                    self.last_op_for_reads.remove(&ref_);
-                    self.invalid_for_parent_reads.insert_ref(ref_);
+            if child_invalid.everything_in_parent {
+                ops.clear();
+                self_invalid.except.clear(); // pure optimization
+                self_invalid.everything_in_parent = true;
+                self_invalid.in_parent.clear(); // pure optimization
+            } else {
+                for invalid_ref in child_invalid.in_parent {
+                    ops.remove(&invalid_ref);
+                    self_invalid.in_parent.insert(invalid_ref);
                 }
             }
         }
-        match child.invalid_for_parent_writes {
-            Invalid::Everything => {
-                self.last_op_for_writes.clear();
-                self.invalid_for_parent_writes = Invalid::Everything;
-            }
-            Invalid::Refs(refs) => {
-                for ref_ in refs {
-                    self.last_op_for_writes.remove(&ref_);
-                    self.invalid_for_parent_writes.insert_ref(ref_);
-                }
-            }
+        invalidate(
+            &mut self.last_op_for_reads,
+            &mut self.invalid_for_reads,
+            child.invalid_for_reads,
+        );
+        invalidate(
+            &mut self.last_op_for_writes,
+            &mut self.invalid_for_writes,
+            child.invalid_for_writes,
+        );
+    }
+
+    fn invalidate_everything_used_across_fn_scopes(&mut self) {
+        self.invalid_for_reads.all_refs_used_across_fn_scopes = true;
+        self.invalid_for_writes.all_refs_used_across_fn_scopes = true;
+        self.invalid_for_reads.except.clear();
+        self.invalid_for_writes.except.clear();
+    }
+
+    fn invalidate_everything_for_writes(&mut self) {
+        self.last_op_for_writes.clear();
+        self.invalid_for_writes.except.clear(); // pure optimization
+        self.invalid_for_writes.everything_in_parent = true;
+        self.invalid_for_writes.in_parent.clear(); // pure optimization
+    }
+
+    fn invalidate_local_only(&mut self) {
+        self.last_op_for_reads.clear();
+        self.last_op_for_writes.clear();
+    }
+
+    fn set_last_op(&mut self, target: &'a ir::Ref<ir::Mut>, op: (StmtIndex, WriteOp<'a>)) {
+        self.last_op_for_reads.insert(target, op.clone());
+        self.last_op_for_writes.insert(target, op);
+        self.invalid_for_reads.except.insert(target);
+        self.invalid_for_writes.except.insert(target);
+        self.invalid_for_reads.in_parent.insert(target);
+        self.invalid_for_writes.in_parent.insert(target);
+    }
+
+    fn get_last_op<'op>(
+        &self,
+        ref_: &&'a ir::Ref<ir::Mut>,
+        ops: &'op HashMap<&'a ir::Ref<ir::Mut>, (StmtIndex, WriteOp<'a>)>,
+        invalid: &Invalid<'a>,
+    ) -> Option<&'op (StmtIndex, WriteOp<'a>)> {
+        let op = ops.get(ref_)?;
+        if invalid.all_refs_used_across_fn_scopes
+            && !self.refs_used_in_only_one_fn_scope.contains(ref_)
+            && !invalid.except.contains(ref_)
+        {
+            None
+        } else {
+            Some(op)
         }
-    }
-
-    fn invalidate_everything(&mut self) {
-        self.last_op_for_reads.clear();
-        self.last_op_for_writes.clear();
-        self.invalid_for_parent_reads = Invalid::Everything;
-        self.invalid_for_parent_writes = Invalid::Everything;
-    }
-
-    fn invalidate_for_writes(&mut self) {
-        self.last_op_for_writes.clear();
-        self.invalid_for_parent_writes = Invalid::Everything;
-    }
-
-    fn invalidate_local(&mut self) {
-        self.last_op_for_reads.clear();
-        self.last_op_for_writes.clear();
     }
 
     fn declare_mut(&mut self, target: &'a ir::Ref<ir::Mut>, val: &'a ir::Ref<ir::Ssa>) {
         let op = (self.cur_index, WriteOp::Declare(val));
-        self.last_op_for_reads.insert(target, op.clone());
-        self.last_op_for_writes.insert(target, op);
+        self.set_last_op(target, op);
     }
 
     fn write_mut(&mut self, target: &'a ir::Ref<ir::Mut>, val: &'a ir::Ref<ir::Ssa>) {
-        let op = match self.last_op_for_writes.get(&target) {
+        let op = match self.get_last_op(&target, &self.last_op_for_writes, &self.invalid_for_writes)
+        {
             // write -> write (decl)
             Some((declare_index, WriteOp::Declare(_))) => {
                 self.mut_ops_to_replace.insert(*declare_index, What::Remove);
@@ -166,14 +189,11 @@ impl<'a> CollectLoadStoreInfo<'a> {
             }
             None => (self.cur_index, WriteOp::Write(val)),
         };
-        self.last_op_for_reads.insert(target, op.clone());
-        self.last_op_for_writes.insert(target, op);
-        self.invalid_for_parent_reads.insert_ref(target);
-        self.invalid_for_parent_writes.insert_ref(target);
+        self.set_last_op(target, op);
     }
 
     fn read_mut(&mut self, _target: &'a ir::Ref<ir::Ssa>, source: &'a ir::Ref<ir::Mut>) {
-        match self.last_op_for_reads.get(&source) {
+        match self.get_last_op(&source, &self.last_op_for_reads, &self.invalid_for_reads) {
             // write -> read
             Some((_, WriteOp::Declare(val))) | Some((_, WriteOp::Write(val))) => {
                 self.mut_ops_to_replace
@@ -191,13 +211,26 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
         block: &'a ir::Block,
         enter: impl FnOnce(&mut Self, &'a ir::Block) -> R,
     ) -> R {
+        if let ScopeTy::Toplevel = ty {
+            self.refs_used_in_only_one_fn_scope =
+                anal::refs::used_in_only_one_fn_scope(&block).collect();
+        }
+
         match ty {
             ScopeTy::Function => {
                 // function scopes are analyzed separately
                 let mut inner = Self::default();
+                mem::swap(
+                    &mut inner.refs_used_in_only_one_fn_scope,
+                    &mut self.refs_used_in_only_one_fn_scope,
+                );
                 mem::swap(&mut inner.mut_ops_to_replace, &mut self.mut_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 let r = enter(&mut inner, block);
+                mem::swap(
+                    &mut inner.refs_used_in_only_one_fn_scope,
+                    &mut self.refs_used_in_only_one_fn_scope,
+                );
                 mem::swap(&mut inner.mut_ops_to_replace, &mut self.mut_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 r
@@ -205,11 +238,22 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
             ScopeTy::Normal | ScopeTy::Toplevel => {
                 // r->r and w->r can go into scopes, but not w->w (since it might not execute)
                 let mut inner = Self::default();
+                mem::swap(
+                    &mut inner.refs_used_in_only_one_fn_scope,
+                    &mut self.refs_used_in_only_one_fn_scope,
+                );
                 mem::swap(&mut inner.mut_ops_to_replace, &mut self.mut_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
-                // todo avoid this clone
+                // todo avoid these clones
                 inner.last_op_for_reads = self.last_op_for_reads.clone();
+                inner.invalid_for_reads.all_refs_used_across_fn_scopes =
+                    self.invalid_for_reads.all_refs_used_across_fn_scopes;
+                inner.invalid_for_reads.except = self.invalid_for_reads.except.clone();
                 let r = enter(&mut inner, block);
+                mem::swap(
+                    &mut inner.refs_used_in_only_one_fn_scope,
+                    &mut self.refs_used_in_only_one_fn_scope,
+                );
                 mem::swap(&mut inner.mut_ops_to_replace, &mut self.mut_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 // invalidate any vars written in the inner scope
@@ -219,9 +263,17 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
             ScopeTy::Nonlinear => {
                 // forwarding can happen across nonlinear scopes, but not into them
                 let mut inner = Self::default();
+                mem::swap(
+                    &mut inner.refs_used_in_only_one_fn_scope,
+                    &mut self.refs_used_in_only_one_fn_scope,
+                );
                 mem::swap(&mut inner.mut_ops_to_replace, &mut self.mut_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 let r = enter(&mut inner, block);
+                mem::swap(
+                    &mut inner.refs_used_in_only_one_fn_scope,
+                    &mut self.refs_used_in_only_one_fn_scope,
+                );
                 mem::swap(&mut inner.mut_ops_to_replace, &mut self.mut_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 // invalidate any vars written in the inner scope
@@ -237,7 +289,7 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
             ir::Stmt::Expr { target, expr } => match expr {
                 ir::Expr::ReadMutable { source } => self.read_mut(target, source),
                 ir::Expr::Yield { .. } | ir::Expr::Await { .. } | ir::Expr::Call { .. } => {
-                    self.invalidate_everything()
+                    self.invalidate_everything_used_across_fn_scopes()
                 }
                 ir::Expr::Bool { .. }
                 | ir::Expr::Number { .. }
@@ -263,8 +315,8 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
             ir::Stmt::Return { .. }
             | ir::Stmt::Throw { .. }
             | ir::Stmt::Break { .. }
-            | ir::Stmt::Continue { .. } => self.invalidate_for_writes(),
-            ir::Stmt::SwitchCase { .. } => self.invalidate_local(),
+            | ir::Stmt::Continue { .. } => self.invalidate_everything_for_writes(),
+            ir::Stmt::SwitchCase { .. } => self.invalidate_local_only(),
             ir::Stmt::WriteGlobal { .. }
             | ir::Stmt::WriteMember { .. }
             | ir::Stmt::Debugger { .. }

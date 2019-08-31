@@ -192,6 +192,7 @@ case!(
     if (bar()) {
         log(y);
     }
+    i = function() { return x = y = 1; }
 "#,
 @r###"
 if (foo) {
@@ -201,6 +202,10 @@ var y = h;
 if (bar()) {
     log(y);
 }
+i = function() {
+    y = 1;
+    return 1;
+};
 "###);
 
 case!(

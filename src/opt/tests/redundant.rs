@@ -8,6 +8,7 @@ case!(
     foo();
     something = x;
     let y = something;
+    h = function() { return something; };
 "#,
 @r###"
 _ini = 1
@@ -19,6 +20,11 @@ something <- _val
 <dead> = _val
 _ini$1 = _val
 y <= _ini$1
+_val$1 = <function>:
+    _ret = *something
+    <return> _ret
+<global h> <- _val$1
+<dead> = _val$1
 "###);
 
 case!(
@@ -29,6 +35,7 @@ case!(
     foo();
     something = x;
     something = y;
+    h = function() { return something; };
 "#,
 @r###"
 _ini = 1
@@ -40,6 +47,11 @@ _val = <global x>
 _val$1 = <global y>
 something <- _val$1
 <dead> = _val$1
+_val$2 = <function>:
+    _ret = *something
+    <return> _ret
+<global h> <- _val$2
+<dead> = _val$2
 "###);
 
 case!(
@@ -132,6 +144,37 @@ _iff = <global something>
 "###);
 
 case!(
+    invalidate_inner_scope_calls,
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let foo = 1;
+    while (x)
+        invalidate();
+    g = foo;
+    h = function() { return foo; };
+"#,
+@r###"
+_ini = 1
+foo <= _ini
+<loop>:
+    _whl = <global x>
+    <if> _whl:
+        <empty>
+    <else>:
+        <break>
+    _fun = <global invalidate>
+    <dead> = _fun()
+_val = *foo
+<global g> <- _val
+<dead> = _val
+_val$1 = <function>:
+    _ret = *foo
+    <return> _ret
+<global h> <- _val$1
+<dead> = _val$1
+"###);
+
+case!(
     many_writes,
     |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
     r#"
@@ -165,6 +208,7 @@ case!(
     } else {
         g = foo;
     }
+    h = function() { return foo; };
 "#,
 @r###"
 _ini = 1
@@ -173,13 +217,18 @@ _fun = <global invalidate>
 <dead> = _fun()
 _iff = <global bar>
 <if> _iff:
-    _val = *foo
-    <global g> <- _val
-    <dead> = _val
+    _val$1 = *foo
+    <global g> <- _val$1
+    <dead> = _val$1
 <else>:
-    _val = *foo
-    <global g> <- _val
-    <dead> = _val
+    _val$1 = *foo
+    <global g> <- _val$1
+    <dead> = _val$1
+_val = <function>:
+    _ret = *foo
+    <return> _ret
+<global h> <- _val
+<dead> = _val
 "###);
 
 case!(
@@ -210,6 +259,37 @@ _tst$1 = 2
     <case> _tst$1:
     <dead> = *inner
 <dead> = _ini
+"###);
+
+case!(
+    across_break_write,
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let f;
+    while (foo) {
+        f += 1; // do not drop
+        break;
+        f = 3;
+    }
+"#,
+@r###"
+_ini = <void>
+f <= _ini
+<loop>:
+    _whl = <global foo>
+    <if> _whl:
+        <empty>
+    <else>:
+        <break>
+    _lhs = *f
+    _rhs = 1
+    _val = _lhs + _rhs
+    f <- _val
+    <dead> = _val
+    <break>
+    _val$1 = 3
+    f <- _val$1
+    <dead> = _val$1
 "###);
 
 case!(
@@ -247,6 +327,52 @@ f <= _ini
     _val$1 = 3
     f <- _val$1
     <dead> = _val$1
+"###);
+
+case!(
+    across_deep_break_write,
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let f;
+    outer: while (foo) {
+        f += 1; // do not drop
+        while (bar) while (bar) {
+            break outer;
+        }
+        f = 3;
+    }
+"#,
+@r###"
+_ini = <void>
+f <= _ini
+<label outer>:
+    <loop>:
+        _whl = <global foo>
+        <if> _whl:
+            <empty>
+        <else>:
+            <break>
+        _lhs = *f
+        _rhs = 1
+        _val = _lhs + _rhs
+        f <- _val
+        <dead> = _val
+        <loop>:
+            _whl$1 = <global bar>
+            <if> _whl$1:
+                <empty>
+            <else>:
+                <break>
+            <loop>:
+                _whl$2 = <global bar>
+                <if> _whl$2:
+                    <empty>
+                <else>:
+                    <break>
+                <break outer>
+        _val$1 = 3
+        f <- _val$1
+        <dead> = _val$1
 "###);
 
 case!(
@@ -302,4 +428,124 @@ f <= _ini
     _val = 2
     f <- _val
     <dead> = _val
+"###);
+
+case!(
+    same_scope_not_invalidated_by_call,
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let foo = 1;
+    invalidate();
+    if (bar) {
+        g = foo;
+    }
+"#,
+@r###"
+_ini = 1
+foo <= _ini
+_fun = <global invalidate>
+<dead> = _fun()
+_iff = <global bar>
+<if> _iff:
+    _val = _ini
+    <global g> <- _val
+    <dead> = _val
+<else>:
+    <empty>
+"###);
+
+case!(
+    revalidated_before_entering_scope,
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let foo = 1;
+    invalidate();
+    foo = 2;
+    if (bar) {
+        g = foo;
+    }
+    h = function() { return foo; };
+"#,
+@r###"
+_ini = 1
+foo <= _ini
+_fun = <global invalidate>
+<dead> = _fun()
+_val = 2
+foo <- _val
+<dead> = _val
+_iff = <global bar>
+<if> _iff:
+    _val$2 = _val
+    <global g> <- _val$2
+    <dead> = _val$2
+<else>:
+    <empty>
+_val$1 = <function>:
+    _ret = *foo
+    <return> _ret
+<global h> <- _val$1
+<dead> = _val$1
+"###);
+
+case!(
+    cross_switch_read_invalidate,
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let foo = 1;
+    switch (bar) {
+        case 1:
+            foo += 1; // do not forward
+        case 2:
+            g = foo;
+    }
+"#,
+@r###"
+_ini = 1
+foo <= _ini
+_swi = <global bar>
+_tst = 1
+_tst$1 = 2
+<switch> _swi:
+    <case> _tst:
+    _lhs = *foo
+    _rhs = 1
+    _val = _lhs + _rhs
+    foo <- _val
+    <dead> = _val
+    <case> _tst$1:
+    _val$1 = *foo
+    <global g> <- _val$1
+    <dead> = _val$1
+"###);
+
+case!(
+    cross_switch_write_invalidate,
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let foo = 1;
+    switch (bar) {
+        case 1:
+            foo += 1; // do not drop
+        case 2:
+            foo = 3;
+    }
+"#,
+@r###"
+_ini = 1
+foo <= _ini
+_swi = <global bar>
+_tst = 1
+_tst$1 = 2
+<switch> _swi:
+    <case> _tst:
+    _lhs = *foo
+    _rhs = 1
+    _val = _lhs + _rhs
+    foo <- _val
+    <dead> = _val
+    <case> _tst$1:
+    _val$1 = 3
+    foo <- _val$1
+    <dead> = _val$1
 "###);
