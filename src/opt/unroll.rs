@@ -15,55 +15,51 @@ use crate::ir::traverse::{Folder, ScopeTy};
 #[derive(Debug, Default)]
 pub struct Loops {
     refs_used_in_only_one_fn_scope: HashSet<ir::WeakRef<ir::Ssa>>,
-    known_small_objects: HashMap<ir::WeakRef<ir::Ssa>, Option<ir::Ref<ir::Ssa>>>,
-    invalid: Invalid,
+    local_small_objects: HashMap<ir::WeakRef<ir::Ssa>, Option<ir::Ref<ir::Ssa>>>,
+    nonlocal_small_objects: HashMap<ir::WeakRef<ir::Ssa>, Option<ir::Ref<ir::Ssa>>>,
+    invalid_in_parent: Invalid,
 }
 
 #[derive(Debug, Default)]
 struct Invalid {
-    all_refs_used_across_fn_scopes: bool,
-    except: HashSet<ir::WeakRef<ir::Ssa>>,
-    in_parent: HashSet<ir::WeakRef<ir::Ssa>>,
+    all_nonlocal: bool,
+    objects: HashSet<ir::WeakRef<ir::Ssa>>,
 }
 
 impl Loops {
     fn invalidate_from_child(&mut self, child: Self) {
-        if child.invalid.all_refs_used_across_fn_scopes {
+        if child.invalid_in_parent.all_nonlocal {
             self.invalidate_everything_used_across_fn_scopes();
         }
-        for invalid_ref in child.invalid.in_parent {
+        for invalid_ref in child.invalid_in_parent.objects {
             self.invalidate_ref(invalid_ref);
         }
     }
 
     fn invalidate_everything_used_across_fn_scopes(&mut self) {
-        self.invalid.all_refs_used_across_fn_scopes = true;
-        self.invalid.except.clear();
+        self.nonlocal_small_objects.clear();
+        self.invalid_in_parent.all_nonlocal = true;
     }
 
     fn invalidate_ref(&mut self, ref_: ir::WeakRef<ir::Ssa>) {
-        self.known_small_objects.remove(&ref_);
-        self.invalid.in_parent.insert(ref_);
+        self.local_small_objects
+            .remove(&ref_)
+            .or_else(|| self.nonlocal_small_objects.remove(&ref_));
+        self.invalid_in_parent.objects.insert(ref_);
     }
 
     fn declare_small_object(&mut self, ref_: ir::WeakRef<ir::Ssa>, prop: Option<ir::Ref<ir::Ssa>>) {
-        self.known_small_objects.insert(ref_.clone(), prop);
-        self.invalid.except.insert(ref_);
+        if self.refs_used_in_only_one_fn_scope.contains(&ref_) {
+            self.local_small_objects.insert(ref_, prop);
+        } else {
+            self.nonlocal_small_objects.insert(ref_, prop);
+        }
     }
 
-    fn get_small_object(
-        &mut self,
-        ref_: &ir::WeakRef<ir::Ssa>,
-    ) -> Option<&Option<ir::Ref<ir::Ssa>>> {
-        let prop = self.known_small_objects.get(ref_)?;
-        if self.invalid.all_refs_used_across_fn_scopes
-            && !self.refs_used_in_only_one_fn_scope.contains(ref_)
-            && !self.invalid.except.contains(ref_)
-        {
-            None
-        } else {
-            Some(prop)
-        }
+    fn get_small_object(&self, ref_: &ir::WeakRef<ir::Ssa>) -> Option<&Option<ir::Ref<ir::Ssa>>> {
+        self.local_small_objects
+            .get(ref_)
+            .or_else(|| self.nonlocal_small_objects.get(ref_))
     }
 }
 
