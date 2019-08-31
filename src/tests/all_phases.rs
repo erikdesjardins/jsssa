@@ -162,6 +162,61 @@ window.foo = function(z) {
 "###);
 
 case!(
+    snudown_js_like2,
+    r#"
+    var o, c = {}, s = {};
+    for (o in c) c.hasOwnProperty(o) && (s[o] = c[o]);
+    var u = console.log.bind(console), b = console.warn.bind(console);
+    for (o in s) s.hasOwnProperty(o) && (c[o] = s[o]);
+    s = null;
+    var k, v, d, h = 0, w = !1;
+    k = c.buffer ? c.buffer : new ArrayBuffer(16777216), c.HEAP8 = v = new Int8Array(k), c.HEAP32 = s = new Int32Array(k), c.HEAPU8 = d = new Uint8Array(k), s[2340] = 5252272;
+    var m = [], _ = [], p = [], y = [];
+    c.preloadedImages = {}, c.preloadedAudios = {}, s = null, s = '\0\0\0\0\0';
+    var g = c._default_renderer = k._default_renderer, A = c._free = k._free;
+    c._i64Add = k._i64Add, c._i64Subtract = k._i64Subtract;
+    var C = c._wiki_renderer = k._wiki_renderer;
+    c.establishStackSpace = k.establishStackSpace;
+    var S, x = c.stackAlloc = k.stackAlloc, E = c.stackRestore = k.stackRestore, I = c.stackSave = k.stackSave;
+    c.dynCall_iii = k.dynCall_iii, c.dynCall_iiii = k.dynCall_iiii, c.asm = k;
+    s && (function (r) {
+        var e, i = r.length;
+        for (e = 0; e < i; ++e) d[8 + e] = r.charCodeAt(e)
+    })(s);
+"#,
+@r###"
+console.log.bind(console);
+console.warn.bind(console);
+var _alt = new ArrayBuffer(16777216);
+new Int8Array(_alt);
+var _val = new Int32Array(_alt);
+var _val$1 = new Uint8Array(_alt);
+_val[2340] = 5252272;
+_alt._default_renderer;
+_alt._free;
+_alt._i64Add;
+_alt._i64Subtract;
+_alt._wiki_renderer;
+_alt.establishStackSpace;
+_alt.stackAlloc;
+_alt.stackRestore;
+_alt.stackSave;
+_alt.dynCall_iii;
+_alt.dynCall_iiii;
+var i = '\0\0\0\0\0'.length;
+var e = 0;
+for(;;){
+    if (e < i) {
+    } else {
+        break;
+    }
+    var _prp = 8 + e;
+    _val$1[_prp] = '\0\0\0\0\0'.charCodeAt(e);
+    e = e + 1;
+}
+"###);
+
+case!(
     fn_scopes_do_not_deter_ssa_inlining,
     r#"
     let x = foo();
