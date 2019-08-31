@@ -223,6 +223,59 @@ _prp$1 = "bar"
 "###);
 
 case!(
+    invalidate_calls,
+    |cx| passes!(cx),
+    r#"
+    let obj = { foo: 1 };
+    invalidate();
+    obj.foo; // do not forward
+    h = function() { return foo; };
+"#,
+@r###"
+_key = "foo"
+_val = 1
+obj = { [_key]: _val }
+_fun = <global invalidate>
+<dead> = _fun()
+_prp = "foo"
+<dead> = obj[_prp]
+_val$1 = <function>:
+    _ret = <global foo>
+    <return> _ret
+<global h> <- _val$1
+"###);
+
+case!(
+    invalidate_inner_scope_calls,
+    |cx| passes!(cx),
+    r#"
+    let obj = { foo: 1 };
+    while (x)
+        invalidate();
+    obj.foo; // do not forward
+    h = function() { return foo; };
+"#,
+@r###"
+_key = "foo"
+_val = 1
+obj = { [_key]: _val }
+<loop>:
+    _whl = <global x>
+    <if> _whl:
+        <empty>
+    <else>:
+        <break>
+    _fun = <global invalidate>
+    <dead> = _fun()
+_prp = "foo"
+<dead> = obj[_prp]
+_val$1 = <function>:
+    _ret = <global foo>
+    <return> _ret
+<global h> <- _val$1
+"###);
+
+case!(
     many_writes,
     |cx| passes!(cx),
     r#"
@@ -314,6 +367,45 @@ _tst$1 = 2
 "###);
 
 case!(
+    across_break_write,
+    |cx| cx
+        .run::<mut2ssa::Mut2Ssa>("mut2ssa")
+        .run::<forward::Reads>("forward-reads-redundancy")
+        .run::<redundant_obj::LoadStore>("redundant-obj"),
+    r#"
+    let o = { f: 0 };
+    while (foo) {
+        o.f += 1; // do not drop
+        break;
+        o.f = 3;
+    }
+"#,
+@r###"
+_key = "f"
+_val = 0
+o = { [_key]: _val }
+<loop>:
+    _whl = <global foo>
+    <if> _whl:
+        <empty>
+    <else>:
+        <break>
+    <dead> = o
+    _prp = "f"
+    _lhs = o[_prp]
+    _rhs = 1
+    _val$1 = _lhs + _rhs
+    o[_prp] <- _val$1
+    <dead> = _val$1
+    <break>
+    <dead> = o
+    _prp$1 = "f"
+    _val$2 = 3
+    o[_prp$1] <- _val$2
+    <dead> = _val$2
+"###);
+
+case!(
     across_conditional_breaks_write,
     |cx| passes!(cx),
     r#"
@@ -352,6 +444,53 @@ o = { [_key]: _val }
 "###);
 
 case!(
+    across_deep_break_write,
+    |cx| passes!(cx),
+    r#"
+    let o = { f: 0 };
+    outer: while (foo) {
+        o.f += 1; // do not drop
+        while (bar) while (bar) {
+            break outer;
+        }
+        o.f = 3;
+    }
+"#,
+@r###"
+_key = "f"
+_val = 0
+o = { [_key]: _val }
+<label outer>:
+    <loop>:
+        _whl = <global foo>
+        <if> _whl:
+            <empty>
+        <else>:
+            <break>
+        _prp = "f"
+        _lhs = o[_prp]
+        _rhs = 1
+        _val$1 = _lhs + _rhs
+        o[_prp] <- _val$1
+        <loop>:
+            _whl$1 = <global bar>
+            <if> _whl$1:
+                <empty>
+            <else>:
+                <break>
+            <loop>:
+                _whl$2 = <global bar>
+                <if> _whl$2:
+                    <empty>
+                <else>:
+                    <break>
+                <break outer>
+        _prp$1 = "f"
+        _val$2 = 3
+        o[_prp$1] <- _val$2
+"###);
+
+case!(
     across_conditional_breaks_read,
     |cx| passes!(cx),
     r#"
@@ -387,6 +526,70 @@ o = { [_key]: _val }
     <dead> = "f"
     _val$2 = _val$1
     <global g> <- _val$2
+"###);
+
+case!(
+    cross_switch_read_invalidate,
+    |cx| passes!(cx),
+    r#"
+    let o = { f: 0 };
+    switch (bar) {
+        case 1:
+            o.f += 1; // do not forward
+        case 2:
+            g = o.f;
+    }
+"#,
+@r###"
+_key = "f"
+_val = 0
+o = { [_key]: _val }
+_swi = <global bar>
+_tst = 1
+_tst$1 = 2
+<switch> _swi:
+    <case> _tst:
+    _prp = "f"
+    _lhs = o[_prp]
+    _rhs = 1
+    _val$1 = _lhs + _rhs
+    o[_prp] <- _val$1
+    <case> _tst$1:
+    _prp$1 = "f"
+    _val$2 = o[_prp$1]
+    <global g> <- _val$2
+"###);
+
+case!(
+    cross_switch_write_invalidate,
+    |cx| passes!(cx),
+    r#"
+    let o = { f: 0 };
+    switch (bar) {
+        case 1:
+            o.f += 1; // do not drop
+        case 2:
+            o.f = 3;
+    }
+"#,
+@r###"
+_key = "f"
+_val = 0
+o = { [_key]: _val }
+_swi = <global bar>
+_tst = 1
+_tst$1 = 2
+<switch> _swi:
+    <case> _tst:
+    _prp = "f"
+    _lhs = o[_prp]
+    _rhs = 1
+    _val$1 = _lhs + _rhs
+    o[_prp] <- _val$1
+    <case> _tst$1:
+    _prp$1 = "f"
+    _val$2 = 3
+    o[_prp$1] <- _val$2
 "###);
 
 case!(
