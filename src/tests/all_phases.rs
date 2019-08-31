@@ -578,3 +578,16 @@ g = (x + 1) * 2;
     f();
 })();
 "###);
+
+case!(
+    unreferenced_params_before_referenced,
+    r#"
+    g = function(a, b, c) {
+        h = c;
+    };
+"#,
+@r###"
+g = function(_, _$1, c) {
+    h = c;
+};
+"###);
