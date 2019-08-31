@@ -217,6 +217,7 @@ case!(
     switch (x) {
         case 1:
             break;
+            drop_me();
         case 2:
             log();
     }
