@@ -1,7 +1,9 @@
+use std::fmt::{self, Debug};
+
 use crate::ir;
 
 /// Non-mutating traversal, receiving each node by reference.
-pub trait Visitor<'a>: Sized {
+pub trait Visitor<'a>: Sized + Debug {
     fn wrap_scope<R>(
         &mut self,
         ty: &ScopeTy,
@@ -22,7 +24,7 @@ pub trait Visitor<'a>: Sized {
 }
 
 /// Mutating/mapping traversal, receiving each node by value.
-pub trait Folder: Sized {
+pub trait Folder: Sized + Debug {
     type Output: IntoIterator<Item = ir::Stmt>;
 
     fn wrap_scope<R>(
@@ -63,6 +65,11 @@ impl<F: Folder> RunFolder for F {}
 /// Helper to run simple visitors without defining a struct.
 pub fn visit_with<'a>(ir: &'a ir::Block, f: impl FnMut(&'a ir::Stmt)) {
     struct VisitFn<F>(F);
+    impl<F> Debug for VisitFn<F> {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.write_str("<visitor fn>")
+        }
+    }
     impl<'a, F: FnMut(&'a ir::Stmt)> Visitor<'a> for VisitFn<F> {
         fn visit(&mut self, stmt: &'a ir::Stmt) {
             (self.0)(stmt);

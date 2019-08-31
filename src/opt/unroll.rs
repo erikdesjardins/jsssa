@@ -12,14 +12,14 @@ use crate::ir::traverse::{Folder, ScopeTy};
 /// May profit from DCE running first; may create opportunities for DCE.
 /// May create opportunities for read forwarding.
 /// May create opportunities for SROA.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Loops {
     refs_used_in_only_one_fn_scope: HashSet<ir::WeakRef<ir::Ssa>>,
     known_small_objects: HashMap<ir::WeakRef<ir::Ssa>, Option<ir::Ref<ir::Ssa>>>,
     invalid: Invalid,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct Invalid {
     all_refs_used_across_fn_scopes: bool,
     except: HashSet<ir::WeakRef<ir::Ssa>>,

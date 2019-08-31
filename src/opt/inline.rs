@@ -11,7 +11,7 @@ use crate::ir::traverse::{Folder, RunVisitor, ScopeTy, Visitor};
 /// Does not profit from multiple passes.
 /// May profit from DCE running first; may create opportunities for DCE.
 /// May create opportunities for _everything_; in particular, read forwarding.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Inline {
     fns_to_inline: HashSet<ir::WeakRef<ir::Ssa>>,
     fn_bodies: HashMap<ir::WeakRef<ir::Ssa>, ir::Block>,
@@ -27,7 +27,7 @@ impl Drop for Inline {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct CollectFnCallInfo<'a> {
     fns_to_inline: HashSet<&'a ir::Ref<ir::Ssa>>,
     fn_def_is_good: HashSet<&'a ir::Ref<ir::Ssa>>,

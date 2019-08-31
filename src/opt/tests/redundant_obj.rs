@@ -676,7 +676,7 @@ _tst$1 = 2
 <dead> = _val
 "###);
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct DropDeadSsaReads;
 
 impl Folder for DropDeadSsaReads {

@@ -69,7 +69,7 @@ impl Cache {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct CollectSingleUseInliningInfo<'a> {
     can_inline_at_use: HashSet<&'a ir::Ref<ir::Ssa>>,
     pure_refs: HashSet<&'a ir::Ref<ir::Ssa>>,
@@ -78,7 +78,7 @@ struct CollectSingleUseInliningInfo<'a> {
     largest_effect: Effect,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum Effect {
     Pure,
     Read,

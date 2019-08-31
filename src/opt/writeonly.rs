@@ -7,17 +7,18 @@ use crate::ir::traverse::{Folder, RunVisitor, ScopeTy, Visitor};
 ///
 /// Does not profit from multiple passes.
 /// May profit from DCE running first; may create opportunities for DCE.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Objects {
     objects_to_remove: HashSet<ir::WeakRef<ir::Ssa>>,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct CollectObjWriteInfo<'a> {
     obj_ops: HashMap<&'a ir::Ref<ir::Ssa>, State>,
     last_use_was_safe: bool,
 }
 
+#[derive(Debug)]
 enum State {
     WriteOnly,
     Invalid,

@@ -8,7 +8,7 @@ use crate::ir::traverse::Folder;
 ///
 /// Does not profit from multiple passes.
 /// Does not profit from DCE running first; may create opportunities for DCE.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct ConstProp {
     shallow_values: HashMap<ir::WeakRef<ir::Ssa>, ir::Expr>,
 }

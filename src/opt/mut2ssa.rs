@@ -9,17 +9,18 @@ use crate::ir::traverse::{Folder, RunVisitor, ScopeTy, Visitor};
 /// Does not profit from multiple passes.
 /// May profit from DCE running first; may create opportunities for DCE.
 /// May create opportunities for read forwarding.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Mut2Ssa {
     mut_vars_to_replace: HashMap<ir::WeakRef<ir::Mut>, What>,
 }
 
+#[derive(Debug)]
 enum What {
     Convert(ir::Ref<ir::Ssa>),
     Remove,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct CollectMutOpInfo<'a> {
     mut_ops: HashMap<&'a ir::Ref<ir::Mut>, State>,
     reads_in_scope: HashSet<&'a ir::Ref<ir::Mut>>,
@@ -28,7 +29,7 @@ struct CollectMutOpInfo<'a> {
     about_to_enter_switch: bool,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 enum State {
     ReadOnly { frozen: bool },
     WriteOnly,

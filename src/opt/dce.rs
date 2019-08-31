@@ -4,7 +4,7 @@ use crate::ir::traverse::{Folder, ScopeTy};
 /// Dead code elimination.
 ///
 /// May profit from multiple passes.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Dce {
     dropping_after_jump: bool,
 }

@@ -46,7 +46,7 @@ use crate::ir::traverse::{Folder, RunVisitor, ScopeTy, Visitor};
 ///   /* stuff */
 ///   something.z <- y
 ///
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct LoadStore {
     obj_ops_to_replace: HashMap<StmtIndex, What>,
     cur_index: StmtIndex,
@@ -54,12 +54,13 @@ pub struct LoadStore {
 
 type StmtIndex = u64;
 
+#[derive(Debug)]
 enum What {
     ReadSsa(ir::Ref<ir::Ssa>),
     Remove,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct CollectLoadStoreInfo<'a> {
     obj_ops_to_replace: HashMap<StmtIndex, What>,
     cur_index: StmtIndex,
@@ -71,18 +72,20 @@ struct CollectLoadStoreInfo<'a> {
     last_use_was_safe: bool,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 enum Op<'a> {
     Declare(&'a ir::Ref<ir::Ssa>),
     Write(&'a ir::Ref<ir::Ssa>),
     Read(&'a ir::Ref<ir::Ssa>),
 }
 
+#[derive(Debug)]
 enum Invalid<'a> {
     Everything,
     Objects(HashMap<&'a ir::Ref<ir::Ssa>, InvalidProps<'a>>),
 }
 
+#[derive(Debug)]
 enum InvalidProps<'a> {
     All,
     Props(HashSet<&'a str>),

@@ -11,13 +11,13 @@ use crate::ir::traverse::{Folder, RunVisitor, ScopeTy, Visitor};
 /// Does not profit from DCE running first; may create opportunities for DCE.
 /// May create opportunities for mut-to-ssa downleveling.
 /// May create opportunities for read forwarding.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Replace {
     objects_to_replace: HashMap<ir::WeakRef<ir::Ssa>, HashMap<String, ir::Ref<ir::Mut>>>,
     known_strings: HashMap<ir::WeakRef<ir::Ssa>, String>,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct CollectObjInfo<'a> {
     known_objs: HashMap<&'a ir::Ref<ir::Ssa>, State<'a>>,
     known_strings: HashMap<&'a ir::Ref<ir::Ssa>, &'a str>,

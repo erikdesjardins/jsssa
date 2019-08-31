@@ -48,7 +48,7 @@ use crate::ir::traverse::{Folder, RunVisitor, ScopeTy, Visitor};
 ///   /* stuff */
 ///   something <- y
 ///
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct LoadStore {
     mut_ops_to_replace: HashMap<StmtIndex, What>,
     cur_index: StmtIndex,
@@ -56,13 +56,14 @@ pub struct LoadStore {
 
 type StmtIndex = u64;
 
+#[derive(Debug)]
 enum What {
     ReadSsa(ir::Ref<ir::Ssa>),
     Remove,
     BecomeDecl,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct CollectLoadStoreInfo<'a> {
     refs_used_in_only_one_fn_scope: HashSet<&'a ir::Ref<ir::Mut>>,
     mut_ops_to_replace: HashMap<StmtIndex, What>,
@@ -73,13 +74,13 @@ struct CollectLoadStoreInfo<'a> {
     invalid_for_writes: Invalid<'a>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 enum WriteOp<'a> {
     Declare(&'a ir::Ref<ir::Ssa>),
     Write(&'a ir::Ref<ir::Ssa>),
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct Invalid<'a> {
     all_refs_used_across_fn_scopes: bool,
     except: HashSet<&'a ir::Ref<ir::Mut>>,

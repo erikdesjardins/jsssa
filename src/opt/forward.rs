@@ -7,12 +7,13 @@ use crate::ir::traverse::{visit_with, Folder, ScopeTy};
 ///
 /// Does not profit from multiple passes.
 /// Does not profit from DCE running first; may create opportunities for DCE.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Reads {
     ssa_remappings: HashMap<ir::WeakRef<ir::Ssa>, What>,
     prev_expr_if_moving_to_next: Option<ir::Expr>,
 }
 
+#[derive(Debug)]
 enum What {
     MoveToNext,
     ForwardTo(ir::Ref<ir::Ssa>),

@@ -21,11 +21,13 @@ where
 
 type LevelNumber = u64;
 
+#[derive(Debug)]
 pub struct UsedInOnlyOneFnScope<'a, K: ir::RefType> {
     refs: HashMap<&'a ir::Ref<K>, State>,
     cur_level: LevelNumber,
 }
 
+#[derive(Debug)]
 enum State {
     Valid(LevelNumber),
     Invalid,
