@@ -144,6 +144,34 @@ _iff = <global something>
 "###);
 
 case!(
+    invalidate_inner_scope_writes_for_write,
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let foo;
+    foo = 1; // don't drop
+    if (something) {
+        foo = 2;
+    }
+    foo = 3;
+"#,
+@r###"
+<dead> = <void>
+_val = 1
+foo <= _val
+<dead> = _val
+_iff = <global something>
+<if> _iff:
+    _val$2 = 2
+    foo <- _val$2
+    <dead> = _val$2
+<else>:
+    <empty>
+_val$1 = 3
+foo <- _val$1
+<dead> = _val$1
+"###);
+
+case!(
     invalidate_inner_scope_calls,
     |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
     r#"
@@ -293,6 +321,43 @@ f <= _ini
 "###);
 
 case!(
+    across_break_write_nonlocal,
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let f;
+    while (foo) {
+        f += 1; // do not drop
+        break;
+        f = 3;
+    }
+    h = function() { return f; }
+"#,
+@r###"
+_ini = <void>
+f <= _ini
+<loop>:
+    _whl = <global foo>
+    <if> _whl:
+        <empty>
+    <else>:
+        <break>
+    _lhs = *f
+    _rhs = 1
+    _val$1 = _lhs + _rhs
+    f <- _val$1
+    <dead> = _val$1
+    <break>
+    _val$2 = 3
+    f <- _val$2
+    <dead> = _val$2
+_val = <function>:
+    _ret = *f
+    <return> _ret
+<global h> <- _val
+<dead> = _val
+"###);
+
+case!(
     across_conditional_breaks_write,
     |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
     r#"
@@ -373,6 +438,58 @@ f <= _ini
         _val$1 = 3
         f <- _val$1
         <dead> = _val$1
+"###);
+
+case!(
+    across_deep_break_write_nonlocal,
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let f;
+    outer: while (foo) {
+        f += 1; // do not drop
+        while (bar) while (bar) {
+            break outer;
+        }
+        f = 3;
+    }
+    h = function() { return f; };
+"#,
+@r###"
+_ini = <void>
+f <= _ini
+<label outer>:
+    <loop>:
+        _whl = <global foo>
+        <if> _whl:
+            <empty>
+        <else>:
+            <break>
+        _lhs = *f
+        _rhs = 1
+        _val$1 = _lhs + _rhs
+        f <- _val$1
+        <dead> = _val$1
+        <loop>:
+            _whl$1 = <global bar>
+            <if> _whl$1:
+                <empty>
+            <else>:
+                <break>
+            <loop>:
+                _whl$2 = <global bar>
+                <if> _whl$2:
+                    <empty>
+                <else>:
+                    <break>
+                <break outer>
+        _val$2 = 3
+        f <- _val$2
+        <dead> = _val$2
+_val = <function>:
+    _ret = *f
+    <return> _ret
+<global h> <- _val
+<dead> = _val
 "###);
 
 case!(
@@ -548,4 +665,41 @@ _tst$1 = 2
     _val$1 = 3
     foo <- _val$1
     <dead> = _val$1
+"###);
+
+case!(
+    cross_switch_write_invalidate_nonlocal,
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    let foo = 1;
+    switch (bar) {
+        case 1:
+            foo += 1; // do not drop
+        case 2:
+            foo = 3;
+    }
+    h = function() { return foo; }
+"#,
+@r###"
+_ini = 1
+foo <= _ini
+_swi = <global bar>
+_tst = 1
+_tst$1 = 2
+<switch> _swi:
+    <case> _tst:
+    _lhs = *foo
+    _rhs = 1
+    _val$1 = _lhs + _rhs
+    foo <- _val$1
+    <dead> = _val$1
+    <case> _tst$1:
+    _val$2 = 3
+    foo <- _val$2
+    <dead> = _val$2
+_val = <function>:
+    _ret = *foo
+    <return> _ret
+<global h> <- _val
+<dead> = _val
 "###);
