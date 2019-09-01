@@ -442,7 +442,7 @@ case!(
     let obj = { foo: 1 };
     invalidate();
     obj.foo; // do not forward
-    h = function() { return foo; };
+    h = function() { return obj; };
 "#,
 @r###"
 _key = "foo"
@@ -453,8 +453,7 @@ _fun = <global invalidate>
 _prp = "foo"
 <dead> = obj[_prp]
 _val$1 = <function>:
-    _ret = <global foo>
-    <return> _ret
+    <return> obj
 <global h> <- _val$1
 "###);
 
@@ -466,7 +465,7 @@ case!(
     obj.foo = 1; // do not drop
     invalidate();
     obj.foo = 2;
-    h = function() { return foo; };
+    h = function() { return obj; };
 "#,
 @r###"
 obj = {  }
@@ -479,8 +478,7 @@ _prp$1 = "foo"
 _val$1 = 2
 obj[_prp$1] <- _val$1
 _val$2 = <function>:
-    _ret = <global foo>
-    <return> _ret
+    <return> obj
 <global h> <- _val$2
 "###);
 
@@ -492,7 +490,7 @@ case!(
     while (x)
         invalidate();
     obj.foo; // do not forward
-    h = function() { return foo; };
+    h = function() { return obj; };
 "#,
 @r###"
 _key = "foo"
@@ -509,8 +507,7 @@ obj = { [_key]: _val }
 _prp = "foo"
 <dead> = obj[_prp]
 _val$1 = <function>:
-    _ret = <global foo>
-    <return> _ret
+    <return> obj
 <global h> <- _val$1
 "###);
 
@@ -522,7 +519,7 @@ case!(
     while (x) while (x)
         invalidate();
     obj.foo; // do not forward
-    h = function() { return foo; };
+    h = function() { return obj; };
 "#,
 @r###"
 _key = "foo"
@@ -545,8 +542,7 @@ obj = { [_key]: _val }
 _prp = "foo"
 <dead> = obj[_prp]
 _val$1 = <function>:
-    _ret = <global foo>
-    <return> _ret
+    <return> obj
 <global h> <- _val$1
 "###);
 
@@ -559,7 +555,7 @@ case!(
     if (x) if (x)
         invalidate();
     obj.foo = 2;
-    h = function() { return foo; };
+    h = function() { return obj; };
 "#,
 @r###"
 obj = {  }
@@ -580,8 +576,7 @@ _prp$1 = "foo"
 _val$1 = 2
 obj[_prp$1] <- _val$1
 _val$2 = <function>:
-    _ret = <global foo>
-    <return> _ret
+    <return> obj
 <global h> <- _val$2
 "###);
 
@@ -768,6 +763,46 @@ o = { [_key]: _val }
 "###);
 
 case!(
+    across_break_write_nonlocal,
+    |cx| cx
+        .run::<mut2ssa::Mut2Ssa>("mut2ssa")
+        .run::<forward::Reads>("forward-reads-redundancy")
+        .run::<DropDeadSsaReads>("avoid-premature-invalidation")
+        .run::<redundant_obj::LoadStore>("redundant-obj"),
+    r#"
+    let o = { f: 0 };
+    while (foo) {
+        o.f += 1; // do not drop
+        break;
+        o.f = 3;
+    }
+    h = function() { return o; }
+"#,
+@r###"
+_key = "f"
+_val = 0
+o = { [_key]: _val }
+<loop>:
+    _whl = <global foo>
+    <if> _whl:
+        <empty>
+    <else>:
+        <break>
+    _prp = "f"
+    _lhs = o[_prp]
+    _rhs = 1
+    _val$2 = _lhs + _rhs
+    o[_prp] <- _val$2
+    <break>
+    _prp$1 = "f"
+    _val$3 = 3
+    o[_prp$1] <- _val$3
+_val$1 = <function>:
+    <return> o
+<global h> <- _val$1
+"###);
+
+case!(
     across_deep_break_write,
     |cx| passes!(cx),
     r#"
@@ -812,6 +847,57 @@ o = { [_key]: _val }
         _prp$1 = "f"
         _val$2 = 3
         o[_prp$1] <- _val$2
+"###);
+
+case!(
+    across_deep_break_write_nonlocal,
+    |cx| passes!(cx),
+    r#"
+    let o = { f: 0 };
+    outer: while (foo) {
+        o.f += 1; // do not drop
+        while (bar) while (bar) {
+            break outer;
+        }
+        o.f = 3;
+    }
+    h = function() { return o; }
+"#,
+@r###"
+_key = "f"
+_val = 0
+o = { [_key]: _val }
+<label outer>:
+    <loop>:
+        _whl = <global foo>
+        <if> _whl:
+            <empty>
+        <else>:
+            <break>
+        _prp = "f"
+        _lhs = o[_prp]
+        _rhs = 1
+        _val$2 = _lhs + _rhs
+        o[_prp] <- _val$2
+        <loop>:
+            _whl$1 = <global bar>
+            <if> _whl$1:
+                <empty>
+            <else>:
+                <break>
+            <loop>:
+                _whl$2 = <global bar>
+                <if> _whl$2:
+                    <empty>
+                <else>:
+                    <break>
+                <break outer>
+        _prp$1 = "f"
+        _val$3 = 3
+        o[_prp$1] <- _val$3
+_val$1 = <function>:
+    <return> o
+<global h> <- _val$1
 "###);
 
 case!(
@@ -885,6 +971,42 @@ _tst$1 = 2
 "###);
 
 case!(
+    cross_switch_read_invalidate_nonlocal,
+    |cx| passes!(cx),
+    r#"
+    let o = { f: 0 };
+    switch (bar) {
+        case 1:
+            o.f += 1; // do not forward
+        case 2:
+            g = o.f;
+    }
+    h = function() { return o; }
+"#,
+@r###"
+_key = "f"
+_val = 0
+o = { [_key]: _val }
+_swi = <global bar>
+_tst = 1
+_tst$1 = 2
+<switch> _swi:
+    <case> _tst:
+    _prp = "f"
+    _lhs = o[_prp]
+    _rhs = 1
+    _val$2 = _lhs + _rhs
+    o[_prp] <- _val$2
+    <case> _tst$1:
+    _prp$1 = "f"
+    _val$3 = o[_prp$1]
+    <global g> <- _val$3
+_val$1 = <function>:
+    <return> o
+<global h> <- _val$1
+"###);
+
+case!(
     cross_switch_write_invalidate,
     |cx| passes!(cx),
     r#"
@@ -914,6 +1036,42 @@ _tst$1 = 2
     _prp$1 = "f"
     _val$2 = 3
     o[_prp$1] <- _val$2
+"###);
+
+case!(
+    cross_switch_write_invalidate_nonlocal,
+    |cx| passes!(cx),
+    r#"
+    let o = { f: 0 };
+    switch (bar) {
+        case 1:
+            o.f += 1; // do not drop
+        case 2:
+            o.f = 3;
+    }
+    h = function() { return o; }
+"#,
+@r###"
+_key = "f"
+_val = 0
+o = { [_key]: _val }
+_swi = <global bar>
+_tst = 1
+_tst$1 = 2
+<switch> _swi:
+    <case> _tst:
+    _prp = "f"
+    _lhs = o[_prp]
+    _rhs = 1
+    _val$2 = _lhs + _rhs
+    o[_prp] <- _val$2
+    <case> _tst$1:
+    _prp$1 = "f"
+    _val$3 = 3
+    o[_prp$1] <- _val$3
+_val$1 = <function>:
+    <return> o
+<global h> <- _val$1
 "###);
 
 case!(
