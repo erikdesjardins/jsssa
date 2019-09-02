@@ -1301,3 +1301,31 @@ _val = <function>:
 _ini = { [_key]: _val }
 <global g> <- _ini
 "###);
+
+// todo this pass is actually very unsound with aliasing
+/*
+case!(
+    unsound,
+    all_passes,
+    r#"
+    var o = {};
+    g = o;
+    o.x = 1;
+    g.x = 2;
+    h = o.x; // do not forward
+"#,
+@r###"
+_ini = {  }
+<global g> <- _ini
+_prp = "x"
+_val = 1
+_ini[_prp] <- _val
+_obj = <global g>
+_prp$1 = "x"
+_val$1 = 2
+_obj[_prp$1] <- _val$1
+_prp$2 = "x"
+_val$2 = _ini[_prp$2]
+<global h> <- _val$2
+"###);
+*/
