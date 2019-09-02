@@ -31,9 +31,11 @@ impl Drop for Inline {
 struct CollectFnCallInfo<'a> {
     fns_to_inline: HashSet<&'a ir::Ref<ir::Ssa>>,
     fn_def_is_good: HashSet<&'a ir::Ref<ir::Ssa>>,
+    about_to_enter_arrow_fn: bool,
     about_to_enter_fn: Option<&'a ir::Ref<ir::Ssa>>,
     current_fn: Option<&'a ir::Ref<ir::Ssa>>,
     depth_in_current_fn: u32,
+    used_this: bool,
 }
 
 impl<'a> Visitor<'a> for CollectFnCallInfo<'a> {
@@ -45,6 +47,7 @@ impl<'a> Visitor<'a> for CollectFnCallInfo<'a> {
     ) -> R {
         match ty {
             ScopeTy::Function => {
+                let is_arrow_fn = mem::replace(&mut self.about_to_enter_arrow_fn, false);
                 let mut inner = Self::default();
                 mem::swap(&mut inner.fns_to_inline, &mut self.fns_to_inline);
                 mem::swap(&mut inner.fn_def_is_good, &mut self.fn_def_is_good);
@@ -54,6 +57,11 @@ impl<'a> Visitor<'a> for CollectFnCallInfo<'a> {
                 mem::swap(&mut inner.fn_def_is_good, &mut self.fn_def_is_good);
                 // if fn hasn't been invalidated, it's good
                 self.fn_def_is_good.extend(inner.current_fn);
+                // propagate `this` from arrow functions
+                if is_arrow_fn && inner.used_this {
+                    self.current_fn = None;
+                    self.used_this = true;
+                }
                 r
             }
             ScopeTy::Normal | ScopeTy::Toplevel | ScopeTy::Nonlinear => {
@@ -75,13 +83,19 @@ impl<'a> Visitor<'a> for CollectFnCallInfo<'a> {
                             is_generator: false,
                         },
                     body: _,
-                }
-                | ir::Expr::Function {
-                    kind: ir::FnKind::Arrow { is_async: false },
-                    body: _,
                 } if target.used().is_once() => {
                     // fn is simple, used once: def is good if its body is good
                     self.about_to_enter_fn = Some(target);
+                }
+                ir::Expr::Function { kind, body: _ } => {
+                    self.about_to_enter_arrow_fn = true;
+                    match kind {
+                        ir::FnKind::Arrow { is_async: false } if target.used().is_once() => {
+                            // fn is simple, used once: def is good if its body is good
+                            self.about_to_enter_fn = Some(target);
+                        }
+                        _ => {}
+                    }
                 }
                 ir::Expr::Call {
                     kind: ir::CallKind::Call,
@@ -97,11 +111,13 @@ impl<'a> Visitor<'a> for CollectFnCallInfo<'a> {
                         self.fns_to_inline.insert(base);
                     }
                 }
-                ir::Expr::This
-                | ir::Expr::Yield { .. }
-                | ir::Expr::Await { .. }
-                | ir::Expr::CurrentFunction => {
-                    // fn body is non-simple: invalidate
+                ir::Expr::This => {
+                    // fn body uses `this`: invalidate
+                    self.current_fn = None;
+                    self.used_this = true;
+                }
+                ir::Expr::CurrentFunction => {
+                    // fn is possibly recursive: invalidate
                     self.current_fn = None;
                 }
                 _ => {}

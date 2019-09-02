@@ -134,6 +134,115 @@ _fun = <function>:
 "###);
 
 case!(
+    bail_containing_arrow_this,
+    |cx| cx.converge::<inline::Inline>("inline"),
+    r#"
+    (function() {
+        return () => this;
+    })();
+"#,
+@r###"
+_fun = <function>:
+    _ret = <arrow>:
+        _arr = <this>
+        <return> _arr
+    <return> _ret
+<dead> = _fun()
+"###);
+
+case!(
+    partial_bail_containing_arrow_this,
+    |cx| cx.converge::<inline::Inline>("inline"),
+    r#"
+    (function() {
+        (function() {
+            return () => this;
+        })();
+    })();
+"#,
+@r###"
+_mis = <void>
+_fun = <function>:
+    _ret = <arrow>:
+        _arr = <this>
+        <return> _arr
+    <return> _ret
+<dead> = _fun()
+<dead> = _mis
+"###);
+
+case!(
+    bail_containing_arrow_this_deep,
+    |cx| cx.converge::<inline::Inline>("inline"),
+    r#"
+    (function() {
+        return () => () => this;
+    })();
+"#,
+@r###"
+_fun = <function>:
+    _ret = <arrow>:
+        _arr = <arrow>:
+            _arr$1 = <this>
+            <return> _arr$1
+        <return> _arr
+    <return> _ret
+<dead> = _fun()
+"###);
+
+case!(
+    bail_containing_async_arrow_this,
+    |cx| cx.converge::<inline::Inline>("inline"),
+    r#"
+    (function() {
+        return async () => this;
+    })();
+"#,
+@r###"
+_fun = <function>:
+    _ret = <arrow async>:
+        _arr = <this>
+        <return> _arr
+    <return> _ret
+<dead> = _fun()
+"###);
+
+case!(
+    bail_containing_async_arrow_this_deep,
+    |cx| cx.converge::<inline::Inline>("inline"),
+    r#"
+    (function() {
+        return () => async () => this;
+    })();
+"#,
+@r###"
+_fun = <function>:
+    _ret = <arrow>:
+        _arr = <arrow async>:
+            _arr$1 = <this>
+            <return> _arr$1
+        <return> _arr
+    <return> _ret
+<dead> = _fun()
+"###);
+
+case!(
+    dont_bail_containing_innocuous_async_arrow,
+    |cx| cx.converge::<inline::Inline>("inline"),
+    r#"
+    (function() {
+        return async () => { await foo };
+    })();
+"#,
+@r###"
+<dead> = <void>
+_ret = <arrow async>:
+    _awa = <global foo>
+    <dead> = <await> _awa
+<dead> = _ret
+"###);
+
+case!(
     more_complex,
     all_passes,
     r#"
