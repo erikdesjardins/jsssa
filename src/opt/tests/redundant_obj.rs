@@ -169,6 +169,28 @@ _val$1 = something[_prp]
 "###);
 
 case!(
+    invalidate_escape_local_nonlocal,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: 1 };
+    g = something;
+    g1 = something.x; // do not forward
+    h = function() { return something }
+"#,
+@r###"
+_key = "x"
+_val = 1
+something = { [_key]: _val }
+<global g> <- something
+_prp = "x"
+_val$1 = something[_prp]
+<global g1> <- _val$1
+_val$2 = <function>:
+    <return> something
+<global h> <- _val$2
+"###);
+
+case!(
     invalidate_escape_deep,
     |cx| passes!(cx),
     r#"
@@ -314,6 +336,36 @@ _val$3 = _val$1
 "###);
 
 case!(
+    invalidate_unknown_prop_nonlocal,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: 1 };
+    if (foo) {
+        something[foo] = 1;
+    }
+    g1 = something.x; // do not forward
+    h = function() { return something }
+"#,
+@r###"
+_key = "x"
+_val = 1
+something = { [_key]: _val }
+_iff = <global foo>
+<if> _iff:
+    _prp$1 = <global foo>
+    _val$3 = 1
+    something[_prp$1] <- _val$3
+<else>:
+    <empty>
+_prp = "x"
+_val$1 = something[_prp]
+<global g1> <- _val$1
+_val$2 = <function>:
+    <return> something
+<global h> <- _val$2
+"###);
+
+case!(
     invalidate_inner_scope_writes,
     |cx| passes!(cx),
     r#"
@@ -369,6 +421,35 @@ _prp$1 = "bar"
 <dead> = obj[_prp$1]
 <dead> = "not_written"
 <dead> = _val$2
+"###);
+
+case!(
+    invalidate_inner_scope_writes_nonlocal,
+    |cx| passes!(cx),
+    r#"
+    let obj = { foo: 1 };
+    if (something) {
+        obj.foo = 2;
+    }
+    obj.foo; // do not forward
+    h = function() { return obj }
+"#,
+@r###"
+_key = "foo"
+_val = 1
+obj = { [_key]: _val }
+_iff = <global something>
+<if> _iff:
+    _prp$1 = "foo"
+    _val$2 = 2
+    obj[_prp$1] <- _val$2
+<else>:
+    <empty>
+_prp = "foo"
+<dead> = obj[_prp]
+_val$1 = <function>:
+    <return> obj
+<global h> <- _val$1
 "###);
 
 case!(
