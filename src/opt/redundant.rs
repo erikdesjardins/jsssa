@@ -95,24 +95,24 @@ struct Invalid<'a> {
 
 impl<'a> CollectLoadStoreInfo<'a> {
     fn invalidate_from_child(&mut self, child: Self) {
-        fn invalidate<'a>(this: &mut Ops<'a>, child: Ops<'a>) {
-            if child.invalid_in_parent.all_local {
+        fn invalidate<'a>(this: &mut Ops<'a>, invalid: Invalid<'a>) {
+            if invalid.all_local {
                 this.local_last_op.clear();
                 this.invalid_in_parent.all_local = true;
             }
-            if child.invalid_in_parent.all_nonlocal {
+            if invalid.all_nonlocal {
                 this.nonlocal_last_op.clear();
                 this.invalid_in_parent.all_nonlocal = true;
             }
-            for invalid_ref in child.invalid_in_parent.refs {
+            for invalid_ref in invalid.refs {
                 this.local_last_op
                     .remove(&invalid_ref)
                     .or_else(|| this.nonlocal_last_op.remove(&invalid_ref));
                 this.invalid_in_parent.refs.insert(invalid_ref);
             }
         }
-        invalidate(&mut self.for_reads, child.for_reads);
-        invalidate(&mut self.for_writes, child.for_writes);
+        invalidate(&mut self.for_reads, child.for_reads.invalid_in_parent);
+        invalidate(&mut self.for_writes, child.for_writes.invalid_in_parent);
     }
 
     fn invalidate_everything_used_across_fn_scopes(&mut self) {
@@ -141,21 +141,22 @@ impl<'a> CollectLoadStoreInfo<'a> {
     }
 
     fn set_last_op(&mut self, target: &'a ir::Ref<ir::Mut>, op: (StmtIndex, WriteOp<'a>)) {
-        if self.refs_used_in_only_one_fn_scope.contains(&target) {
-            self.for_reads.local_last_op.insert(target, op.clone());
-            self.for_writes.local_last_op.insert(target, op);
+        #[rustfmt::skip]
+            let (ops_reads, ops_writes) = if self.refs_used_in_only_one_fn_scope.contains(&target) {
+            (&mut self.for_reads.local_last_op, &mut self.for_writes.local_last_op)
         } else {
-            self.for_reads.nonlocal_last_op.insert(target, op.clone());
-            self.for_writes.nonlocal_last_op.insert(target, op);
-        }
+            (&mut self.for_reads.nonlocal_last_op, &mut self.for_writes.nonlocal_last_op)
+        };
+        ops_reads.insert(target, op.clone());
+        ops_writes.insert(target, op);
         self.for_reads.invalid_in_parent.refs.insert(target);
         self.for_writes.invalid_in_parent.refs.insert(target);
     }
 
     fn get_last_op<'op>(
         &self,
-        ref_: &&'a ir::Ref<ir::Mut>,
         ops: &'op Ops<'a>,
+        ref_: &&'a ir::Ref<ir::Mut>,
     ) -> Option<&'op (StmtIndex, WriteOp<'a>)> {
         ops.local_last_op
             .get(ref_)
@@ -168,7 +169,7 @@ impl<'a> CollectLoadStoreInfo<'a> {
     }
 
     fn write_mut(&mut self, target: &'a ir::Ref<ir::Mut>, val: &'a ir::Ref<ir::Ssa>) {
-        let op = match self.get_last_op(&target, &self.for_writes) {
+        let op = match self.get_last_op(&self.for_writes, &target) {
             // write -> write (decl)
             Some((declare_index, WriteOp::Declare(_))) => {
                 self.mut_ops_to_replace.insert(*declare_index, What::Remove);
@@ -187,7 +188,7 @@ impl<'a> CollectLoadStoreInfo<'a> {
     }
 
     fn read_mut(&mut self, _target: &'a ir::Ref<ir::Ssa>, source: &'a ir::Ref<ir::Mut>) {
-        match self.get_last_op(&source, &self.for_reads) {
+        match self.get_last_op(&self.for_reads, &source) {
             // write -> read
             Some((_, WriteOp::Declare(val))) | Some((_, WriteOp::Write(val))) => {
                 self.mut_ops_to_replace
