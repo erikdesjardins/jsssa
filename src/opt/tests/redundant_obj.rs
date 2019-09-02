@@ -618,6 +618,7 @@ case!(
     } else {
         g = obj.foo;
     }
+    h = function() { return obj; }
 "#,
 @r###"
 _key = "foo"
@@ -628,12 +629,15 @@ _fun = <global invalidate>
 _iff = <global bar>
 <if> _iff:
     _prp = "foo"
-    _val$1 = obj[_prp]
-    <global g> <- _val$1
+    _val$2 = obj[_prp]
+    <global g> <- _val$2
 <else>:
     _prp = "foo"
-    _val$1 = obj[_prp]
-    <global g> <- _val$1
+    _val$2 = obj[_prp]
+    <global g> <- _val$2
+_val$1 = <function>:
+    <return> obj
+<global h> <- _val$1
 "###);
 
 case!(
@@ -936,6 +940,94 @@ o = { [_key]: _val }
     <dead> = "f"
     _val$2 = _val$1
     <global g> <- _val$2
+"###);
+
+case!(
+    into_nonlinear_scope,
+    |cx| passes!(cx),
+    r#"
+    let obj = { f: 1 };
+    for (;;) {
+        obj.f;
+        obj.f = 2;
+    }
+"#,
+@r###"
+_key = "f"
+_val = 1
+obj = { [_key]: _val }
+<loop>:
+    _prp = "f"
+    <dead> = obj[_prp]
+    _prp$1 = "f"
+    _val$1 = 2
+    obj[_prp$1] <- _val$1
+"###);
+
+case!(
+    same_scope_not_invalidated_by_call,
+    |cx| passes!(cx),
+    r#"
+    let obj = { f: 1 };
+    invalidate();
+    if (bar) {
+        g = obj.f;
+    }
+    i = obj.f;
+"#,
+@r###"
+_key = "f"
+_val = 1
+<dead> = { [_key]: _val }
+_fun = <global invalidate>
+<dead> = _fun()
+_iff = <global bar>
+<if> _iff:
+    <dead> = "f"
+    _val$2 = _val
+    <global g> <- _val$2
+<else>:
+    <empty>
+<dead> = "f"
+_val$1 = _val
+<global i> <- _val$1
+"###);
+
+case!(
+    revalidated_before_entering_scope,
+    |cx| passes!(cx),
+    r#"
+    let obj = { f: 1 };
+    invalidate();
+    obj.f = 2;
+    if (bar) {
+        g = obj.f;
+    }
+    i = obj.f;
+    h = function() { return obj; };
+"#,
+@r###"
+_key = "f"
+_val = 1
+obj = { [_key]: _val }
+_fun = <global invalidate>
+<dead> = _fun()
+_prp = "f"
+_val$1 = 2
+obj[_prp] <- _val$1
+_iff = <global bar>
+<if> _iff:
+    <dead> = "f"
+    _val$4 = _val$1
+    <global g> <- _val$4
+<else>:
+    <empty>
+<dead> = "f"
+_val$2 = _val$1
+<global i> <- _val$2
+_val$3 = <function>:
+    <return> obj
+<global h> <- _val$3
 "###);
 
 case!(

@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::mem;
 
+use crate::anal;
 use crate::ir;
 use crate::ir::traverse::{Folder, RunVisitor, ScopeTy, Visitor};
 
@@ -62,14 +63,20 @@ enum What {
 
 #[derive(Debug, Default)]
 struct CollectLoadStoreInfo<'a> {
+    refs_used_in_only_one_fn_scope: HashSet<&'a ir::Ref<ir::Ssa>>,
     obj_ops_to_replace: HashMap<StmtIndex, What>,
     cur_index: StmtIndex,
     known_strings: HashMap<&'a ir::Ref<ir::Ssa>, &'a str>,
-    last_op_for_reads: HashMap<&'a ir::Ref<ir::Ssa>, HashMap<&'a str, (StmtIndex, Op<'a>)>>,
-    last_op_for_writes: HashMap<&'a ir::Ref<ir::Ssa>, HashMap<&'a str, (StmtIndex, Op<'a>)>>,
-    invalid_for_parent_reads: Invalid<'a>,
-    invalid_for_parent_writes: Invalid<'a>,
+    for_reads: Ops<'a>,
+    for_writes: Ops<'a>,
     last_use_was_safe: bool,
+}
+
+#[derive(Debug, Default)]
+struct Ops<'a> {
+    local_last_op: HashMap<&'a ir::Ref<ir::Ssa>, HashMap<&'a str, (StmtIndex, Op<'a>)>>,
+    nonlocal_last_op: HashMap<&'a ir::Ref<ir::Ssa>, HashMap<&'a str, (StmtIndex, Op<'a>)>>,
+    invalid_in_parent: Invalid<'a>,
 }
 
 #[derive(Debug, Clone)]
@@ -79,22 +86,18 @@ enum Op<'a> {
     Read(&'a ir::Ref<ir::Ssa>),
 }
 
-#[derive(Debug)]
-enum Invalid<'a> {
-    Everything,
-    Objects(HashMap<&'a ir::Ref<ir::Ssa>, InvalidProps<'a>>),
+// todo opt: change this to enum Everything, NonlocalAnd(HashSet), Refs(HashSet)
+#[derive(Debug, Default)]
+struct Invalid<'a> {
+    all_local: bool,
+    all_nonlocal: bool,
+    objects: HashMap<&'a ir::Ref<ir::Ssa>, InvalidProps<'a>>,
 }
 
 #[derive(Debug)]
 enum InvalidProps<'a> {
     All,
     Props(HashSet<&'a str>),
-}
-
-impl Default for Invalid<'_> {
-    fn default() -> Self {
-        Invalid::Objects(Default::default())
-    }
 }
 
 impl Default for InvalidProps<'_> {
@@ -105,30 +108,16 @@ impl Default for InvalidProps<'_> {
 
 impl<'a> Invalid<'a> {
     fn insert_obj(&mut self, obj: &'a ir::Ref<ir::Ssa>) {
-        match self {
-            Invalid::Everything => {
-                // everything already invalid
-            }
-            Invalid::Objects(objs) => {
-                objs.insert(obj, InvalidProps::All);
-            }
-        }
+        self.objects.insert(obj, InvalidProps::All);
     }
 
     fn insert_prop(&mut self, obj: &'a ir::Ref<ir::Ssa>, prop: &'a str) {
-        match self {
-            Invalid::Everything => {
-                // everything already invalid
+        match self.objects.entry(obj).or_default() {
+            InvalidProps::All => {
+                // entire object already invalid
             }
-            Invalid::Objects(objs) => {
-                match objs.entry(obj).or_default() {
-                    InvalidProps::All => {
-                        // entire object already invalid
-                    }
-                    InvalidProps::Props(props) => {
-                        props.insert(prop);
-                    }
-                }
+            InvalidProps::Props(props) => {
+                props.insert(prop);
             }
         }
     }
@@ -136,78 +125,99 @@ impl<'a> Invalid<'a> {
 
 impl<'a> CollectLoadStoreInfo<'a> {
     fn invalidate_from_child(&mut self, child: Self) {
-        match child.invalid_for_parent_reads {
-            Invalid::Everything => {
-                self.last_op_for_reads.clear();
-                self.invalid_for_parent_reads = Invalid::Everything;
+        fn invalidate<'a>(this: &mut Ops<'a>, invalid: Invalid<'a>) {
+            if invalid.all_local {
+                this.local_last_op.clear();
+                this.invalid_in_parent.all_local = true;
             }
-            Invalid::Objects(invals) => {
-                for (obj, inval) in invals {
-                    match inval {
-                        InvalidProps::All => {
-                            self.last_op_for_reads.remove(&obj);
-                            self.invalid_for_parent_reads.insert_obj(obj);
-                        }
-                        InvalidProps::Props(props) => {
-                            for prop in props {
-                                self.last_op_for_reads
-                                    .get_mut(&obj)
-                                    .and_then(|ops| ops.remove(&prop));
-                                self.invalid_for_parent_reads.insert_prop(obj, prop);
-                            }
+            if invalid.all_nonlocal {
+                this.nonlocal_last_op.clear();
+                this.invalid_in_parent.all_nonlocal = true;
+            }
+            for (obj, inval) in invalid.objects {
+                match inval {
+                    InvalidProps::All => {
+                        this.local_last_op
+                            .remove(&obj)
+                            .or_else(|| this.nonlocal_last_op.remove(&obj));
+                        this.invalid_in_parent.insert_obj(obj);
+                    }
+                    InvalidProps::Props(props) => {
+                        for prop in props {
+                            let ops = match this.local_last_op.get_mut(&obj) {
+                                Some(o) => Some(o),
+                                None => this.nonlocal_last_op.get_mut(&obj),
+                            };
+                            ops.and_then(|ops| ops.remove(&prop));
+                            this.invalid_in_parent.insert_prop(obj, prop);
                         }
                     }
                 }
             }
         }
-        match child.invalid_for_parent_writes {
-            Invalid::Everything => {
-                self.last_op_for_writes.clear();
-                self.invalid_for_parent_writes = Invalid::Everything;
-            }
-            Invalid::Objects(invals) => {
-                for (obj, inval) in invals {
-                    match inval {
-                        InvalidProps::All => {
-                            self.last_op_for_writes.remove(&obj);
-                            self.invalid_for_parent_writes.insert_obj(obj);
-                        }
-                        InvalidProps::Props(props) => {
-                            for prop in props {
-                                self.last_op_for_writes
-                                    .get_mut(&obj)
-                                    .and_then(|ops| ops.remove(&prop));
-                                self.invalid_for_parent_writes.insert_prop(obj, prop);
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        invalidate(&mut self.for_reads, child.for_reads.invalid_in_parent);
+        invalidate(&mut self.for_writes, child.for_writes.invalid_in_parent);
     }
 
-    fn invalidate_everything(&mut self) {
-        self.last_op_for_reads.clear();
-        self.last_op_for_writes.clear();
-        self.invalid_for_parent_reads = Invalid::Everything;
-        self.invalid_for_parent_writes = Invalid::Everything;
+    fn invalidate_everything_used_across_fn_scopes(&mut self) {
+        fn invalidate(this: &mut Ops<'_>) {
+            this.nonlocal_last_op.clear();
+            this.invalid_in_parent.all_nonlocal = true;
+        }
+        invalidate(&mut self.for_reads);
+        invalidate(&mut self.for_writes);
     }
 
     fn invalidate_object(&mut self, obj: &'a ir::Ref<ir::Ssa>) {
-        self.last_op_for_reads.remove(obj);
-        self.last_op_for_writes.remove(obj);
-        self.invalid_for_parent_reads.insert_obj(obj);
-        self.invalid_for_parent_writes.insert_obj(obj);
+        fn invalidate<'a>(this: &mut Ops<'a>, obj: &'a ir::Ref<ir::Ssa>) {
+            this.local_last_op
+                .remove(&obj)
+                .or_else(|| this.nonlocal_last_op.remove(&obj));
+            this.invalid_in_parent.insert_obj(obj);
+        }
+        invalidate(&mut self.for_reads, obj);
+        invalidate(&mut self.for_writes, obj);
     }
 
-    fn invalidate_for_writes(&mut self) {
-        self.last_op_for_writes.clear();
-        self.invalid_for_parent_writes = Invalid::Everything;
+    fn invalidate_everything_for_writes(&mut self) {
+        self.for_writes.local_last_op.clear();
+        self.for_writes.nonlocal_last_op.clear();
+        self.for_writes.invalid_in_parent.all_local = true;
+        self.for_writes.invalid_in_parent.all_nonlocal = true;
     }
 
-    fn invalidate_local(&mut self) {
-        self.last_op_for_reads.clear();
-        self.last_op_for_writes.clear();
+    fn invalidate_current_scope(&mut self) {
+        fn invalidate(this: &mut Ops<'_>) {
+            this.local_last_op.clear();
+            this.nonlocal_last_op.clear();
+        }
+        invalidate(&mut self.for_reads);
+        invalidate(&mut self.for_writes);
+    }
+
+    fn set_last_op(&mut self, obj: &'a ir::Ref<ir::Ssa>, prop: &'a str, op: (StmtIndex, Op<'a>)) {
+        #[rustfmt::skip]
+            let (ops_reads, ops_writes) = if self.refs_used_in_only_one_fn_scope.contains(&obj) {
+            (&mut self.for_reads.local_last_op, &mut self.for_writes.local_last_op)
+        } else {
+            (&mut self.for_reads.nonlocal_last_op, &mut self.for_writes.nonlocal_last_op)
+        };
+        ops_reads.entry(obj).or_default().insert(prop, op.clone());
+        ops_writes.entry(obj).or_default().insert(prop, op);
+        self.for_reads.invalid_in_parent.insert_prop(obj, prop);
+        self.for_writes.invalid_in_parent.insert_prop(obj, prop);
+    }
+
+    fn get_last_op<'op>(
+        &self,
+        ops: &'op Ops<'a>,
+        obj: &&'a ir::Ref<ir::Ssa>,
+        prop: &&'a str,
+    ) -> Option<&'op (StmtIndex, Op<'a>)> {
+        ops.local_last_op
+            .get(obj)
+            .or_else(|| ops.nonlocal_last_op.get(obj))
+            .and_then(|props| props.get(prop))
     }
 
     fn declare_prop(
@@ -217,22 +227,11 @@ impl<'a> CollectLoadStoreInfo<'a> {
         val: &'a ir::Ref<ir::Ssa>,
     ) {
         let op = (self.cur_index, Op::Declare(val));
-        self.last_op_for_reads
-            .entry(obj)
-            .or_default()
-            .insert(prop, op.clone());
-        self.last_op_for_writes
-            .entry(obj)
-            .or_default()
-            .insert(prop, op);
+        self.set_last_op(obj, prop, op);
     }
 
     fn write_prop(&mut self, obj: &'a ir::Ref<ir::Ssa>, prop: &'a str, val: &'a ir::Ref<ir::Ssa>) {
-        let op = match self
-            .last_op_for_writes
-            .get(&obj)
-            .and_then(|ops| ops.get(&prop))
-        {
+        let op = match self.get_last_op(&self.for_writes, &obj, &prop) {
             // write -> write (write)
             Some((write_index, Op::Write(_))) => {
                 self.obj_ops_to_replace.insert(*write_index, What::Remove);
@@ -243,16 +242,7 @@ impl<'a> CollectLoadStoreInfo<'a> {
                 (self.cur_index, Op::Write(val))
             }
         };
-        self.last_op_for_reads
-            .entry(obj)
-            .or_default()
-            .insert(prop, op.clone());
-        self.last_op_for_writes
-            .entry(obj)
-            .or_default()
-            .insert(prop, op);
-        self.invalid_for_parent_reads.insert_prop(obj, prop);
-        self.invalid_for_parent_writes.insert_prop(obj, prop);
+        self.set_last_op(obj, prop, op);
     }
 
     fn read_prop(
@@ -261,11 +251,7 @@ impl<'a> CollectLoadStoreInfo<'a> {
         obj: &'a ir::Ref<ir::Ssa>,
         prop: &'a str,
     ) {
-        let op = match self
-            .last_op_for_reads
-            .get(&obj)
-            .and_then(|ops| ops.get(&prop))
-        {
+        let op = match self.get_last_op(&self.for_reads, &obj, &prop) {
             // write -> read, read -> read
             Some((_, Op::Declare(val))) | Some((_, Op::Write(val))) | Some((_, Op::Read(val))) => {
                 self.obj_ops_to_replace
@@ -276,14 +262,7 @@ impl<'a> CollectLoadStoreInfo<'a> {
             None => Some((self.cur_index, Op::Read(target))),
         };
         if let Some(op) = op {
-            self.last_op_for_reads
-                .entry(obj)
-                .or_default()
-                .insert(prop, op.clone());
-            self.last_op_for_writes
-                .entry(obj)
-                .or_default()
-                .insert(prop, op);
+            self.set_last_op(obj, prop, op);
         }
     }
 }
@@ -295,14 +274,27 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
         block: &'a ir::Block,
         enter: impl FnOnce(&mut Self, &'a ir::Block) -> R,
     ) -> R {
+        if let ScopeTy::Toplevel = ty {
+            self.refs_used_in_only_one_fn_scope =
+                anal::refs::used_in_only_one_fn_scope(&block).collect();
+        }
+
         match ty {
             ScopeTy::Function => {
                 // function scopes are analyzed separately
                 let mut inner = Self::default();
+                mem::swap(
+                    &mut inner.refs_used_in_only_one_fn_scope,
+                    &mut self.refs_used_in_only_one_fn_scope,
+                );
                 mem::swap(&mut inner.obj_ops_to_replace, &mut self.obj_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 mem::swap(&mut inner.known_strings, &mut self.known_strings);
                 let r = enter(&mut inner, block);
+                mem::swap(
+                    &mut inner.refs_used_in_only_one_fn_scope,
+                    &mut self.refs_used_in_only_one_fn_scope,
+                );
                 mem::swap(&mut inner.obj_ops_to_replace, &mut self.obj_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 mem::swap(&mut inner.known_strings, &mut self.known_strings);
@@ -312,12 +304,21 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
                 // r->r and w->r can go into scopes, but not w->w (since it might not execute)
                 // and in particular, r->r can't go _out_ of scopes
                 let mut inner = Self::default();
+                mem::swap(
+                    &mut inner.refs_used_in_only_one_fn_scope,
+                    &mut self.refs_used_in_only_one_fn_scope,
+                );
                 mem::swap(&mut inner.obj_ops_to_replace, &mut self.obj_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 mem::swap(&mut inner.known_strings, &mut self.known_strings);
-                // todo avoid this clone
-                inner.last_op_for_reads = self.last_op_for_reads.clone();
+                // todo avoid these clones
+                inner.for_reads.local_last_op = self.for_reads.local_last_op.clone();
+                inner.for_reads.nonlocal_last_op = self.for_reads.nonlocal_last_op.clone();
                 let r = enter(&mut inner, block);
+                mem::swap(
+                    &mut inner.refs_used_in_only_one_fn_scope,
+                    &mut self.refs_used_in_only_one_fn_scope,
+                );
                 mem::swap(&mut inner.obj_ops_to_replace, &mut self.obj_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 mem::swap(&mut inner.known_strings, &mut self.known_strings);
@@ -328,10 +329,18 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
             ScopeTy::Nonlinear => {
                 // forwarding can happen across nonlinear scopes, but not into them
                 let mut inner = Self::default();
+                mem::swap(
+                    &mut inner.refs_used_in_only_one_fn_scope,
+                    &mut self.refs_used_in_only_one_fn_scope,
+                );
                 mem::swap(&mut inner.obj_ops_to_replace, &mut self.obj_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 mem::swap(&mut inner.known_strings, &mut self.known_strings);
                 let r = enter(&mut inner, block);
+                mem::swap(
+                    &mut inner.refs_used_in_only_one_fn_scope,
+                    &mut self.refs_used_in_only_one_fn_scope,
+                );
                 mem::swap(&mut inner.obj_ops_to_replace, &mut self.obj_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 mem::swap(&mut inner.known_strings, &mut self.known_strings);
@@ -388,7 +397,7 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
                     }
                 }
                 ir::Expr::Yield { .. } | ir::Expr::Await { .. } | ir::Expr::Call { .. } => {
-                    self.invalidate_everything()
+                    self.invalidate_everything_used_across_fn_scopes()
                 }
                 ir::Expr::Bool { .. }
                 | ir::Expr::Number { .. }
@@ -425,8 +434,8 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
             ir::Stmt::Return { .. }
             | ir::Stmt::Throw { .. }
             | ir::Stmt::Break { .. }
-            | ir::Stmt::Continue { .. } => self.invalidate_for_writes(),
-            ir::Stmt::SwitchCase { .. } => self.invalidate_local(),
+            | ir::Stmt::Continue { .. } => self.invalidate_everything_for_writes(),
+            ir::Stmt::SwitchCase { .. } => self.invalidate_current_scope(),
             ir::Stmt::DeclareMutable { .. }
             | ir::Stmt::WriteMutable { .. }
             | ir::Stmt::WriteGlobal { .. }
