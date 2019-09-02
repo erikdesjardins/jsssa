@@ -1271,3 +1271,33 @@ _val$1 = <function>:
 _fun = _val$1
 <dead> = _fun()
 "###);
+
+case!(
+    aliased_by_this,
+    all_passes,
+    r#"
+    var o = {
+        x: function() {
+            o.x = 1;
+            this.x = 2;
+            return o.x;
+        }
+    };
+    g = o;
+"#,
+@r###"
+_key = "x"
+_val = <function>:
+    _prp = "x"
+    _val$1 = 1
+    _ini[_prp] <- _val$1
+    _obj = <this>
+    _prp$1 = "x"
+    _val$2 = 2
+    _obj[_prp$1] <- _val$2
+    _prp$2 = "x"
+    _ret = _ini[_prp$2]
+    <return> _ret
+_ini = { [_key]: _val }
+<global g> <- _ini
+"###);

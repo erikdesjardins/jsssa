@@ -396,14 +396,14 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
                         }
                     }
                 }
-                ir::Expr::Yield { .. } | ir::Expr::Await { .. } | ir::Expr::Call { .. } => {
-                    self.invalidate_everything_used_across_fn_scopes()
-                }
+                ir::Expr::This
+                | ir::Expr::Yield { .. }
+                | ir::Expr::Await { .. }
+                | ir::Expr::Call { .. } => self.invalidate_everything_used_across_fn_scopes(),
                 ir::Expr::Bool { .. }
                 | ir::Expr::Number { .. }
                 | ir::Expr::Null
                 | ir::Expr::Undefined
-                | ir::Expr::This
                 | ir::Expr::Read { .. }
                 | ir::Expr::ReadMutable { .. }
                 | ir::Expr::ReadGlobal { .. }
