@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 
+use swc_atoms::JsWord;
+
 use crate::collections::ZeroOneMany::{self, Many, One};
 use crate::ir;
 use crate::ir::traverse::Folder;
+use crate::ir::F64;
 
 /// Constant propagation / precompute.
 ///
@@ -10,7 +13,24 @@ use crate::ir::traverse::Folder;
 /// Does not profit from DCE running first; may create opportunities for DCE.
 #[derive(Debug, Default)]
 pub struct ConstProp {
-    shallow_values: HashMap<ir::WeakRef<ir::Ssa>, ir::Expr>,
+    shallow_values: HashMap<ir::WeakRef<ir::Ssa>, Expr>,
+}
+
+/// Cached expr with limited information.
+#[derive(Debug)]
+enum Expr {
+    Bool(bool),
+    Number(F64),
+    String(JsWord),
+    Null,
+    Undefined,
+    This,
+    Array,
+    Object,
+    RegExp,
+    Function,
+    CurrentFunction,
+    Argument,
 }
 
 impl ConstProp {
@@ -18,29 +38,21 @@ impl ConstProp {
         // avoid cloning refs, which wastes time on refcounts and make tracing ref drops harder
         // and CERTAINLY avoid deep cloning blocks
         let shallow_clone = match expr {
-            ir::Expr::Bool { value } => ir::Expr::Bool { value: *value },
-            ir::Expr::Number { value } => ir::Expr::Number { value: *value },
-            ir::Expr::String { value } => ir::Expr::String {
-                value: value.clone(),
-            },
-            ir::Expr::Null => ir::Expr::Null,
-            ir::Expr::Undefined => ir::Expr::Undefined,
-            ir::Expr::This => ir::Expr::This,
+            ir::Expr::Bool { value } => Expr::Bool(*value),
+            ir::Expr::Number { value } => Expr::Number(*value),
+            ir::Expr::String { value } => Expr::String(value.clone()),
+            ir::Expr::Null => Expr::Null,
+            ir::Expr::Undefined => Expr::Undefined,
+            ir::Expr::This => Expr::This,
             // avoid cloning refs inside array
-            ir::Expr::Array { elems: _ } => ir::Expr::Array { elems: vec![] },
+            ir::Expr::Array { elems: _ } => Expr::Array,
             // avoid cloning refs inside object
-            ir::Expr::Object { props: _ } => ir::Expr::Object { props: vec![] },
-            ir::Expr::RegExp { regex, flags } => ir::Expr::RegExp {
-                regex: regex.clone(),
-                flags: flags.clone(),
-            },
+            ir::Expr::Object { props: _ } => Expr::Object,
+            ir::Expr::RegExp { regex: _, flags: _ } => Expr::RegExp,
             // avoid cloning function body
-            ir::Expr::Function { kind, body: _ } => ir::Expr::Function {
-                kind: kind.clone(),
-                body: ir::Block(vec![]),
-            },
-            ir::Expr::CurrentFunction => ir::Expr::CurrentFunction,
-            ir::Expr::Argument { index } => ir::Expr::Argument { index: *index },
+            ir::Expr::Function { kind: _, body: _ } => Expr::Function,
+            ir::Expr::CurrentFunction => Expr::CurrentFunction,
+            ir::Expr::Argument { index: _ } => Expr::Argument,
             _ => return,
         };
 
@@ -56,7 +68,6 @@ impl Folder for ConstProp {
         use ir::BinaryOp::*;
         use ir::Expr::*;
         use ir::UnaryOp::*;
-        use ir::F64;
 
         match stmt {
             ir::Stmt::Expr {
@@ -71,29 +82,29 @@ impl Folder for ConstProp {
                         ref val,
                     } => match self.shallow_values.get(&val.weak()) {
                         Some(val_val) => match (op, val_val) {
-                            (Plus, Number { value }) => Number { value: *value },
-                            (Minus, Number { value }) => Number { value: -*value },
-                            (Not, Bool { value }) => Bool { value: !*value },
-                            (Not, Number { value }) => Bool { value: !value.is_truthy() },
-                            (Not, String { value }) => Bool { value: value == "" },
-                            (Not, Null)
-                            | (Not, Undefined) => Bool { value: true },
-                            (Not, Array { .. })
-                            | (Not, Object { .. })
-                            | (Not, RegExp { .. })
-                            | (Not, Function { .. })
-                            | (Not, CurrentFunction) => Bool { value: false },
-                            (Tilde, Number { value }) => Number { value: !*value },
-                            (Typeof, Bool { .. }) => String { value: "boolean".into() },
-                            (Typeof, Number { .. }) => String { value: "number".into() },
-                            (Typeof, String { .. }) => String { value: "string".into() },
-                            (Typeof, Null) => String { value: "object".into() },
-                            (Typeof, Undefined) => String { value: "undefined".into() },
-                            (Typeof, Array { .. })
-                            | (Typeof, Object { .. })
-                            | (Typeof, RegExp { .. }) => String { value: "object".into() },
-                            (Typeof, Function { .. })
-                            | (Typeof, CurrentFunction) => String { value: "function".into() },
+                            (Plus, Expr::Number(value)) => Number { value: *value },
+                            (Minus, Expr::Number(value)) => Number { value: -*value },
+                            (Not, Expr::Bool(value)) => Bool { value: !*value },
+                            (Not, Expr::Number(value)) => Bool { value: !value.is_truthy() },
+                            (Not, Expr::String(value)) => Bool { value: value == "" },
+                            (Not, Expr::Null)
+                            | (Not, Expr::Undefined) => Bool { value: true },
+                            (Not, Expr::Array)
+                            | (Not, Expr::Object)
+                            | (Not, Expr::RegExp)
+                            | (Not, Expr::Function)
+                            | (Not, Expr::CurrentFunction) => Bool { value: false },
+                            (Tilde, Expr::Number(value)) => Number { value: !*value },
+                            (Typeof, Expr::Bool(_)) => String { value: "boolean".into() },
+                            (Typeof, Expr::Number(_)) => String { value: "number".into() },
+                            (Typeof, Expr::String(_)) => String { value: "string".into() },
+                            (Typeof, Expr::Null) => String { value: "object".into() },
+                            (Typeof, Expr::Undefined) => String { value: "undefined".into() },
+                            (Typeof, Expr::Array)
+                            | (Typeof, Expr::Object)
+                            | (Typeof, Expr::RegExp) => String { value: "object".into() },
+                            (Typeof, Expr::Function)
+                            | (Typeof, Expr::CurrentFunction) => String { value: "function".into() },
                             (Void, _) => Undefined,
                             _ => expr,
                         },
@@ -107,35 +118,35 @@ impl Folder for ConstProp {
                         (Some(left_val), Some(right_val)) => match (op, left_val, right_val) {
                             (EqEq, _, _)
                             | (StrictEq, _, _) if left == right => Bool { value: true },
-                            (EqEq, Bool { value: a }, Bool { value: b })
-                            | (StrictEq, Bool { value: a }, Bool { value: b }) => Bool { value: a == b },
-                            (EqEq, Number { value: a }, Number { value: b })
-                            | (StrictEq, Number { value: a }, Number { value: b }) => Bool { value: a == b },
-                            (EqEq, String { value: a }, String { value: b })
-                            | (StrictEq, String { value: a }, String { value: b }) => Bool { value: a == b },
-                            (NotEq, Bool { value: a }, Bool { value: b })
-                            | (NotStrictEq, Bool { value: a }, Bool { value: b }) => Bool { value: a != b },
-                            (NotEq, Number { value: a }, Number { value: b })
-                            | (NotStrictEq, Number { value: a }, Number { value: b }) => Bool { value: a != b },
-                            (NotEq, String { value: a }, String { value: b })
-                            | (NotStrictEq, String { value: a }, String { value: b }) => Bool { value: a != b },
-                            (Lt, Number { value: a }, Number { value: b }) => Bool { value: a < b },
-                            (LtEq, Number { value: a }, Number { value: b }) => Bool { value: a <= b },
-                            (Gt, Number { value: a }, Number { value: b }) => Bool { value: a > b },
-                            (GtEq, Number { value: a }, Number { value: b }) => Bool { value: a >= b },
-                            (ShiftLeft, Number { value: a }, Number { value: b }) => Number { value: a.shl(*b) },
-                            (ShiftRight, Number { value: a }, Number { value: b }) => Number { value: a.shr(*b) },
-                            (ShiftRightZero, Number { value: a }, Number { value: b }) => Number { value: a.shr_zero(*b) },
-                            (Add, Number { value: a }, Number { value: b }) => Number { value: *a + *b },
-                            (Sub, Number { value: a }, Number { value: b }) => Number { value: *a - *b },
-                            (Mul, Number { value: a }, Number { value: b }) => Number { value: *a * *b },
-                            (Div, Number { value: a }, Number { value: b }) => Number { value: *a / *b },
-                            (Mod, Number { value: a }, Number { value: b }) => Number { value: *a % *b },
-                            (BitOr, Number { value: a }, Number { value: b }) => Number { value: *a | *b },
-                            (BitXor, Number { value: a }, Number { value: b }) => Number { value: *a ^ *b },
-                            (BitAnd, Number { value: a }, Number { value: b }) => Number { value: *a & *b },
-                            (Exp, Number { value: a }, Number { value: b }) => Number { value: a.powf(*b) },
-                            (Add, String { value: a }, String { value: b }) => String { value: (a.to_string() + b).into() },
+                            (EqEq, Expr::Bool(a), Expr::Bool(b))
+                            | (StrictEq, Expr::Bool(a), Expr::Bool(b)) => Bool { value: a == b },
+                            (EqEq, Expr::Number(a), Expr::Number(b))
+                            | (StrictEq, Expr::Number(a), Expr::Number(b)) => Bool { value: a == b },
+                            (EqEq, Expr::String(a), Expr::String(b))
+                            | (StrictEq, Expr::String(a), Expr::String(b)) => Bool { value: a == b },
+                            (NotEq, Expr::Bool(a), Expr::Bool(b))
+                            | (NotStrictEq, Expr::Bool(a), Expr::Bool(b)) => Bool { value: a != b },
+                            (NotEq, Expr::Number(a), Expr::Number(b))
+                            | (NotStrictEq, Expr::Number(a), Expr::Number(b)) => Bool { value: a != b },
+                            (NotEq, Expr::String(a), Expr::String(b))
+                            | (NotStrictEq, Expr::String(a), Expr::String(b)) => Bool { value: a != b },
+                            (Lt, Expr::Number(a), Expr::Number(b)) => Bool { value: a < b },
+                            (LtEq, Expr::Number(a), Expr::Number(b)) => Bool { value: a <= b },
+                            (Gt, Expr::Number(a), Expr::Number(b)) => Bool { value: a > b },
+                            (GtEq, Expr::Number(a), Expr::Number(b)) => Bool { value: a >= b },
+                            (ShiftLeft, Expr::Number(a), Expr::Number(b)) => Number { value: a.shl(*b) },
+                            (ShiftRight, Expr::Number(a), Expr::Number(b)) => Number { value: a.shr(*b) },
+                            (ShiftRightZero, Expr::Number(a), Expr::Number(b)) => Number { value: a.shr_zero(*b) },
+                            (Add, Expr::Number(a), Expr::Number(b)) => Number { value: *a + *b },
+                            (Sub, Expr::Number(a), Expr::Number(b)) => Number { value: *a - *b },
+                            (Mul, Expr::Number(a), Expr::Number(b)) => Number { value: *a * *b },
+                            (Div, Expr::Number(a), Expr::Number(b)) => Number { value: *a / *b },
+                            (Mod, Expr::Number(a), Expr::Number(b)) => Number { value: *a % *b },
+                            (BitOr, Expr::Number(a), Expr::Number(b)) => Number { value: *a | *b },
+                            (BitXor, Expr::Number(a), Expr::Number(b)) => Number { value: *a ^ *b },
+                            (BitAnd, Expr::Number(a), Expr::Number(b)) => Number { value: *a & *b },
+                            (Exp, Expr::Number(a), Expr::Number(b)) => Number { value: a.powf(*b) },
+                            (Add, Expr::String(a), Expr::String(b)) => String { value: (a.to_string() + b).into() },
                             _ => expr,
                         },
                         _ => expr,
@@ -153,16 +164,16 @@ impl Folder for ConstProp {
                 alt,
             } => match self.shallow_values.get(&cond.weak()) {
                 Some(cond_val) => match cond_val {
-                    Bool { value: true }
-                    | Array { .. }
-                    | Object { .. }
-                    | RegExp { .. }
-                    | Function { .. } => Many(cons.0),
-                    Bool { value: false }
-                    | Null
-                    | Undefined => Many(alt.0),
-                    Number { value } => if value.is_truthy() { Many(cons.0) } else { Many(alt.0) },
-                    String { value } => if value != "" { Many(cons.0) } else { Many(alt.0) },
+                    Expr::Bool(true)
+                    | Expr::Array
+                    | Expr::Object
+                    | Expr::RegExp
+                    | Expr::Function => Many(cons.0),
+                    Expr::Bool(false)
+                    | Expr::Null
+                    | Expr::Undefined => Many(alt.0),
+                    Expr::Number(value) => if value.is_truthy() { Many(cons.0) } else { Many(alt.0) },
+                    Expr::String(value) => if value != "" { Many(cons.0) } else { Many(alt.0) },
                     _ => One(ir::Stmt::IfElse { cond, cons, alt }),
                 },
                 None => One(ir::Stmt::IfElse { cond, cons, alt }),
