@@ -1531,6 +1531,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
         | ast::Expr::JSXMebmer(_)
         | ast::Expr::JSXNamespacedName(_) => unreachable!(),
         ast::Expr::TsTypeAssertion(_)
+        | ast::Expr::TsConstAssertion(_)
         | ast::Expr::TsNonNull(_)
         | ast::Expr::TsTypeCast(_)
         | ast::Expr::TsAs(_) => unreachable!(),
