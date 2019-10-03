@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches:
+    - master
+    tags:
+      - v*.*.*
+  pull_request:
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+    - run: rustup component add rustfmt
+    - run: cargo fmt --all -- --check
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+    - run: rustup component add clippy
+    - run: RUSTFLAGS="-D warnings" cargo clippy
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+    - run: cargo test
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+    - run: cargo build --release
+    - run: strip target/release/jsssa
+    - run: ls -lh target/release/jsssa
+    - uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: target/release/jsssa
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
