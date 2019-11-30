@@ -298,5 +298,6 @@ fn pat_to_ident(pat: &ast::Pat) -> &JsWord {
         | ast::Pat::Rest(_)
         | ast::Pat::Assign(_)
         | ast::Pat::Expr(_) => unimplemented!("complex patterns not supported"),
+        ast::Pat::Invalid(_) => unreachable!(),
     }
 }

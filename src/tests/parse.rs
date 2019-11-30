@@ -30,8 +30,18 @@ case!(
 
 #[test]
 fn parse_error() {
+    // swc successfully parses `var ab` and returns that AST, along with emitting an error
     swc_globals::with(|g| match parse::parse(g, "var ab-cd = 1;").err() {
         Some(err) => insta::assert_display_snapshot!("parse error", err),
+        None => panic!("parse unexpectedly succeeded"),
+    });
+}
+
+#[test]
+fn parse_error_immediate() {
+    // swc can't parse anything, making this different from `parse_error`
+    swc_globals::with(|g| match parse::parse(g, "*").err() {
+        Some(err) => insta::assert_display_snapshot!("parse error immediate", err),
         None => panic!("parse unexpectedly succeeded"),
     });
 }

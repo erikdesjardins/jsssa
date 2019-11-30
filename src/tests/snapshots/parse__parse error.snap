@@ -2,7 +2,7 @@
 source: src/tests/parse.rs
 expression: err
 ---
-Parse error: Expected Semi, got Some(BinOp(Sub))
+Parse error: TS1005
  --> <anon>:1:7
   |
 1 | var ab-cd = 1;

@@ -25,7 +25,7 @@ pub fn parse(
         handler: &{
             let emitter =
                 EmitterWriter::new(Box::new(error.clone()), Some(files.clone()), false, false);
-            Handler::with_emitter(false, false, Box::new(emitter))
+            Handler::with_emitter_and_flags(Box::new(emitter), Default::default())
         },
     };
 
@@ -38,12 +38,16 @@ pub fn parse(
         None,
     );
 
-    let ast = parser.parse_script().map_err(|mut e| {
-        e.emit();
-        ParseError(error.to_string())
-    })?;
+    // we may still receive an AST for partial parse results, so this error is not reliable...
+    let ast = parser.parse_script().map_err(|mut diag| diag.emit()).ok();
+    // ...but this error is
+    let err = error.read_msg();
 
-    Ok((ast, files))
+    match (ast, err) {
+        (_, Some(err)) => Err(ParseError(err)),
+        (Some(ast), None) => Ok((ast, files)),
+        (None, None) => unreachable!("parse failed, but no error message was emitted"),
+    }
 }
 
 #[derive(Debug)]
@@ -58,19 +62,23 @@ impl Display for ParseError {
 }
 
 #[derive(Clone, Default)]
-struct BufferedError(Arc<Mutex<Vec<u8>>>);
+struct BufferedError(Arc<Mutex<Option<Vec<u8>>>>);
 
 impl Write for BufferedError {
     fn write(&mut self, d: &[u8]) -> io::Result<usize> {
-        self.0.lock().unwrap().write(d)
+        self.0.lock().unwrap().get_or_insert_with(Vec::new).write(d)
     }
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }
 }
 
-impl Display for BufferedError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&String::from_utf8_lossy(&self.0.lock().unwrap()))
+impl BufferedError {
+    fn read_msg(&self) -> Option<String> {
+        self.0
+            .lock()
+            .unwrap()
+            .as_ref()
+            .map(|v| String::from_utf8_lossy(v).into_owned())
     }
 }

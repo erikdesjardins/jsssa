@@ -211,8 +211,8 @@ impl<'a> CollectLoadStoreInfo<'a> {
     fn get_last_op<'op>(
         &self,
         ops: &'op Ops<'a>,
-        obj: &&'a ir::Ref<ir::Ssa>,
-        prop: &&'a str,
+        obj: &'a ir::Ref<ir::Ssa>,
+        prop: &'a str,
     ) -> Option<&'op (StmtIndex, Op<'a>)> {
         ops.local_last_op
             .get(obj)

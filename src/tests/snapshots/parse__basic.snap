@@ -149,7 +149,7 @@ Script {
                                                     MemberExpr {
                                                         span: Span {
                                                             lo: BytePos(
-                                                                56,
+                                                                55,
                                                             ),
                                                             hi: BytePos(
                                                                 60,
@@ -215,7 +215,7 @@ Script {
                                                             MemberExpr {
                                                                 span: Span {
                                                                     lo: BytePos(
-                                                                        71,
+                                                                        70,
                                                                     ),
                                                                     hi: BytePos(
                                                                         75,
