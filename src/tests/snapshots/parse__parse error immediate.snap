@@ -1,0 +1,17 @@
+---
+source: src/tests/parse.rs
+expression: err
+---
+Parse error: TS1109
+ --> <anon>:1:1
+  |
+1 | *
+  | ^
+
+error: Unexpected token None
+ --> <anon>:1:1
+  |
+1 | *
+  | ^
+
+

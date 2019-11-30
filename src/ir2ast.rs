@@ -472,7 +472,10 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
                                     Ok(ident) => ast::PropName::Ident(ident),
                                     Err(ast::Expr::Lit(ast::Lit::Str(s))) => ast::PropName::Str(s),
                                     Err(ast::Expr::Lit(ast::Lit::Num(n))) => ast::PropName::Num(n),
-                                    Err(key) => ast::PropName::Computed(P(key)),
+                                    Err(key) => ast::PropName::Computed(ast::ComputedPropName {
+                                        span: span(),
+                                        expr: P(key),
+                                    }),
                                 }
                             },
                             value: P(read_ssa_to_expr(val, scope, ssa_cache)),

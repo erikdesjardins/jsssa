@@ -1534,7 +1534,9 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
         | ast::Expr::TsConstAssertion(_)
         | ast::Expr::TsNonNull(_)
         | ast::Expr::TsTypeCast(_)
-        | ast::Expr::TsAs(_) => unreachable!(),
+        | ast::Expr::TsAs(_)
+        | ast::Expr::TsOptChain(_) => unreachable!(),
+        ast::Expr::Invalid(_) => unreachable!(),
     }
 }
 
@@ -1614,6 +1616,7 @@ fn pat_to_ident(pat: ast::Pat) -> JsWord {
         | ast::Pat::Rest(_)
         | ast::Pat::Assign(_)
         | ast::Pat::Expr(_) => unimplemented!("complex patterns not supported"),
+        ast::Pat::Invalid(_) => unreachable!(),
     }
 }
 
@@ -1631,6 +1634,6 @@ fn propname_to_expr(propname: ast::PropName) -> ast::Expr {
         })),
         ast::PropName::Str(s) => ast::Expr::Lit(ast::Lit::Str(s)),
         ast::PropName::Num(n) => ast::Expr::Lit(ast::Lit::Num(n)),
-        ast::PropName::Computed(e) => *e,
+        ast::PropName::Computed(ast::ComputedPropName { expr, span: _ }) => *expr,
     }
 }
