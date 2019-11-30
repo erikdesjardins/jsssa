@@ -226,7 +226,7 @@ impl Folder for Replace {
                         prop_vars
                             .into_iter()
                             .map(|(_, prop_var)| ir::Stmt::DeclareMutable {
-                                target: prop_var.clone(),
+                                target: prop_var,
                                 val: undef_ref.clone(),
                             });
                     Many(

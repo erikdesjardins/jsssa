@@ -752,7 +752,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                     } = ident.clone();
                                     let key = ast::Expr::Lit(ast::Lit::Str(ast::Str {
                                         span,
-                                        value: sym.clone(),
+                                        value: sym,
                                         has_escape: false,
                                     }));
                                     (key, ast::Expr::Ident(ident))

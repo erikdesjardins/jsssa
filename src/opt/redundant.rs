@@ -156,7 +156,7 @@ impl<'a> CollectLoadStoreInfo<'a> {
     fn get_last_op<'op>(
         &self,
         ops: &'op Ops<'a>,
-        ref_: &&'a ir::Ref<ir::Mut>,
+        ref_: &'a ir::Ref<ir::Mut>,
     ) -> Option<&'op (StmtIndex, WriteOp<'a>)> {
         ops.local_last_op
             .get(ref_)
