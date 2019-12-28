@@ -42,7 +42,7 @@ fn convert_block(mut body: Vec<ast::Stmt>, parent_scope: &scope::Ast, hoist: Hoi
 
 fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
     match stmt {
-        ast::Stmt::Expr(expr) => {
+        ast::Stmt::Expr(ast::ExprStmt { expr, span: _ }) => {
             let (mut stmts, last_expr) = convert_expression(*expr, scope);
             stmts.push(ir::Stmt::Expr {
                 target: ir::Ref::dead(),
@@ -591,28 +591,10 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
         }
         ast::Expr::Lit(lit) => match lit {
             ast::Lit::Regex(ast::Regex {
-                exp:
-                    ast::Str {
-                        value,
-                        has_escape: _,
-                        span: _,
-                    },
+                exp,
                 flags,
                 span: _,
-            }) => (
-                vec![],
-                ir::Expr::RegExp {
-                    regex: value,
-                    flags: match flags {
-                        Some(ast::Str {
-                            value,
-                            has_escape: _,
-                            span: _,
-                        }) => value,
-                        None => JsWord::from(""),
-                    },
-                },
-            ),
+            }) => (vec![], ir::Expr::RegExp { regex: exp, flags }),
             ast::Lit::Null(ast::Null { span: _ }) => (vec![], ir::Expr::Null),
             ast::Lit::Str(ast::Str {
                 value,
@@ -626,6 +608,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     value: ir::F64::from(value),
                 },
             ),
+            ast::Lit::BigInt(_) => unimplemented!("bigint not supported"),
             ast::Lit::JSXText(_) => unreachable!(),
         },
         ast::Expr::This(ast::ThisExpr { span: _ }) => (vec![], ir::Expr::This),
@@ -1156,6 +1139,9 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         ast::BinaryOp::Exp => ir::BinaryOp::Exp,
                         ast::BinaryOp::In => ir::BinaryOp::In,
                         ast::BinaryOp::InstanceOf => ir::BinaryOp::Instanceof,
+                        ast::BinaryOp::NullishCoalescing => {
+                            unimplemented!("nullish coalescing not supported")
+                        }
                         ast::BinaryOp::LogicalOr | ast::BinaryOp::LogicalAnd => unreachable!(),
                     };
                     let left_ref = ir::Ref::new("_lhs");
@@ -1524,18 +1510,18 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
         ast::Expr::Tpl(_) | ast::Expr::TaggedTpl(_) => unimplemented!("templates not supported"),
         ast::Expr::Class(_) => unimplemented!("classes not supported"),
         ast::Expr::PrivateName(_) => unimplemented!("private members not supported"),
+        ast::Expr::OptChain(_) => unimplemented!("optional chaining not supported"),
         ast::Expr::MetaProp(_) => unreachable!(),
         ast::Expr::JSXElement(_)
         | ast::Expr::JSXEmpty(_)
         | ast::Expr::JSXFragment(_)
         | ast::Expr::JSXMebmer(_)
-        | ast::Expr::JSXNamespacedName(_) => unreachable!(),
+        | ast::Expr::JSXNamespacedName(_) => unreachable!("jsx should not be parsed"),
         ast::Expr::TsTypeAssertion(_)
         | ast::Expr::TsConstAssertion(_)
         | ast::Expr::TsNonNull(_)
         | ast::Expr::TsTypeCast(_)
-        | ast::Expr::TsAs(_)
-        | ast::Expr::TsOptChain(_) => unreachable!(),
+        | ast::Expr::TsAs(_) => unreachable!("ts should not be parsed"),
         ast::Expr::Invalid(_) => unreachable!(),
     }
 }

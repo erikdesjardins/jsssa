@@ -54,12 +54,3 @@ case!(
     "ba\\z";
 "#
 );
-
-case!(
-    regex_has_escape_behavior,
-    r#"
-    /foo/;
-    /bar\./;
-    /ba\/z/;
-"#
-);

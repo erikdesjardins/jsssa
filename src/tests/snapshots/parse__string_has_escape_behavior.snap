@@ -14,61 +14,94 @@ Script {
     },
     body: [
         Expr(
-            Lit(
-                Str(
-                    Str {
-                        span: Span {
-                            lo: BytePos(
-                                5,
-                            ),
-                            hi: BytePos(
-                                10,
-                            ),
-                            ctxt: #0,
+            ExprStmt {
+                span: Span {
+                    lo: BytePos(
+                        5,
+                    ),
+                    hi: BytePos(
+                        11,
+                    ),
+                    ctxt: #0,
+                },
+                expr: Lit(
+                    Str(
+                        Str {
+                            span: Span {
+                                lo: BytePos(
+                                    5,
+                                ),
+                                hi: BytePos(
+                                    10,
+                                ),
+                                ctxt: #0,
+                            },
+                            value: Atom('foo' type=inline),
+                            has_escape: false,
                         },
-                        value: Atom('foo' type=inline),
-                        has_escape: false,
-                    },
+                    ),
                 ),
-            ),
+            },
         ),
         Expr(
-            Lit(
-                Str(
-                    Str {
-                        span: Span {
-                            lo: BytePos(
-                                16,
-                            ),
-                            hi: BytePos(
-                                22,
-                            ),
-                            ctxt: #0,
+            ExprStmt {
+                span: Span {
+                    lo: BytePos(
+                        16,
+                    ),
+                    hi: BytePos(
+                        23,
+                    ),
+                    ctxt: #0,
+                },
+                expr: Lit(
+                    Str(
+                        Str {
+                            span: Span {
+                                lo: BytePos(
+                                    16,
+                                ),
+                                hi: BytePos(
+                                    22,
+                                ),
+                                ctxt: #0,
+                            },
+                            value: Atom('ba' type=inline),
+                            has_escape: true,
                         },
-                        value: Atom('ba' type=inline),
-                        has_escape: true,
-                    },
+                    ),
                 ),
-            ),
+            },
         ),
         Expr(
-            Lit(
-                Str(
-                    Str {
-                        span: Span {
-                            lo: BytePos(
-                                28,
-                            ),
-                            hi: BytePos(
-                                35,
-                            ),
-                            ctxt: #0,
+            ExprStmt {
+                span: Span {
+                    lo: BytePos(
+                        28,
+                    ),
+                    hi: BytePos(
+                        36,
+                    ),
+                    ctxt: #0,
+                },
+                expr: Lit(
+                    Str(
+                        Str {
+                            span: Span {
+                                lo: BytePos(
+                                    28,
+                                ),
+                                hi: BytePos(
+                                    35,
+                                ),
+                                ctxt: #0,
+                            },
+                            value: Atom('ba\z' type=inline),
+                            has_escape: true,
                         },
-                        value: Atom('ba\z' type=inline),
-                        has_escape: true,
-                    },
+                    ),
                 ),
-            ),
+            },
         ),
     ],
     shebang: None,

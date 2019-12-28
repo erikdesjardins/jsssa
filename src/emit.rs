@@ -36,7 +36,6 @@ pub fn emit(
                 impl Handlers for MyHandlers {}
                 Box::new(MyHandlers)
             },
-            pos_of_leading_comments: Default::default(),
         };
         emitter.emit_script(&fixed_ast)?;
     }
