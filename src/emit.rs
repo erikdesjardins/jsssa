@@ -15,7 +15,7 @@ pub struct Opt {
 #[inline(never)] // for better profiling
 pub fn emit(
     _: &swc_globals::Initialized,
-    ast: ast::Script,
+    ast: ast::Program,
     files: Arc<SourceMap>,
     options: Opt,
 ) -> Result<String, Error> {
@@ -37,7 +37,7 @@ pub fn emit(
                 Box::new(MyHandlers)
             },
         };
-        emitter.emit_script(&fixed_ast)?;
+        emitter.emit_program(&fixed_ast)?;
     }
 
     Ok(String::from_utf8_lossy(&wr).into_owned())

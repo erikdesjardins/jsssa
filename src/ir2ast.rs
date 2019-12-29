@@ -17,7 +17,7 @@ pub struct Opt {
 }
 
 #[inline(never)] // for better profiling
-pub fn convert(_: &swc_globals::Initialized, ir: ir::Block, options: Opt) -> ast::Script {
+pub fn convert(_: &swc_globals::Initialized, ir: ir::Block, options: Opt) -> ast::Program {
     let mut globals = HashSet::new();
 
     visit_with(&ir, |stmt| match stmt {
@@ -54,11 +54,11 @@ pub fn convert(_: &swc_globals::Initialized, ir: ir::Block, options: Opt) -> ast
 
     let body = convert_block(ir, &scope, &mut ssa_cache);
 
-    ast::Script {
+    ast::Program::Script(ast::Script {
         span: span(),
         body,
         shebang: None,
-    }
+    })
 }
 
 fn convert_block(

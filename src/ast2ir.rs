@@ -13,12 +13,26 @@ use self::hoist::Hoist;
 mod hoist;
 
 #[inline(never)] // for better profiling
-pub fn convert(_: &swc_globals::Initialized, ast: ast::Script) -> ir::Block {
-    let ast::Script {
-        shebang: _,
-        body,
-        span: _,
-    } = ast;
+pub fn convert(_: &swc_globals::Initialized, ast: ast::Program) -> ir::Block {
+    let body = match ast {
+        ast::Program::Script(ast::Script {
+            shebang: _,
+            body,
+            span: _,
+        }) => body,
+        ast::Program::Module(ast::Module {
+            shebang: _,
+            body,
+            span: _,
+        }) => body
+            .into_iter()
+            .map(|item| match item {
+                ast::ModuleItem::Stmt(stmt) => stmt,
+                ast::ModuleItem::ModuleDecl(_) => unimplemented!("module items not supported"),
+            })
+            .collect(),
+    };
+
     convert_block(body, &scope::Ast::default(), Hoist::Everything)
 }
 
