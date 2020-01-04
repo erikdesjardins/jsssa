@@ -75,8 +75,18 @@ impl Folder for ConstProp {
                 expr,
             } => {
                 let expr = match expr {
-                    ReadGlobal { ref source } if source == "NaN" => Number { value: F64::NAN },
-                    ReadGlobal { ref source } if source == "undefined" => Undefined,
+                    ReadGlobal { ref source } => match source.as_ref() {
+                        "NaN" => Number { value: F64::NAN },
+                        "undefined" => Undefined,
+                        _ => expr,
+                    },
+                    ReadMember { ref obj, ref prop } => match (self.shallow_values.get(&obj.weak()), self.shallow_values.get(&prop.weak())) {
+                        (Some(obj), Some(Expr::String(prop))) => match (obj, prop.as_ref()) {
+                            (Expr::String(value), "length") => Number { value: F64::from(value.chars().map(char::len_utf16).sum::<usize>() as f64) },
+                            _ => expr,
+                        },
+                        _ => expr,
+                    }
                     Unary {
                         ref op,
                         ref val,

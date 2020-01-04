@@ -126,3 +126,19 @@ case!(
 <dead> = []
 <dead> = false
 "###);
+
+case!(
+    string_length,
+    |cx| cx.run::<constant::ConstProp>("const-prop"),
+    r#"
+    'foo'.length
+    'A\uD87E\uDC04Z'.length
+"#,
+@r###"
+<dead> = "foo"
+<dead> = "length"
+<dead> = 3
+<dead> = "A\u{d87e}\u{dc04}Z"
+<dead> = "length"
+<dead> = 4
+"###);
