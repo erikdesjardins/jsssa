@@ -106,7 +106,7 @@ case!(
     r#"
     let x = 1;
     if (foo) {
-        just_read_global_state;
+        g = just_read_global_state;
     }
     log(x);
 
@@ -121,7 +121,7 @@ case!(
 "#,
 @r###"
 if (foo) {
-    just_read_global_state;
+    g = just_read_global_state;
 }
 log(1);
 var y = 1;
@@ -137,7 +137,7 @@ case!(
     snudown_js_like,
     r#"
     var r;
-    something;
+    g = something;
     r || (r = {});
     var s = {};
     var o;
@@ -155,7 +155,7 @@ case!(
     };
 "#,
 @r###"
-something;
+g = something;
 window.foo = function(z) {
     return z + 2;
 };
@@ -393,16 +393,16 @@ case!(
     fn_hoisting_toplevel,
     r#"
     foo();
-    function foo() { foo_; }
+    function foo() { foo_(); }
 
     (function() {
         bar();
-        function bar() { bar_; }
+        function bar() { bar_(); }
     })();
 "#,
 @r###"
-foo_;
-bar_;
+foo_();
+bar_();
 "###);
 
 case!(
@@ -410,7 +410,7 @@ case!(
     r#"
     if (x) {
         foo();
-        function foo() { foo_; }
+        function foo() { foo_(); }
     }
     foo();
 "#,
@@ -419,7 +419,7 @@ var foo;
 if (x) {
     void 0();
     foo = function() {
-        foo_;
+        foo_();
     };
 }
 foo();
@@ -430,13 +430,13 @@ case!(
     r#"
     foo();
     label:
-    function foo() { foo_; }
+    function foo() { foo_(); }
 "#,
 @r###"
 var foo;
 label: {
     foo = function() {
-        foo_;
+        foo_();
     };
 }
 foo();
@@ -447,23 +447,24 @@ case!(
     r#"
     switch (x) {
         case 1:
-            one;
+            one();
             break;
         case "foo":
         case bar:
-            two;
+            two();
         default:
-            def;
+            def();
     }
 "#,
 @r###"
+var _tst = bar;
 switch(x){
     case 1:
-        one;
+        one();
         break;
     case 'foo':
-    case bar: two;
-    default: def;
+    case _tst: two();
+    default: def();
 }
 "###);
 
@@ -501,7 +502,7 @@ case!(
             g1 = v;
             g2 = l;
         default:
-            def;
+            def();
     }
 "#,
 @r###"
@@ -509,7 +510,7 @@ switch(x){
     case 1:
         g1 = 2;
         g2 = 3;
-    default: def;
+    default: def();
 }
 "###);
 
