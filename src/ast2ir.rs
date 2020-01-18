@@ -779,7 +779,12 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         | prop @ ast::Prop::Setter(_)
                         | prop @ ast::Prop::Method(_) => {
                             let (kind, name, function) = match prop {
-                                ast::Prop::Getter(ast::GetterProp { key, body, span }) => (
+                                ast::Prop::Getter(ast::GetterProp {
+                                    key,
+                                    body,
+                                    span,
+                                    type_ann: _,
+                                }) => (
                                     ir::PropKind::Get,
                                     key,
                                     ast::Function {
@@ -1529,7 +1534,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
         ast::Expr::JSXElement(_)
         | ast::Expr::JSXEmpty(_)
         | ast::Expr::JSXFragment(_)
-        | ast::Expr::JSXMebmer(_)
+        | ast::Expr::JSXMember(_)
         | ast::Expr::JSXNamespacedName(_) => unreachable!("jsx should not be parsed"),
         ast::Expr::TsTypeAssertion(_)
         | ast::Expr::TsConstAssertion(_)

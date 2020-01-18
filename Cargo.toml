@@ -10,10 +10,10 @@ log = "0.4"
 structopt = { version = "0.3", default-features = false }
 swc_atoms = "0.2"
 swc_common = "0.4"
-swc_ecma_ast = "0.13"
-swc_ecma_codegen = "0.12"
-swc_ecma_parser = "0.15"
-swc_ecma_transforms = "0.3"
+swc_ecma_ast = "0.15"
+swc_ecma_codegen = "0.14"
+swc_ecma_parser = "0.17"
+swc_ecma_transforms = "0.6"
 
 [dev-dependencies]
 insta = "0.12"
