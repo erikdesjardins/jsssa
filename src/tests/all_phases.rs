@@ -3,6 +3,7 @@ use crate::emit;
 use crate::err::NiceError;
 use crate::ir2ast;
 use crate::opt;
+use crate::opt_ast;
 use crate::parse;
 use crate::swc_globals;
 
@@ -22,6 +23,7 @@ macro_rules! case {
                         minify: false,
                     },
                 );
+                let ast = opt_ast::run(g, ast);
                 let js = emit::emit(g, ast, files, emit::Opt { minify: false })?;
                 insta::assert_snapshot!(js, @ $expected);
                 Ok(())
@@ -43,16 +45,12 @@ case!(
 "#,
 @r###"
 (function f() {
-    for(;;){
-    }
+    for(;;);
     var _val = y.bar;
     var _obj = z;
     var _val$1;
-    if (_val) {
-        _val$1 = true;
-    } else {
-        _val$1 = 'hi';
-    }
+    if (_val) _val$1 = true;
+    else _val$1 = 'hi';
     _obj.foo = _val$1;
     var _wri = g + 1;
     g = _wri;
@@ -85,19 +83,9 @@ case!(
     }
 "#,
 @r###"
-outer: {
-    for(;;){
-        inner: {
-            for(;;){
-                if (foo) {
-                    continue inner;
-                }
-                if (bar) {
-                    break outer;
-                }
-            }
-        }
-    }
+outer: for(;;)inner: for(;;){
+    if (foo) continue inner;
+    if (bar) break outer;
 }
 "###);
 
@@ -120,16 +108,10 @@ case!(
     log(y);
 "#,
 @r###"
-if (foo) {
-    g = just_read_global_state;
-}
+if (foo) g = just_read_global_state;
 log(1);
 var y = 1;
-if (foo) {
-    if (bar) {
-        y = 10;
-    }
-}
+if (foo) if (bar) y = 10;
 log(y);
 "###);
 
@@ -203,13 +185,10 @@ _alt.stackRestore;
 _alt.stackSave;
 _alt.dynCall_iii;
 _alt.dynCall_iiii;
-var i = '\0\0\0\0\0'.length;
 var e = 0;
 for(;;){
-    if (e < i) {
-    } else {
-        break;
-    }
+    if (e < 5) ;
+    else break;
     var _prp = 8 + e;
     _val$1[_prp] = '\0\0\0\0\0'.charCodeAt(e);
     e = e + 1;
@@ -250,13 +229,9 @@ case!(
     i = function() { return x = y = 1; }
 "#,
 @r###"
-if (foo) {
-    log(g);
-}
+if (foo) log(g);
 var y = h;
-if (bar()) {
-    log(y);
-}
+if (bar()) log(y);
 i = function() {
     y = 1;
     return 1;
@@ -277,10 +252,8 @@ var x = g;
 for(;;){
     log(x);
     g = 1;
-    if (foo) {
-    } else {
-        break;
-    }
+    if (foo) ;
+    else break;
 }
 "###);
 
@@ -298,11 +271,8 @@ case!(
     }
 "#,
 @r###"
-if (foo) {
-    log(2);
-} else {
-    log(1);
-}
+if (foo) log(2);
+else log(1);
 "###);
 
 case!(
@@ -320,9 +290,7 @@ case!(
 @r###"
 g1 = NaN;
 var NaN$1 = 1;
-if (foo) {
-    NaN$1 = 2;
-}
+if (foo) NaN$1 = 2;
 g3 = NaN$1;
 "###);
 
@@ -434,11 +402,9 @@ case!(
 "#,
 @r###"
 var foo;
-label: {
-    foo = function() {
-        foo_();
-    };
-}
+label: foo = function() {
+    foo_();
+};
 foo();
 "###);
 

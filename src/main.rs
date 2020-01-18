@@ -26,6 +26,7 @@ mod err;
 mod ir;
 mod ir2ast;
 mod opt;
+mod opt_ast;
 mod parse;
 mod swc_globals;
 mod utils;
@@ -42,6 +43,7 @@ fn main() -> Result<(), NiceError> {
         optimize: _,
         opt_ir,
         opt_inline_ssa,
+        opt_ast,
         print_ir,
     } = cli::Options::from_args();
 
@@ -94,6 +96,14 @@ fn main() -> Result<(), NiceError> {
                 },
             );
             log::info!("Done ir2ast @ {}", Time(start.elapsed()));
+
+            let ast = if opt_ast {
+                let ast = opt_ast::run(g, ast);
+                log::info!("Done ast optimization @ {}", Time(start.elapsed()));
+                ast
+            } else {
+                ast
+            };
 
             let js = emit::emit(g, ast, files, emit::Opt { minify })?;
             log::info!("Done emitting @ {}", Time(start.elapsed()));
