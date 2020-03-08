@@ -22,4 +22,4 @@ insta = "0.12"
 panic = "abort"
 lto = true
 codegen-units = 1
-debug = true
+debug = 1
