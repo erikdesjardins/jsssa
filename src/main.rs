@@ -1,4 +1,3 @@
-#![feature(drain_filter)]
 #![warn(clippy::dbg_macro, clippy::print_stdout)]
 #![allow(
     clippy::unneeded_field_pattern,
@@ -8,6 +7,7 @@
     clippy::match_bool,
     clippy::single_match
 )]
+#![allow(unstable_name_collisions)]
 
 use std::fs;
 use std::io;

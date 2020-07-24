@@ -54,9 +54,12 @@ case!(
     _obj.foo = _val$1;
     var _wri = g + 1;
     g = _wri;
-    return +[1, {
+    return +[
+        1,
+        {
             x: _val
-        }, f + 1, _wri];
+        },
+        f + 1, _wri];
 })(1);
 "###);
 
@@ -111,7 +114,9 @@ case!(
 if (foo) g = just_read_global_state;
 log(1);
 var y = 1;
-if (foo) if (bar) y = 10;
+if (foo) {
+    if (bar) y = 10;
+}
 log(y);
 "###);
 
@@ -429,8 +434,10 @@ switch(x){
         one();
         break;
     case 'foo':
-    case _tst: two();
-    default: def();
+    case _tst:
+        two();
+    default:
+        def();
 }
 "###);
 
@@ -476,7 +483,8 @@ switch(x){
     case 1:
         g1 = 2;
         g2 = 3;
-    default: def();
+    default:
+        def();
 }
 "###);
 
@@ -518,8 +526,10 @@ case!(
 "#,
 @r###"
 switch(x){
-    case 1: var y = foo();
-    default: g = y;
+    case 1:
+        var y = foo();
+    default:
+        g = y;
 }
 "###);
 

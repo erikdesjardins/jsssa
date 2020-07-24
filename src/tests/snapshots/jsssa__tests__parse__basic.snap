@@ -34,22 +34,34 @@ Script(
                         declare: false,
                         function: Function {
                             params: [
-                                Ident(
-                                    Ident {
-                                        span: Span {
-                                            lo: BytePos(
-                                                16,
-                                            ),
-                                            hi: BytePos(
-                                                17,
-                                            ),
-                                            ctxt: #0,
-                                        },
-                                        sym: Atom('x' type=inline),
-                                        type_ann: None,
-                                        optional: false,
+                                Param {
+                                    span: Span {
+                                        lo: BytePos(
+                                            16,
+                                        ),
+                                        hi: BytePos(
+                                            17,
+                                        ),
+                                        ctxt: #0,
                                     },
-                                ),
+                                    decorators: [],
+                                    pat: Ident(
+                                        Ident {
+                                            span: Span {
+                                                lo: BytePos(
+                                                    16,
+                                                ),
+                                                hi: BytePos(
+                                                    17,
+                                                ),
+                                                ctxt: #0,
+                                            },
+                                            sym: Atom('x' type=inline),
+                                            type_ann: None,
+                                            optional: false,
+                                        },
+                                    ),
+                                },
                             ],
                             decorators: [],
                             span: Span {

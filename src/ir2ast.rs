@@ -7,7 +7,7 @@ use crate::ir;
 use crate::ir::scope;
 use crate::ir::traverse::visit_with;
 use crate::swc_globals;
-use crate::utils::P;
+use crate::utils::{VecExt, P};
 
 mod ssa;
 
@@ -701,7 +701,14 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
                     }),
                     function: ast::Function {
                         span: span(),
-                        params,
+                        params: params
+                            .into_iter()
+                            .map(|pat| ast::Param {
+                                span: span(),
+                                decorators: vec![],
+                                pat,
+                            })
+                            .collect(),
                         decorators: vec![],
                         body: Some(body),
                         is_async,

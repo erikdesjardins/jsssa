@@ -1,6 +1,7 @@
 use std::iter;
 
 use swc_atoms::JsWord;
+use swc_common::Spanned;
 use swc_ecma_ast as ast;
 
 use crate::collections::Either;
@@ -534,7 +535,12 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                     .into_iter()
                     .enumerate()
                     .flat_map(|(i, param)| {
-                        let name = pat_to_ident(param);
+                        let ast::Param {
+                            pat,
+                            decorators: _,
+                            span: _,
+                        } = param;
+                        let name = pat_to_ident(pat);
                         let arg = fn_scope.declare_mutable(name);
                         let param_ref = ir::Ref::new(arg.name_hint());
                         vec![
@@ -807,7 +813,11 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                     ir::PropKind::Set,
                                     key,
                                     ast::Function {
-                                        params: vec![param],
+                                        params: vec![ast::Param {
+                                            span: param.span(),
+                                            pat: param,
+                                            decorators: vec![],
+                                        }],
                                         decorators: vec![],
                                         span,
                                         body,
@@ -847,7 +857,12 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                 .into_iter()
                                 .enumerate()
                                 .flat_map(|(i, param)| {
-                                    let name = pat_to_ident(param);
+                                    let ast::Param {
+                                        pat,
+                                        decorators: _,
+                                        span: _,
+                                    } = param;
+                                    let name = pat_to_ident(pat);
                                     let arg = fn_scope.declare_mutable(name);
                                     let param_ref = ir::Ref::new(arg.name_hint());
                                     vec![
@@ -932,7 +947,12 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 .into_iter()
                 .enumerate()
                 .flat_map(|(i, param)| {
-                    let name = pat_to_ident(param);
+                    let ast::Param {
+                        pat,
+                        decorators: _,
+                        span: _,
+                    } = param;
+                    let name = pat_to_ident(pat);
                     let arg = fn_scope.declare_mutable(name);
                     let param_ref = ir::Ref::new(arg.name_hint());
                     vec![
@@ -1306,7 +1326,6 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 | op @ ast::AssignOp::BitAndAssign
                 | op @ ast::AssignOp::ExpAssign => {
                     let op = match op {
-                        ast::AssignOp::Assign => unreachable!(),
                         ast::AssignOp::AddAssign => ir::BinaryOp::Add,
                         ast::AssignOp::SubAssign => ir::BinaryOp::Sub,
                         ast::AssignOp::MulAssign => ir::BinaryOp::Mul,
@@ -1319,6 +1338,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         ast::AssignOp::BitXorAssign => ir::BinaryOp::BitXor,
                         ast::AssignOp::BitAndAssign => ir::BinaryOp::BitAnd,
                         ast::AssignOp::ExpAssign => ir::BinaryOp::Exp,
+                        _ => unreachable!(),
                     };
                     let left_ref = ir::Ref::new("_lhs");
                     stmts.push(ir::Stmt::Expr {
@@ -1341,6 +1361,11 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         },
                     });
                     stmts.push(write_stmt);
+                }
+                ast::AssignOp::AndAssign
+                | ast::AssignOp::OrAssign
+                | ast::AssignOp::NullishAssign => {
+                    unimplemented!("experimental assignment operators not supported")
                 }
             }
             (stmts, ir::Expr::Read { source: value_ref })

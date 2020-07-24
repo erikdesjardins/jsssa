@@ -51,3 +51,14 @@ if (x) {
     else if (z) console.log(2);
 } else console.log(3);
 "###);
+
+case!(if_zero_bitor, r#"
+    if (0 | x) {
+        first();
+    } else {
+        second();
+    }
+"#, @r###"
+if (0 | x) first();
+else second();
+"###);
