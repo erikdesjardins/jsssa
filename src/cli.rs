@@ -36,8 +36,8 @@ pub struct Options {
     pub opt_ast: bool,
 
     /// Output IR instead of JS
-    #[structopt(long = "print-ir")]
-    pub print_ir: bool,
+    #[structopt(long = "emit-ir")]
+    pub emit_ir: bool,
 }
 
 impl Options {

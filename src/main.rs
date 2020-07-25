@@ -44,7 +44,7 @@ fn main() -> Result<(), NiceError> {
         opt_ir,
         opt_inline_ssa,
         opt_ast,
-        print_ir,
+        emit_ir,
     } = cli::Options::from_args();
 
     env_logger::Builder::new()
@@ -82,7 +82,7 @@ fn main() -> Result<(), NiceError> {
             ir
         };
 
-        let output_string = if print_ir {
+        let output_string = if emit_ir {
             let ppr = ir::print(g, &ir);
             log::info!("Done printing @ {}", Time(start.elapsed()));
             ppr
