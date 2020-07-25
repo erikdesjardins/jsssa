@@ -11,6 +11,7 @@ pub fn run(_: &swc_globals::Initialized, ast: ast::Program) -> ast::Program {
     // so instead we use the components of it that don't cause problems
     let _ideally_we_would_use_this = transforms::optimization::simplifier(Default::default());
 
+    #[allow(clippy::let_and_return)]
     let simplified_ast = ast.fold_with(&mut chain!(
         transforms::resolver(),
         transforms::optimization::simplify::expr_simplifier(),
