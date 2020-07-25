@@ -33,9 +33,14 @@ function f(x) {
     while(true);
     x = y.bar;
     z.foo = x ? true : 'hi';
-    return +[1 || x, {
+    return +[
+        1 || x,
+        {
             x
-        }, f + 1, ++g];
+        },
+        f + 1,
+        ++g
+    ];
 }
 f(2), true;
 "###

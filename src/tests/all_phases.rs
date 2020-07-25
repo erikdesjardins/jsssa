@@ -3,6 +3,7 @@ use crate::emit;
 use crate::err::NiceError;
 use crate::ir2ast;
 use crate::opt;
+use crate::opt_ast;
 use crate::parse;
 use crate::swc_globals;
 
@@ -22,6 +23,7 @@ macro_rules! case {
                         minify: false,
                     },
                 );
+                let ast = opt_ast::run(g, ast);
                 let js = emit::emit(g, ast, files, emit::Opt { minify: false })?;
                 insta::assert_snapshot!(js, @ $expected);
                 Ok(())
@@ -43,22 +45,21 @@ case!(
 "#,
 @r###"
 (function f() {
-    for(;;){
-    }
+    for(;;);
     var _val = y.bar;
     var _obj = z;
     var _val$1;
-    if (_val) {
-        _val$1 = true;
-    } else {
-        _val$1 = 'hi';
-    }
+    if (_val) _val$1 = true;
+    else _val$1 = 'hi';
     _obj.foo = _val$1;
     var _wri = g + 1;
     g = _wri;
-    return +[1, {
+    return +[
+        1,
+        {
             x: _val
-        }, f + 1, _wri];
+        },
+        f + 1, _wri];
 })(1);
 "###);
 
@@ -85,19 +86,9 @@ case!(
     }
 "#,
 @r###"
-outer: {
-    for(;;){
-        inner: {
-            for(;;){
-                if (foo) {
-                    continue inner;
-                }
-                if (bar) {
-                    break outer;
-                }
-            }
-        }
-    }
+outer: for(;;)inner: for(;;){
+    if (foo) continue inner;
+    if (bar) break outer;
 }
 "###);
 
@@ -106,7 +97,7 @@ case!(
     r#"
     let x = 1;
     if (foo) {
-        just_read_global_state;
+        g = just_read_global_state;
     }
     log(x);
 
@@ -120,15 +111,11 @@ case!(
     log(y);
 "#,
 @r###"
-if (foo) {
-    just_read_global_state;
-}
+if (foo) g = just_read_global_state;
 log(1);
 var y = 1;
 if (foo) {
-    if (bar) {
-        y = 10;
-    }
+    if (bar) y = 10;
 }
 log(y);
 "###);
@@ -137,7 +124,7 @@ case!(
     snudown_js_like,
     r#"
     var r;
-    something;
+    g = something;
     r || (r = {});
     var s = {};
     var o;
@@ -155,7 +142,7 @@ case!(
     };
 "#,
 @r###"
-something;
+g = something;
 window.foo = function(z) {
     return z + 2;
 };
@@ -203,13 +190,10 @@ _alt.stackRestore;
 _alt.stackSave;
 _alt.dynCall_iii;
 _alt.dynCall_iiii;
-var i = '\0\0\0\0\0'.length;
 var e = 0;
 for(;;){
-    if (e < i) {
-    } else {
-        break;
-    }
+    if (e < 5) ;
+    else break;
     var _prp = 8 + e;
     _val$1[_prp] = '\0\0\0\0\0'.charCodeAt(e);
     e = e + 1;
@@ -250,13 +234,9 @@ case!(
     i = function() { return x = y = 1; }
 "#,
 @r###"
-if (foo) {
-    log(g);
-}
+if (foo) log(g);
 var y = h;
-if (bar()) {
-    log(y);
-}
+if (bar()) log(y);
 i = function() {
     y = 1;
     return 1;
@@ -277,10 +257,8 @@ var x = g;
 for(;;){
     log(x);
     g = 1;
-    if (foo) {
-    } else {
-        break;
-    }
+    if (foo) ;
+    else break;
 }
 "###);
 
@@ -298,11 +276,8 @@ case!(
     }
 "#,
 @r###"
-if (foo) {
-    log(2);
-} else {
-    log(1);
-}
+if (foo) log(2);
+else log(1);
 "###);
 
 case!(
@@ -320,9 +295,7 @@ case!(
 @r###"
 g1 = NaN;
 var NaN$1 = 1;
-if (foo) {
-    NaN$1 = 2;
-}
+if (foo) NaN$1 = 2;
 g3 = NaN$1;
 "###);
 
@@ -393,16 +366,16 @@ case!(
     fn_hoisting_toplevel,
     r#"
     foo();
-    function foo() { foo_; }
+    function foo() { foo_(); }
 
     (function() {
         bar();
-        function bar() { bar_; }
+        function bar() { bar_(); }
     })();
 "#,
 @r###"
-foo_;
-bar_;
+foo_();
+bar_();
 "###);
 
 case!(
@@ -410,7 +383,7 @@ case!(
     r#"
     if (x) {
         foo();
-        function foo() { foo_; }
+        function foo() { foo_(); }
     }
     foo();
 "#,
@@ -419,7 +392,7 @@ var foo;
 if (x) {
     void 0();
     foo = function() {
-        foo_;
+        foo_();
     };
 }
 foo();
@@ -430,15 +403,13 @@ case!(
     r#"
     foo();
     label:
-    function foo() { foo_; }
+    function foo() { foo_(); }
 "#,
 @r###"
 var foo;
-label: {
-    foo = function() {
-        foo_;
-    };
-}
+label: foo = function() {
+    foo_();
+};
 foo();
 "###);
 
@@ -447,23 +418,26 @@ case!(
     r#"
     switch (x) {
         case 1:
-            one;
+            one();
             break;
         case "foo":
         case bar:
-            two;
+            two();
         default:
-            def;
+            def();
     }
 "#,
 @r###"
+var _tst = bar;
 switch(x){
     case 1:
-        one;
+        one();
         break;
     case 'foo':
-    case bar: two;
-    default: def;
+    case _tst:
+        two();
+    default:
+        def();
 }
 "###);
 
@@ -501,7 +475,7 @@ case!(
             g1 = v;
             g2 = l;
         default:
-            def;
+            def();
     }
 "#,
 @r###"
@@ -509,7 +483,8 @@ switch(x){
     case 1:
         g1 = 2;
         g2 = 3;
-    default: def;
+    default:
+        def();
 }
 "###);
 
@@ -551,8 +526,10 @@ case!(
 "#,
 @r###"
 switch(x){
-    case 1: var y = foo();
-    default: g = y;
+    case 1:
+        var y = foo();
+    default:
+        g = y;
 }
 "###);
 

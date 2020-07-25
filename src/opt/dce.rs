@@ -48,6 +48,7 @@ impl Folder for Dce {
                 | ir::Expr::This
                 | ir::Expr::Read { .. }
                 | ir::Expr::ReadMutable { .. }
+                | ir::Expr::ReadGlobal { .. }
                 | ir::Expr::Array { .. }
                 | ir::Expr::Object { .. }
                 | ir::Expr::RegExp { .. }
@@ -55,8 +56,7 @@ impl Folder for Dce {
                 | ir::Expr::Binary { .. }
                 | ir::Expr::CurrentFunction
                 | ir::Expr::Argument { .. } => None,
-                ir::Expr::ReadGlobal { .. }
-                | ir::Expr::ReadMember { .. }
+                ir::Expr::ReadMember { .. }
                 | ir::Expr::Delete { .. }
                 | ir::Expr::Yield { .. }
                 | ir::Expr::Await { .. }

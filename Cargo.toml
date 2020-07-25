@@ -1,6 +1,6 @@
 [package]
 name = "jsssa"
-version = "0.0.0"
+version = "0.0.1"
 description = "JS optimizer with SSA-based IR"
 edition = "2018"
 
@@ -9,17 +9,18 @@ env_logger = { version = "0.7", default-features = false }
 log = "0.4"
 structopt = { version = "0.3", default-features = false }
 swc_atoms = "0.2"
-swc_common = "0.4"
-swc_ecma_ast = "0.10"
-swc_ecma_codegen = "0.8"
-swc_ecma_parser = "0.12"
-swc_ecma_transforms = "0.2"
+swc_common = "0.7"
+swc_ecma_ast = "0.24"
+swc_ecma_codegen = "0.26"
+swc_ecma_parser = "0.28"
+swc_ecma_transforms = "0.13"
+swc_ecma_visit = "0.9"
 
 [dev-dependencies]
-insta = "0.12"
+insta = "0.16"
 
 [profile.release]
 panic = "abort"
 lto = true
 codegen-units = 1
-debug = true
+debug = 1

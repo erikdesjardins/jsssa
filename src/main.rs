@@ -1,4 +1,3 @@
-#![feature(drain_filter)]
 #![warn(clippy::dbg_macro, clippy::print_stdout)]
 #![allow(
     clippy::unneeded_field_pattern,
@@ -8,6 +7,7 @@
     clippy::match_bool,
     clippy::single_match
 )]
+#![allow(unstable_name_collisions)]
 
 use std::fs;
 use std::io;
@@ -26,6 +26,7 @@ mod err;
 mod ir;
 mod ir2ast;
 mod opt;
+mod opt_ast;
 mod parse;
 mod swc_globals;
 mod utils;
@@ -42,7 +43,8 @@ fn main() -> Result<(), NiceError> {
         optimize: _,
         opt_ir,
         opt_inline_ssa,
-        print_ir,
+        opt_ast,
+        emit_ir,
     } = cli::Options::from_args();
 
     env_logger::Builder::new()
@@ -80,7 +82,7 @@ fn main() -> Result<(), NiceError> {
             ir
         };
 
-        let output_string = if print_ir {
+        let output_string = if emit_ir {
             let ppr = ir::print(g, &ir);
             log::info!("Done printing @ {}", Time(start.elapsed()));
             ppr
@@ -94,6 +96,14 @@ fn main() -> Result<(), NiceError> {
                 },
             );
             log::info!("Done ir2ast @ {}", Time(start.elapsed()));
+
+            let ast = if opt_ast {
+                let ast = opt_ast::run(g, ast);
+                log::info!("Done ast optimization @ {}", Time(start.elapsed()));
+                ast
+            } else {
+                ast
+            };
 
             let js = emit::emit(g, ast, files, emit::Opt { minify })?;
             log::info!("Done emitting @ {}", Time(start.elapsed()));

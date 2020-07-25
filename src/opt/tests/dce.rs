@@ -16,7 +16,6 @@ case!(
     basic_bail,
     |cx| cx.converge::<dce::Dce>("dce"),
     r#"
-    x;
     const foo;
     foo.bar;
     delete foo.bar;
@@ -29,7 +28,6 @@ case!(
     })();
 "#,
 @r###"
-<dead> = <global x>
 _ini = <void>
 foo <= _ini
 _obj = *foo
@@ -86,28 +84,31 @@ case!(
     |cx| cx.converge::<dce::Dce>("dce"),
     r#"
     (function() {
-        good;
+        good();
         if (x) {
-            good;
+            good();
             throw 1;
             bad;
         }
-        good;
+        good();
         return 2;
         bad;
     })();
 "#,
 @r###"
 _fun = <function>:
-    <dead> = <global good>
+    _fun$1 = <global good>
+    <dead> = _fun$1()
     _iff = <global x>
     <if> _iff:
-        <dead> = <global good>
+        _fun$3 = <global good>
+        <dead> = _fun$3()
         _thr = 1
         <throw> _thr
     <else>:
         <empty>
-    <dead> = <global good>
+    _fun$2 = <global good>
+    <dead> = _fun$2()
     _ret = 2
     <return> _ret
 <dead> = _fun()
@@ -118,38 +119,43 @@ case!(
     |cx| cx.converge::<dce::Dce>("dce"),
     r#"
     for (;;) {
-        good;
+        good();
         if (x) {
-            good;
+            good();
             continue;
             bad;
         }
-        good;
+        good();
         if (y) {
-            good;
+            good();
             break;
             bad;
         }
-        good;
+        good();
     }
 "#,
 @r###"
 <loop>:
-    <dead> = <global good>
+    _fun = <global good>
+    <dead> = _fun()
     _iff = <global x>
     <if> _iff:
-        <dead> = <global good>
+        _fun$3 = <global good>
+        <dead> = _fun$3()
         <continue>
     <else>:
         <empty>
-    <dead> = <global good>
+    _fun$1 = <global good>
+    <dead> = _fun$1()
     _iff$1 = <global y>
     <if> _iff$1:
-        <dead> = <global good>
+        _fun$3 = <global good>
+        <dead> = _fun$3()
         <break>
     <else>:
         <empty>
-    <dead> = <global good>
+    _fun$2 = <global good>
+    <dead> = _fun$2()
 "###);
 
 case!(
@@ -157,7 +163,7 @@ case!(
     |cx| cx.converge::<dce::Dce>("dce"),
     r#"
     (function() {
-        good;
+        good();
         return 2;
         (function() { bad; })();
         if (x) {
@@ -168,7 +174,8 @@ case!(
 "#,
 @r###"
 _fun = <function>:
-    <dead> = <global good>
+    _fun$1 = <global good>
+    <dead> = _fun$1()
     _ret = 2
     <return> _ret
 <dead> = _fun()
@@ -205,10 +212,13 @@ case!(
     empty_blocks,
     |cx| cx.converge::<dce::Dce>("dce"),
     r#"
-    if (x) {} else {}
+    if (x()) {} else {}
     try {} catch (e) { bad(e); } finally {}
 "#,
-@"<dead> = <global x>");
+@r###"
+_fun = <global x>
+<dead> = _fun()
+"###);
 
 case!(
     dont_drop_after_switch_break,

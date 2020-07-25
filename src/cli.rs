@@ -31,9 +31,13 @@ pub struct Options {
     #[structopt(long = "opt-inline-ssa")]
     pub opt_inline_ssa: bool,
 
+    /// Run optimization passes on AST
+    #[structopt(long = "opt-ast")]
+    pub opt_ast: bool,
+
     /// Output IR instead of JS
-    #[structopt(long = "print-ir")]
-    pub print_ir: bool,
+    #[structopt(long = "emit-ir")]
+    pub emit_ir: bool,
 }
 
 impl Options {
@@ -42,6 +46,7 @@ impl Options {
 
         this.opt_ir |= this.optimize;
         this.opt_inline_ssa |= this.optimize;
+        this.opt_ast |= this.optimize;
 
         this
     }

@@ -75,7 +75,12 @@ f = function f$1(x) {
     var _ele$2 = f$2 + 1;
     var _wri = g + 1;
     g = _wri;
-    return +[_ele, _ele$1, _ele$2, _wri];
+    return +[
+        _ele,
+        _ele$1,
+        _ele$2,
+        _wri
+    ];
 };
 f(1);
 true;

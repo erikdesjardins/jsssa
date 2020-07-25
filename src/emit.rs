@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use swc_common::{FoldWith, SourceMap};
+use swc_common::SourceMap;
 use swc_ecma_ast as ast;
 use swc_ecma_codegen::{text_writer::JsWriter, Config, Emitter, Handlers};
 use swc_ecma_transforms as transforms;
+use swc_ecma_visit::FoldWith;
 
 use crate::err::Error;
 use crate::swc_globals;
@@ -15,7 +16,7 @@ pub struct Opt {
 #[inline(never)] // for better profiling
 pub fn emit(
     _: &swc_globals::Initialized,
-    ast: ast::Script,
+    ast: ast::Program,
     files: Arc<SourceMap>,
     options: Opt,
 ) -> Result<String, Error> {
@@ -36,9 +37,8 @@ pub fn emit(
                 impl Handlers for MyHandlers {}
                 Box::new(MyHandlers)
             },
-            pos_of_leading_comments: Default::default(),
         };
-        emitter.emit_script(&fixed_ast)?;
+        emitter.emit_program(&fixed_ast)?;
     }
 
     Ok(String::from_utf8_lossy(&wr).into_owned())

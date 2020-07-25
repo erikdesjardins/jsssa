@@ -7,7 +7,7 @@ use crate::ir;
 use crate::ir::scope;
 use crate::ir::traverse::visit_with;
 use crate::swc_globals;
-use crate::utils::P;
+use crate::utils::{VecExt, P};
 
 mod ssa;
 
@@ -17,7 +17,7 @@ pub struct Opt {
 }
 
 #[inline(never)] // for better profiling
-pub fn convert(_: &swc_globals::Initialized, ir: ir::Block, options: Opt) -> ast::Script {
+pub fn convert(_: &swc_globals::Initialized, ir: ir::Block, options: Opt) -> ast::Program {
     let mut globals = HashSet::new();
 
     visit_with(&ir, |stmt| match stmt {
@@ -54,11 +54,11 @@ pub fn convert(_: &swc_globals::Initialized, ir: ir::Block, options: Opt) -> ast
 
     let body = convert_block(ir, &scope, &mut ssa_cache);
 
-    ast::Script {
+    ast::Program::Script(ast::Script {
         span: span(),
         body,
         shebang: None,
-    }
+    })
 }
 
 fn convert_block(
@@ -118,21 +118,25 @@ fn convert_stmt(
             None => unreachable!("mutable ref not predeclared: {:?}", target),
         },
         ir::Stmt::WriteMutable { target, val } => match scope.get_mutable(&target) {
-            Some(existing_name) => ast::Stmt::Expr(P(ast::Expr::Assign(ast::AssignExpr {
+            Some(existing_name) => ast::Stmt::Expr(ast::ExprStmt {
                 span: span(),
-                op: ast::AssignOp::Assign,
-                left: ast::PatOrExpr::Pat(P(ast::Pat::Ident(ast::Ident {
+                expr: P(ast::Expr::Assign(ast::AssignExpr {
                     span: span(),
-                    sym: existing_name,
-                    type_ann: None,
-                    optional: false,
-                }))),
-                right: P(read_ssa_to_expr(val, scope, ssa_cache)),
-            }))),
+                    op: ast::AssignOp::Assign,
+                    left: ast::PatOrExpr::Pat(P(ast::Pat::Ident(ast::Ident {
+                        span: span(),
+                        sym: existing_name,
+                        type_ann: None,
+                        optional: false,
+                    }))),
+                    right: P(read_ssa_to_expr(val, scope, ssa_cache)),
+                })),
+            }),
             None => unreachable!("writing to undeclared mutable ref: {:?}", target),
         },
-        ir::Stmt::WriteGlobal { target, val } => {
-            ast::Stmt::Expr(P(ast::Expr::Assign(ast::AssignExpr {
+        ir::Stmt::WriteGlobal { target, val } => ast::Stmt::Expr(ast::ExprStmt {
+            span: span(),
+            expr: P(ast::Expr::Assign(ast::AssignExpr {
                 span: span(),
                 op: ast::AssignOp::Assign,
                 left: ast::PatOrExpr::Pat(P(ast::Pat::Ident(ast::Ident {
@@ -142,10 +146,11 @@ fn convert_stmt(
                     optional: false,
                 }))),
                 right: P(read_ssa_to_expr(val, scope, ssa_cache)),
-            })))
-        }
-        ir::Stmt::WriteMember { obj, prop, val } => {
-            ast::Stmt::Expr(P(ast::Expr::Assign(ast::AssignExpr {
+            })),
+        }),
+        ir::Stmt::WriteMember { obj, prop, val } => ast::Stmt::Expr(ast::ExprStmt {
+            span: span(),
+            expr: P(ast::Expr::Assign(ast::AssignExpr {
                 span: span(),
                 op: ast::AssignOp::Assign,
                 left: ast::PatOrExpr::Pat(P(ast::Pat::Expr(P(ast::Expr::Member({
@@ -163,8 +168,8 @@ fn convert_stmt(
                     }
                 }))))),
                 right: P(read_ssa_to_expr(val, scope, ssa_cache)),
-            })))
-        }
+            })),
+        }),
         ir::Stmt::Return { val } => ast::Stmt::Return(ast::ReturnStmt {
             span: span(),
             arg: Some(P(read_ssa_to_expr(val, scope, ssa_cache))),
@@ -489,18 +494,8 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
         }),
         ir::Expr::RegExp { regex, flags } => ast::Expr::Lit(ast::Lit::Regex(ast::Regex {
             span: span(),
-            exp: ast::Str {
-                span: span(),
-                value: regex,
-                // it appears that regex values always have `has_escape: false`, even if they have escapes
-                // see test regex_has_escape_behavior
-                has_escape: false,
-            },
-            flags: Some(ast::Str {
-                span: span(),
-                value: flags,
-                has_escape: false,
-            }),
+            exp: regex,
+            flags,
         })),
         ir::Expr::Unary { op, val } => ast::Expr::Unary(ast::UnaryExpr {
             span: span(),
@@ -706,7 +701,14 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
                     }),
                     function: ast::Function {
                         span: span(),
-                        params,
+                        params: params
+                            .into_iter()
+                            .map(|pat| ast::Param {
+                                span: span(),
+                                decorators: vec![],
+                                pat,
+                            })
+                            .collect(),
                         decorators: vec![],
                         body: Some(body),
                         is_async,
@@ -786,7 +788,10 @@ fn write_ssa_to_stmt(
         Some(what) => match what {
             ssa::ToDo::EmitForSideEffects => {
                 let expr = convert_expr(expr, scope, ssa_cache);
-                Some(ast::Stmt::Expr(P(expr)))
+                Some(ast::Stmt::Expr(ast::ExprStmt {
+                    span: span(),
+                    expr: P(expr),
+                }))
             }
             ssa::ToDo::AddToCache => {
                 let expr = convert_expr(expr, scope, ssa_cache);

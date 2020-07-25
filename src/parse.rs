@@ -17,7 +17,7 @@ use crate::swc_globals;
 pub fn parse(
     _: &swc_globals::Initialized,
     js: impl Into<String>,
-) -> Result<(ast::Script, Arc<SourceMap>), ParseError> {
+) -> Result<(ast::Program, Arc<SourceMap>), ParseError> {
     let files = Arc::new(SourceMap::new(FilePathMapping::empty()));
 
     let error = BufferedError::default();
@@ -39,7 +39,11 @@ pub fn parse(
     );
 
     // we may still receive an AST for partial parse results, so this error is not reliable...
-    let ast = parser.parse_script().map_err(|mut diag| diag.emit()).ok();
+    let ast = parser
+        .parse_script()
+        .map(ast::Program::Script)
+        .map_err(|mut diag| diag.emit())
+        .ok();
     // ...but this error is
     let err = error.read_msg();
 

@@ -1,6 +1,7 @@
 use std::iter;
 
 use swc_atoms::JsWord;
+use swc_common::Spanned;
 use swc_ecma_ast as ast;
 
 use crate::collections::Either;
@@ -13,12 +14,26 @@ use self::hoist::Hoist;
 mod hoist;
 
 #[inline(never)] // for better profiling
-pub fn convert(_: &swc_globals::Initialized, ast: ast::Script) -> ir::Block {
-    let ast::Script {
-        shebang: _,
-        body,
-        span: _,
-    } = ast;
+pub fn convert(_: &swc_globals::Initialized, ast: ast::Program) -> ir::Block {
+    let body = match ast {
+        ast::Program::Script(ast::Script {
+            shebang: _,
+            body,
+            span: _,
+        }) => body,
+        ast::Program::Module(ast::Module {
+            shebang: _,
+            body,
+            span: _,
+        }) => body
+            .into_iter()
+            .map(|item| match item {
+                ast::ModuleItem::Stmt(stmt) => stmt,
+                ast::ModuleItem::ModuleDecl(_) => unimplemented!("module items not supported"),
+            })
+            .collect(),
+    };
+
     convert_block(body, &scope::Ast::default(), Hoist::Everything)
 }
 
@@ -42,7 +57,7 @@ fn convert_block(mut body: Vec<ast::Stmt>, parent_scope: &scope::Ast, hoist: Hoi
 
 fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
     match stmt {
-        ast::Stmt::Expr(expr) => {
+        ast::Stmt::Expr(ast::ExprStmt { expr, span: _ }) => {
             let (mut stmts, last_expr) = convert_expression(*expr, scope);
             stmts.push(ir::Stmt::Expr {
                 target: ir::Ref::dead(),
@@ -520,7 +535,12 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                     .into_iter()
                     .enumerate()
                     .flat_map(|(i, param)| {
-                        let name = pat_to_ident(param);
+                        let ast::Param {
+                            pat,
+                            decorators: _,
+                            span: _,
+                        } = param;
+                        let name = pat_to_ident(pat);
                         let arg = fn_scope.declare_mutable(name);
                         let param_ref = ir::Ref::new(arg.name_hint());
                         vec![
@@ -591,28 +611,10 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
         }
         ast::Expr::Lit(lit) => match lit {
             ast::Lit::Regex(ast::Regex {
-                exp:
-                    ast::Str {
-                        value,
-                        has_escape: _,
-                        span: _,
-                    },
+                exp,
                 flags,
                 span: _,
-            }) => (
-                vec![],
-                ir::Expr::RegExp {
-                    regex: value,
-                    flags: match flags {
-                        Some(ast::Str {
-                            value,
-                            has_escape: _,
-                            span: _,
-                        }) => value,
-                        None => JsWord::from(""),
-                    },
-                },
-            ),
+            }) => (vec![], ir::Expr::RegExp { regex: exp, flags }),
             ast::Lit::Null(ast::Null { span: _ }) => (vec![], ir::Expr::Null),
             ast::Lit::Str(ast::Str {
                 value,
@@ -626,6 +628,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     value: ir::F64::from(value),
                 },
             ),
+            ast::Lit::BigInt(_) => unimplemented!("bigint not supported"),
             ast::Lit::JSXText(_) => unreachable!(),
         },
         ast::Expr::This(ast::ThisExpr { span: _ }) => (vec![], ir::Expr::This),
@@ -782,7 +785,12 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         | prop @ ast::Prop::Setter(_)
                         | prop @ ast::Prop::Method(_) => {
                             let (kind, name, function) = match prop {
-                                ast::Prop::Getter(ast::GetterProp { key, body, span }) => (
+                                ast::Prop::Getter(ast::GetterProp {
+                                    key,
+                                    body,
+                                    span,
+                                    type_ann: _,
+                                }) => (
                                     ir::PropKind::Get,
                                     key,
                                     ast::Function {
@@ -805,7 +813,11 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                     ir::PropKind::Set,
                                     key,
                                     ast::Function {
-                                        params: vec![param],
+                                        params: vec![ast::Param {
+                                            span: param.span(),
+                                            pat: param,
+                                            decorators: vec![],
+                                        }],
                                         decorators: vec![],
                                         span,
                                         body,
@@ -845,7 +857,12 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                 .into_iter()
                                 .enumerate()
                                 .flat_map(|(i, param)| {
-                                    let name = pat_to_ident(param);
+                                    let ast::Param {
+                                        pat,
+                                        decorators: _,
+                                        span: _,
+                                    } = param;
+                                    let name = pat_to_ident(pat);
                                     let arg = fn_scope.declare_mutable(name);
                                     let param_ref = ir::Ref::new(arg.name_hint());
                                     vec![
@@ -930,7 +947,12 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 .into_iter()
                 .enumerate()
                 .flat_map(|(i, param)| {
-                    let name = pat_to_ident(param);
+                    let ast::Param {
+                        pat,
+                        decorators: _,
+                        span: _,
+                    } = param;
+                    let name = pat_to_ident(pat);
                     let arg = fn_scope.declare_mutable(name);
                     let param_ref = ir::Ref::new(arg.name_hint());
                     vec![
@@ -1156,6 +1178,9 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         ast::BinaryOp::Exp => ir::BinaryOp::Exp,
                         ast::BinaryOp::In => ir::BinaryOp::In,
                         ast::BinaryOp::InstanceOf => ir::BinaryOp::Instanceof,
+                        ast::BinaryOp::NullishCoalescing => {
+                            unimplemented!("nullish coalescing not supported")
+                        }
                         ast::BinaryOp::LogicalOr | ast::BinaryOp::LogicalAnd => unreachable!(),
                     };
                     let left_ref = ir::Ref::new("_lhs");
@@ -1301,7 +1326,6 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 | op @ ast::AssignOp::BitAndAssign
                 | op @ ast::AssignOp::ExpAssign => {
                     let op = match op {
-                        ast::AssignOp::Assign => unreachable!(),
                         ast::AssignOp::AddAssign => ir::BinaryOp::Add,
                         ast::AssignOp::SubAssign => ir::BinaryOp::Sub,
                         ast::AssignOp::MulAssign => ir::BinaryOp::Mul,
@@ -1314,6 +1338,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         ast::AssignOp::BitXorAssign => ir::BinaryOp::BitXor,
                         ast::AssignOp::BitAndAssign => ir::BinaryOp::BitAnd,
                         ast::AssignOp::ExpAssign => ir::BinaryOp::Exp,
+                        _ => unreachable!(),
                     };
                     let left_ref = ir::Ref::new("_lhs");
                     stmts.push(ir::Stmt::Expr {
@@ -1336,6 +1361,11 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         },
                     });
                     stmts.push(write_stmt);
+                }
+                ast::AssignOp::AndAssign
+                | ast::AssignOp::OrAssign
+                | ast::AssignOp::NullishAssign => {
+                    unimplemented!("experimental assignment operators not supported")
                 }
             }
             (stmts, ir::Expr::Read { source: value_ref })
@@ -1524,18 +1554,18 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
         ast::Expr::Tpl(_) | ast::Expr::TaggedTpl(_) => unimplemented!("templates not supported"),
         ast::Expr::Class(_) => unimplemented!("classes not supported"),
         ast::Expr::PrivateName(_) => unimplemented!("private members not supported"),
+        ast::Expr::OptChain(_) => unimplemented!("optional chaining not supported"),
         ast::Expr::MetaProp(_) => unreachable!(),
         ast::Expr::JSXElement(_)
         | ast::Expr::JSXEmpty(_)
         | ast::Expr::JSXFragment(_)
-        | ast::Expr::JSXMebmer(_)
-        | ast::Expr::JSXNamespacedName(_) => unreachable!(),
+        | ast::Expr::JSXMember(_)
+        | ast::Expr::JSXNamespacedName(_) => unreachable!("jsx should not be parsed"),
         ast::Expr::TsTypeAssertion(_)
         | ast::Expr::TsConstAssertion(_)
         | ast::Expr::TsNonNull(_)
         | ast::Expr::TsTypeCast(_)
-        | ast::Expr::TsAs(_)
-        | ast::Expr::TsOptChain(_) => unreachable!(),
+        | ast::Expr::TsAs(_) => unreachable!("ts should not be parsed"),
         ast::Expr::Invalid(_) => unreachable!(),
     }
 }

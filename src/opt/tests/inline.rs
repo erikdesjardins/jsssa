@@ -264,13 +264,14 @@ case!(
     do_not_inline_multi_use,
     all_passes,
     r#"
-    const f = () => { foo; };
+    const f = () => { foo(); };
     f();
     f();
 "#,
 @r###"
 _ini = <arrow>:
-    <dead> = <global foo>
+    _fun = <global foo>
+    <dead> = _fun()
 <dead> = _ini()
 <dead> = _ini()
 "###);
