@@ -15,7 +15,7 @@ jobs:
     - uses: actions/checkout@v1
     - uses: actions-rs/toolchain@v1
       with:
-        toolchain: nightly
+        toolchain: stable
     - run: rustup component add rustfmt
     - run: cargo fmt --all -- --check
 
@@ -25,7 +25,7 @@ jobs:
     - uses: actions/checkout@v1
     - uses: actions-rs/toolchain@v1
       with:
-        toolchain: nightly
+        toolchain: stable
     - run: rustup component add clippy
     - run: RUSTFLAGS="-D warnings" cargo clippy
 
@@ -35,7 +35,7 @@ jobs:
     - uses: actions/checkout@v1
     - uses: actions-rs/toolchain@v1
       with:
-        toolchain: nightly
+        toolchain: stable
     - run: cargo test
 
   build:
@@ -44,7 +44,7 @@ jobs:
     - uses: actions/checkout@v1
     - uses: actions-rs/toolchain@v1
       with:
-        toolchain: nightly
+        toolchain: stable
     - run: cargo build --release
     - run: strip target/release/jsssa
     - run: ls -lh target/release/jsssa
