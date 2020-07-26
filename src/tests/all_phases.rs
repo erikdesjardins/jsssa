@@ -595,3 +595,39 @@ g = function(f, a) {
     f(a);
 };
 "###);
+
+case!(
+    switch_case_side_effects,
+    r#"
+    g = function(x) {
+        var r = 10;
+        switch (x) {
+            default:
+                def();
+                break;
+            case r = 1337:
+                leet();
+                break;
+            case 123:
+                abc();
+                break;
+        }
+        return r;
+    };
+"#,
+@r###"
+g = function(x) {
+    switch(x){
+        default:
+            def();
+            break;
+        case 1337:
+            leet();
+            break;
+        case 123:
+            abc();
+            break;
+    }
+    return 1337;
+};
+"###);

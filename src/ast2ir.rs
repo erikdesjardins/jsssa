@@ -1,4 +1,5 @@
 use std::iter;
+use std::mem;
 
 use swc_atoms::JsWord;
 use swc_common::Spanned;
@@ -187,6 +188,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 },
             );
 
+            let mut saw_first_evaluated_case = true;
             let body_stmts = cases
                 .into_iter()
                 .flat_map(
@@ -197,13 +199,21 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                      }| {
                         let case_ref = match test {
                             Some(test) => {
+                                let is_first_evaluated_case =
+                                    mem::replace(&mut saw_first_evaluated_case, false);
                                 let test = *test;
                                 let safe_test = match test {
                                     ast::Expr::Lit(_) | ast::Expr::Ident(_) => test,
                                     _ => {
                                         // switch cases aren't evaluated (!) until they're checked for equality,
                                         // which is hard to model correctly without making IR much more complex
-                                        unimplemented!("switch case with side effects: {:?}", test)
+                                        if is_first_evaluated_case {
+                                            // ...but the first non-default case will always be evaluated,
+                                            // so we can safely hoist out its side-effects
+                                            test
+                                        } else {
+                                            unimplemented!("switch case side effects: {:?}", test)
+                                        }
                                     }
                                 };
                                 let test_ref = ir::Ref::new("_tst");
