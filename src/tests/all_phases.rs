@@ -568,3 +568,30 @@ g = function(_, _$1, c) {
     h = c;
 };
 "###);
+
+case!(
+    arg_shadow_fn_name_decl,
+    r#"
+    function f(f, a) {
+        f(a);
+    }
+    g = f;
+"#,
+@r###"
+g = function(f, a) {
+    f(a);
+};
+"###);
+
+case!(
+    arg_shadow_fn_name_expr,
+    r#"
+    g = function f(f, a) {
+        f(a);
+    };
+"#,
+@r###"
+g = function(f, a) {
+    f(a);
+};
+"###);

@@ -723,3 +723,52 @@ _prp = "log"
 _fun = _obj[_prp]
 <dead> = <new> _fun()
 "###);
+
+case!(
+    arg_shadow_fn_name_decl,
+    r#"
+    function f(f, a) {
+        f(a);
+    }
+    g = f;
+"#,
+@r###"
+_ini = <void>
+f <= _ini
+_fun = <function>:
+    f$1 = <current function>
+    f$2 <= f$1
+    f$3 = <argument 0>
+    f$2 <- f$3
+    a = <argument 1>
+    a$1 <= a
+    _fun$1 = *f$2
+    _arg = *a$1
+    <dead> = _fun$1(_arg)
+f <- _fun
+_val = *f
+<global g> <- _val
+<dead> = _val
+"###);
+
+case!(
+    arg_shadow_fn_name_expr,
+    r#"
+    g = function f(f, a) {
+        f(a);
+    };
+"#,
+@r###"
+_val = <function>:
+    f = <current function>
+    f$1 <= f
+    f$2 = <argument 0>
+    f$1 <- f$2
+    a = <argument 1>
+    a$1 <= a
+    _fun = *f$1
+    _arg = *a$1
+    <dead> = _fun(_arg)
+<global g> <- _val
+<dead> = _val
+"###);
