@@ -19,6 +19,9 @@ swc_ecma_visit = "0.9"
 [dev-dependencies]
 insta = "0.16"
 
+[profile.dev]
+opt-level = 1
+
 [profile.release]
 panic = "abort"
 lto = true
