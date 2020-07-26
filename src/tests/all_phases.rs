@@ -32,6 +32,33 @@ macro_rules! case {
     };
 }
 
+macro_rules! extern_case {
+    ( $name:ident, $file:expr ) => {
+        #[test]
+        fn $name() -> Result<(), NiceError> {
+            swc_globals::with(|g| {
+                let (ast, files) = parse::parse(g, include_str!($file))?;
+                let ir = ast2ir::convert(g, ast);
+                let ir = opt::run_passes(g, ir);
+                let ast = ir2ast::convert(
+                    g,
+                    ir,
+                    ir2ast::Opt {
+                        inline: true,
+                        minify: false,
+                    },
+                );
+                let ast = opt_ast::run(g, ast);
+                let js = emit::emit(g, ast, files, emit::Opt { minify: false })?;
+                insta::assert_snapshot!(stringify!($name), js);
+                Ok(())
+            })
+        }
+    };
+}
+
+extern_case!(snudown_js, "js/snudown.js");
+
 case!(
     basic,
     r#"
