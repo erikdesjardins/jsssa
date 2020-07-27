@@ -95,6 +95,32 @@ _val$1 = something[_prp]
 "###);
 
 case!(
+    invalidate_escape_after_safe_use,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: 1 };
+    g1 = () => something.x;
+    if (foo) {
+        g = something;
+    }
+"#,
+@r###"
+_key = "x"
+_val = 1
+something = { [_key]: _val }
+_val$1 = <arrow>:
+    _prp = "x"
+    _arr = something[_prp]
+    <return> _arr
+<global g1> <- _val$1
+_iff = <global foo>
+<if> _iff:
+    <global g> <- something
+<else>:
+    <empty>
+"###);
+
+case!(
     invalidate_escape_to_other_object,
     |cx| passes!(cx),
     r#"
@@ -113,6 +139,135 @@ _iff = <global foo>
     _key$1 = "foo"
     _val$2 = { [_key$1]: something }
     <global g> <- _val$2
+<else>:
+    <empty>
+_prp = "x"
+_val$1 = something[_prp]
+<global g1> <- _val$1
+"###);
+
+case!(
+    invalidate_escape_to_other_object_write,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: 1 };
+    if (foo) {
+        g.foo = something;
+    }
+    g1 = something.x;
+"#,
+@r###"
+_key = "x"
+_val = 1
+something = { [_key]: _val }
+_iff = <global foo>
+<if> _iff:
+    _obj = <global g>
+    _prp$1 = "foo"
+    _obj[_prp$1] <- something
+<else>:
+    <empty>
+_prp = "x"
+_val$1 = something[_prp]
+<global g1> <- _val$1
+"###);
+
+case!(
+    invalidate_escape_through_prop_read,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: 1 };
+    if (foo) {
+        h = g[something];
+    }
+    g1 = something.x;
+"#,
+@r###"
+_key = "x"
+_val = 1
+something = { [_key]: _val }
+_iff = <global foo>
+<if> _iff:
+    _obj = <global g>
+    _val$2 = _obj[something]
+    <global h> <- _val$2
+<else>:
+    <empty>
+_prp = "x"
+_val$1 = something[_prp]
+<global g1> <- _val$1
+"###);
+
+case!(
+    invalidate_escape_through_prop_write,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: 1 };
+    if (foo) {
+        g[something] = foo;
+    }
+    g1 = something.x;
+"#,
+@r###"
+_key = "x"
+_val = 1
+something = { [_key]: _val }
+_iff = <global foo>
+<if> _iff:
+    _obj = <global g>
+    _val$2 = <global foo>
+    _obj[something] <- _val$2
+<else>:
+    <empty>
+_prp = "x"
+_val$1 = something[_prp]
+<global g1> <- _val$1
+"###);
+
+case!(
+    invalidate_escape_through_prop_call,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: 1 };
+    if (foo) {
+        g[something]();
+    }
+    g1 = something.x;
+"#,
+@r###"
+_key = "x"
+_val = 1
+something = { [_key]: _val }
+_iff = <global foo>
+<if> _iff:
+    _obj = <global g>
+    <dead> = _obj[something]()
+<else>:
+    <empty>
+_prp = "x"
+_val$1 = something[_prp]
+<global g1> <- _val$1
+"###);
+
+case!(
+    invalidate_escape_through_prop_call_arg,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: 1 };
+    if (foo) {
+        g.x(something);
+    }
+    g1 = something.x;
+"#,
+@r###"
+_key = "x"
+_val = 1
+something = { [_key]: _val }
+_iff = <global foo>
+<if> _iff:
+    _obj = <global g>
+    _prp$1 = "x"
+    <dead> = _obj[_prp$1](something)
 <else>:
     <empty>
 _prp = "x"
@@ -279,10 +434,10 @@ _tst$1 = 2
 "###);
 
 case!(
-    call_receiver,
+    bail_call_receiver,
     |cx| passes!(cx),
     r#"
-    let something = { x: function() {} };
+    let something = { x: function() { g = this; } };
     something.x(); // receives `this`: do not opt
     let something2 = { x: function() {} };
     (0, something2.x)(); // does not receive `this`: opt
@@ -290,7 +445,8 @@ case!(
 @r###"
 _key = "x"
 _val = <function>:
-    <empty>
+    _val$2 = <this>
+    <global g> <- _val$2
 _obj = { [_key]: _val }
 _prp = "x"
 <dead> = _obj[_prp]()
@@ -302,6 +458,142 @@ x <= _val$1
 <dead> = "x"
 _fun = *x
 <dead> = _fun()
+"###);
+
+case!(
+    bail_call_receiver_reassign,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: function() {} };
+    something.x = function() { g = this; };
+    something.x(); // receives `this`: do not opt
+"#,
+@r###"
+_key = "x"
+_val = <function>:
+    <empty>
+something = { [_key]: _val }
+_prp = "x"
+_val$1 = <function>:
+    _val$2 = <this>
+    <global g> <- _val$2
+something[_prp] <- _val$1
+_prp$1 = "x"
+<dead> = something[_prp$1]()
+"###);
+
+case!(
+    bail_call_receiver_reassign_time_travel_call,
+    |cx| passes!(cx),
+    r#"
+    g = () => something.x(); // receives `this`: do not opt
+    let something = { x: function() {} };
+    something.x = function() { g = this; };
+"#,
+@r###"
+_val = <arrow>:
+    _prp$1 = "x"
+    _arr = something[_prp$1]()
+    <return> _arr
+<global g> <- _val
+_key = "x"
+_val$1 = <function>:
+    <empty>
+something = { [_key]: _val$1 }
+_prp = "x"
+_val$2 = <function>:
+    _val$3 = <this>
+    <global g> <- _val$3
+something[_prp] <- _val$2
+"###);
+
+case!(
+    bail_call_receiver_reassign_time_travel_access,
+    |cx| passes!(cx),
+    r#"
+    g = () => something.x;
+    let something = { x: function() {} };
+    something.x = function() { g = this; };
+    something.x(); // receives `this`: do not opt
+"#,
+@r###"
+_val = <arrow>:
+    _prp$2 = "x"
+    _arr = something[_prp$2]
+    <return> _arr
+<global g> <- _val
+_key = "x"
+_val$1 = <function>:
+    <empty>
+something = { [_key]: _val$1 }
+_prp = "x"
+_val$2 = <function>:
+    _val$3 = <this>
+    <global g> <- _val$3
+something[_prp] <- _val$2
+_prp$1 = "x"
+<dead> = something[_prp$1]()
+"###);
+
+case!(
+    bail_call_receiver_reassign_unknown,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: function() {} };
+    something.x = g;
+    something.x(); // receives `this`: do not opt
+"#,
+@r###"
+_key = "x"
+_val = <function>:
+    <empty>
+something = { [_key]: _val }
+_prp = "x"
+_val$1 = <global g>
+something[_prp] <- _val$1
+_prp$1 = "x"
+<dead> = something[_prp$1]()
+"###);
+
+case!(
+    safe_call_receiver,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: function() {} };
+    something.x(); // receives `this` but doesn't use it: opt
+"#,
+@r###"
+<dead> = "x"
+_val = <function>:
+    <empty>
+<dead> = <void>
+x <= _val
+<dead> = "x"
+x$1 = *x
+<dead> = x$1()
+"###);
+
+case!(
+    safe_call_receiver_reassign,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: function() {} };
+    something.x = function() {};
+    something.x(); // receives `this` but doesn't use it: opt
+"#,
+@r###"
+<dead> = "x"
+_val = <function>:
+    <empty>
+<dead> = <void>
+x <= _val
+<dead> = "x"
+_val$1 = <function>:
+    <empty>
+x <- _val$1
+<dead> = "x"
+x$1 = *x
+<dead> = x$1()
 "###);
 
 case!(

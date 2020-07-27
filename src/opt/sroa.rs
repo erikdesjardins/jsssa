@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::iter;
 
+use crate::anal;
 use crate::collections::ZeroOneMany::{self, Many, One};
 use crate::ir;
 use crate::ir::traverse::{Folder, RunVisitor, ScopeTy, Visitor};
@@ -18,17 +19,29 @@ pub struct Replace {
 }
 
 #[derive(Debug, Default)]
-struct CollectObjInfo<'a> {
-    known_objs: HashMap<&'a ir::Ref<ir::Ssa>, State<'a>>,
+struct CollectObjDeclInfo<'a> {
+    fns_without_this: HashSet<&'a ir::Ref<ir::Ssa>>,
     known_strings: HashMap<&'a ir::Ref<ir::Ssa>, &'a str>,
-    last_use_was_safe: bool,
+    known_objs: HashMap<&'a ir::Ref<ir::Ssa>, HashMap<&'a str, PropInfo>>,
 }
 
 #[derive(Debug)]
-enum State<'a> {
-    NoObjYet(HashSet<&'a str>),
-    HasProps(HashSet<&'a str>),
-    Invalid,
+struct PropInfo {
+    safe_for_call: bool,
+    saw_call: bool,
+}
+
+#[derive(Debug, Default)]
+struct CollectObjAccessInfo<'a> {
+    fns_without_this: HashSet<&'a ir::Ref<ir::Ssa>>,
+    known_strings: HashMap<&'a ir::Ref<ir::Ssa>, &'a str>,
+    known_objs: HashMap<&'a ir::Ref<ir::Ssa>, HashMap<&'a str, PropInfo>>,
+    last_use_was_safe: bool,
+}
+
+enum Access {
+    Read,
+    Call,
 }
 
 fn is_safe_prop(prop: &str) -> bool {
@@ -49,97 +62,158 @@ fn is_safe_prop(prop: &str) -> bool {
     !OBJ_PROTO_PROPS.contains(&prop)
 }
 
-impl<'a> CollectObjInfo<'a> {
-    fn declare_simple_object(
+impl<'a> Visitor<'a> for CollectObjDeclInfo<'a> {
+    fn wrap_scope<R>(
         &mut self,
-        obj: &'a ir::Ref<ir::Ssa>,
-        props: impl IntoIterator<Item = &'a ir::Ref<ir::Ssa>>,
-    ) {
-        let known_safe_props = props
-            .into_iter()
-            .map(|prop| match self.known_strings.get(prop) {
-                Some(prop) if is_safe_prop(prop) => Ok(*prop),
-                _ => Err(()),
-            })
-            .collect::<Result<_, _>>();
-        match (self.known_objs.get_mut(obj), known_safe_props) {
-            (None, Ok(props)) => {
-                self.known_objs.insert(obj, State::HasProps(props));
-            }
-            (Some(State::NoObjYet(seen_props)), Ok(ref mut props)) => {
-                let all_props = seen_props.drain().chain(props.drain()).collect();
-                self.known_objs.insert(obj, State::HasProps(all_props));
-            }
-            (Some(State::HasProps(_)), _) => unreachable!("multiple ssa defns"),
-            (Some(State::Invalid), _) => { /* already invalid */ }
-            (_, Err(())) => {
-                self.known_objs.insert(obj, State::Invalid);
-            }
+        ty: &ScopeTy,
+        block: &'a ir::Block,
+        enter: impl FnOnce(&mut Self, &'a ir::Block) -> R,
+    ) -> R {
+        if let ScopeTy::Toplevel = ty {
+            self.fns_without_this = anal::fns::without_this(&block);
         }
+
+        enter(self, block)
     }
 
-    fn access_prop(&mut self, obj: &'a ir::Ref<ir::Ssa>, prop: &'a ir::Ref<ir::Ssa>) {
-        let known_safe_prop = match self.known_strings.get(prop) {
-            Some(prop) if is_safe_prop(prop) => Some(*prop),
-            _ => None,
-        };
-        match (self.known_objs.get_mut(obj), known_safe_prop) {
-            (None, Some(prop)) => {
-                self.known_objs
-                    .insert(obj, State::NoObjYet(iter::once(prop).collect()));
-            }
-            (Some(State::NoObjYet(props)), Some(prop)) => {
-                props.insert(prop);
-            }
-            (Some(State::HasProps(props)), Some(prop)) => {
-                props.insert(prop);
-            }
-            (Some(State::Invalid), _) => { /* already invalid */ }
-            (_, None) => {
-                self.known_objs.insert(obj, State::Invalid);
-            }
-        }
-    }
-}
-
-impl<'a> Visitor<'a> for CollectObjInfo<'a> {
     fn visit(&mut self, stmt: &'a ir::Stmt) {
-        self.last_use_was_safe = false;
-
         match stmt {
             ir::Stmt::Expr { target, expr } => match expr {
                 ir::Expr::String { value } => {
                     self.known_strings.insert(target, &value);
                 }
                 ir::Expr::Object { props } => {
-                    let all_simple_props = props
+                    let all_simple_safe_props = props
                         .iter()
-                        .map(|(kind, prop, _val)| match kind {
-                            ir::PropKind::Simple => Ok(prop),
+                        .map(|(kind, prop, val)| match kind {
+                            ir::PropKind::Simple => match self.known_strings.get(prop) {
+                                Some(prop) if is_safe_prop(prop) => Ok((
+                                    *prop,
+                                    PropInfo {
+                                        safe_for_call: self.fns_without_this.contains(val),
+                                        saw_call: false,
+                                    },
+                                )),
+                                _ => Err(()),
+                            },
                             ir::PropKind::Get | ir::PropKind::Set => Err(()),
                         })
-                        .collect::<Result<Vec<_>, _>>();
-                    match all_simple_props {
-                        Ok(simple_props) => {
-                            self.declare_simple_object(target, simple_props);
+                        .collect::<Result<_, _>>();
+                    if let Ok(props) = all_simple_safe_props {
+                        self.known_objs.insert(target, props);
+                    }
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+    }
+}
+
+impl<'a> CollectObjAccessInfo<'a> {
+    fn access_prop(&mut self, kind: Access, obj: &'a ir::Ref<ir::Ssa>, prop: &'a ir::Ref<ir::Ssa>) {
+        if let Some(props) = self.known_objs.get_mut(obj) {
+            let known_safe_prop = match self.known_strings.get(prop) {
+                Some(prop) if is_safe_prop(prop) => Some(*prop),
+                _ => None,
+            };
+            match known_safe_prop {
+                Some(prop) => {
+                    let entry = props.entry(prop).or_insert(PropInfo {
+                        safe_for_call: true,
+                        saw_call: false,
+                    });
+                    match kind {
+                        Access::Read => {
+                            // all reads are safe
                         }
-                        Err(()) => {
-                            self.known_objs.insert(target, State::Invalid);
+                        Access::Call => {
+                            entry.saw_call = true;
                         }
                     }
                 }
+                None => {
+                    self.known_objs.remove(obj);
+                }
+            }
+        }
+    }
+
+    fn write_prop(
+        &mut self,
+        obj: &'a ir::Ref<ir::Ssa>,
+        prop: &'a ir::Ref<ir::Ssa>,
+        val: &'a ir::Ref<ir::Ssa>,
+    ) {
+        if let Some(props) = self.known_objs.get_mut(obj) {
+            let known_safe_prop = match self.known_strings.get(prop) {
+                Some(prop) if is_safe_prop(prop) => Some(*prop),
+                _ => None,
+            };
+            match known_safe_prop {
+                Some(prop) => {
+                    let entry = props.entry(prop).or_insert(PropInfo {
+                        safe_for_call: true,
+                        saw_call: false,
+                    });
+                    entry.safe_for_call &= self.fns_without_this.contains(val);
+                }
+                None => {
+                    self.known_objs.remove(obj);
+                }
+            }
+        }
+    }
+}
+
+impl<'a> Visitor<'a> for CollectObjAccessInfo<'a> {
+    fn wrap_scope<R>(
+        &mut self,
+        ty: &ScopeTy,
+        block: &'a ir::Block,
+        enter: impl FnOnce(&mut Self, &'a ir::Block) -> R,
+    ) -> R {
+        if let ScopeTy::Toplevel = ty {
+            let mut collector = CollectObjDeclInfo::default();
+            collector.run_visitor(&block);
+            self.fns_without_this = collector.fns_without_this;
+            self.known_strings = collector.known_strings;
+            self.known_objs = collector.known_objs;
+        }
+
+        enter(self, block)
+    }
+
+    fn visit(&mut self, stmt: &'a ir::Stmt) {
+        self.last_use_was_safe = false;
+
+        match stmt {
+            ir::Stmt::Expr { target: _, expr } => match expr {
                 ir::Expr::ReadMember { obj, prop } => {
                     self.last_use_was_safe = true;
-                    self.access_prop(obj, prop);
-                    self.known_objs.insert(prop, State::Invalid);
+                    self.access_prop(Access::Read, obj, prop);
+                    self.known_objs.remove(prop);
+                }
+                ir::Expr::Call {
+                    kind: _,
+                    base,
+                    prop: Some(prop),
+                    args,
+                } => {
+                    self.last_use_was_safe = true;
+                    self.access_prop(Access::Call, base, prop);
+                    self.known_objs.remove(prop);
+                    for (_, arg) in args {
+                        self.known_objs.remove(arg);
+                    }
                 }
                 _ => {}
             },
             ir::Stmt::WriteMember { obj, prop, val } => {
                 self.last_use_was_safe = true;
-                self.access_prop(obj, prop);
-                self.known_objs.insert(prop, State::Invalid);
-                self.known_objs.insert(val, State::Invalid);
+                self.write_prop(obj, prop, val);
+                self.known_objs.remove(prop);
+                self.known_objs.remove(val);
             }
             _ => {}
         }
@@ -147,7 +221,7 @@ impl<'a> Visitor<'a> for CollectObjInfo<'a> {
 
     fn visit_ref_use(&mut self, ref_: &'a ir::Ref<ir::Ssa>) {
         if !self.last_use_was_safe {
-            self.known_objs.insert(ref_, State::Invalid);
+            self.known_objs.remove(ref_);
         }
     }
 }
@@ -162,20 +236,26 @@ impl Folder for Replace {
         enter: impl FnOnce(&mut Self, ir::Block) -> R,
     ) -> R {
         if let ScopeTy::Toplevel = ty {
-            let mut collector = CollectObjInfo::default();
+            let mut collector = CollectObjAccessInfo::default();
             collector.run_visitor(&block);
             self.objects_to_replace = collector
                 .known_objs
                 .into_iter()
-                .filter_map(|(obj, state)| match state {
-                    State::HasProps(props) => {
-                        let prop_vars = props
-                            .into_iter()
-                            .map(|prop| (prop.to_string(), ir::Ref::new(prop)))
-                            .collect();
-                        Some((obj.weak(), prop_vars))
+                .filter_map(|(obj, props)| {
+                    let prop_vars = props
+                        .into_iter()
+                        .map(|(prop, info)| {
+                            if info.safe_for_call || !info.saw_call {
+                                Ok((prop.to_string(), ir::Ref::new(prop)))
+                            } else {
+                                Err(())
+                            }
+                        })
+                        .collect::<Result<_, _>>();
+                    match prop_vars {
+                        Ok(prop_vars) => Some((obj.weak(), prop_vars)),
+                        Err(()) => None,
                     }
-                    State::NoObjYet(_) | State::Invalid => None,
                 })
                 .collect();
             self.known_strings = collector
@@ -246,7 +326,6 @@ impl Folder for Replace {
                 expr: ir::Expr::ReadMember { obj, prop },
             } => match self.objects_to_replace.get(&obj.weak()) {
                 Some(prop_vars) => {
-                    // todo store a map from Ref<Ssa> prop refs to Ref<Mut> to avoid double lookup
                     let prop_var = match self
                         .known_strings
                         .get(&prop.weak())
@@ -263,6 +342,52 @@ impl Folder for Replace {
                 None => One(ir::Stmt::Expr {
                     target,
                     expr: ir::Expr::ReadMember { obj, prop },
+                }),
+            },
+            ir::Stmt::Expr {
+                target,
+                expr:
+                    ir::Expr::Call {
+                        kind,
+                        base,
+                        prop: Some(prop),
+                        args,
+                    },
+            } => match self.objects_to_replace.get(&base.weak()) {
+                Some(prop_vars) => {
+                    let prop_var = match self
+                        .known_strings
+                        .get(&prop.weak())
+                        .and_then(|name| prop_vars.get(name))
+                    {
+                        Some(prop_var) => prop_var.clone(),
+                        None => unreachable!("unknown prop"),
+                    };
+                    let prop_ref = ir::Ref::new(prop_var.name_hint());
+                    Many(vec![
+                        ir::Stmt::Expr {
+                            target: prop_ref.clone(),
+                            expr: ir::Expr::ReadMutable { source: prop_var },
+                        },
+                        ir::Stmt::Expr {
+                            target,
+                            expr: ir::Expr::Call {
+                                kind,
+                                base: prop_ref,
+                                prop: None,
+                                args,
+                            },
+                        },
+                    ])
+                }
+                None => One(ir::Stmt::Expr {
+                    target,
+                    expr: ir::Expr::Call {
+                        kind,
+                        base,
+                        prop: Some(prop),
+                        args,
+                    },
                 }),
             },
             ir::Stmt::WriteMember { obj, prop, val } => {
