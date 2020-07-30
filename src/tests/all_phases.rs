@@ -76,8 +76,7 @@ case!(
     var _val = y.bar;
     var _obj = z;
     var _val$1;
-    if (_val) _val$1 = true;
-    else _val$1 = 'hi';
+    _val$1 = _val ? true : 'hi';
     _obj.foo = _val$1;
     var _wri = g + 1;
     g = _wri;

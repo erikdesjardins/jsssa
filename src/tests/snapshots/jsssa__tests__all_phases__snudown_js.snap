@@ -99,8 +99,7 @@ var _fun$1 = function(A, r, i$1) {
             if (n$1 <= 2047) _val$19 = f$1 + 2;
             else {
                 var _val$20;
-                if (n$1 <= 65535) _val$20 = f$1 + 3;
-                else _val$20 = f$1 + 4;
+                _val$20 = n$1 <= 65535 ? f$1 + 3 : f$1 + 4;
                 _val$19 = _val$20;
             }
             f$1 = _val$19;
@@ -116,23 +115,19 @@ var _fun$1 = function(A, r, i$1) {
     var _val$10 = f$1;
     a = _val$10;
     var _val$11;
-    if (i$2.nofollow) _val$11 = 1;
-    else _val$11 = 0;
+    _val$11 = i$2.nofollow ? 1 : 0;
     var _val$12 = _val$11;
     n$1 = _val$12;
     var _val$13;
-    if ('string' == typeof i$2.target) _val$13 = _fun(i$2.target);
-    else _val$13 = 0;
+    _val$13 = 'string' == typeof i$2.target ? _fun(i$2.target) : 0;
     var _val$14 = _val$13;
     r$1 = _val$14;
     var _val$15;
-    if ('string' == typeof i$2.tocIdPrefix) _val$15 = _fun(i$2.tocIdPrefix);
-    else _val$15 = 0;
+    _val$15 = 'string' == typeof i$2.tocIdPrefix ? _fun(i$2.tocIdPrefix) : 0;
     var _val$16 = _val$15;
     f$1 = _val$16;
     var _val$17;
-    if (i$2.enableToc) _val$17 = 1;
-    else _val$17 = 0;
+    _val$17 = i$2.enableToc ? 1 : 0;
     var _val$18 = A(_ini$3, _val$10, _val$12, _val$14, _val$16, _val$17);
     if (_val$18) {
         i$2 = _val$18;
@@ -319,8 +314,7 @@ var _fun$3 = function(A, r) {
         return 0;
     }
     var _val$10;
-    if (8 < r >>> 0) _val$10 = r + 3 & -4;
-    else _val$10 = 8;
+    _val$10 = 8 < r >>> 0 ? r + 3 & -4 : 8;
     var _ini$3 = _val$10;
     i$1 = _ini$3;
     var _ini$4 = _ini$3 + 8 | 0;
@@ -358,8 +352,7 @@ var _fun$3 = function(A, r) {
                         else {
                             var _val$27 = 71 + ((_val$19 >>> 30 - _val$26 ^ 2) - (_val$26 << 1) | 0) | 0;
                             var _val$28;
-                            if (_val$27 >>> 0 < 63) _val$28 = _val$27;
-                            else _val$28 = 63;
+                            _val$28 = _val$27 >>> 0 < 63 ? _val$27 : 63;
                             n$1 = _val$28;
                         }
                     }
@@ -421,8 +414,7 @@ var _fun$3 = function(A, r) {
                     else {
                         var _val$23 = 71 + ((_val$16 >>> 30 - _val$22 ^ 2) - (_val$22 << 1) | 0) | 0;
                         var _val$24;
-                        if (_val$23 >>> 0 < 63) _val$24 = _val$23;
-                        else _val$24 = 63;
+                        _val$24 = _val$23 >>> 0 < 63 ? _val$23 : 63;
                         n$1 = _val$24;
                     }
                 }
@@ -456,8 +448,7 @@ var _fun$3 = function(A, r) {
         var _val$12 = vr[f$1 >> 2] + -8 | 0;
         n$1 = _val$12;
         var _val$13;
-        if (_lhs < _val$12 >>> 0) _val$13 = i$1;
-        else _val$13 = _val$12;
+        _val$13 = _lhs < _val$12 >>> 0 ? i$1 : _val$12;
         _fun$7(_val$11, A, _val$13);
         _fun$16(A);
         A$1 = _val$11;
@@ -498,8 +489,7 @@ var _fun$4 = function(A, r, i$1, e, f$1) {
                         if (!(9 < _val$17 - 1 >>> 0)) {
                             var _lhs = Dr[Dr[0 | _val$15] + 1600 | 0];
                             var _val$18;
-                            if (1 != (0 | _val$17)) _val$18 = Dr[Dr[_val$15 + 1 | 0] + 1601 | 0] + _val$17 | 0;
-                            else _val$18 = 1;
+                            _val$18 = 1 != (0 | _val$17) ? Dr[Dr[_val$15 + 1 | 0] + 1601 | 0] + _val$17 | 0 : 1;
                             var _val$19 = _lhs + _val$18 | 0;
                             b = _val$19;
                             var _prd = 37 < _val$19 >>> 0;
@@ -645,8 +635,7 @@ var _fun$5 = function(A) {
             c$2 = _val$11;
             f$1 = _val$11;
             var _val$12;
-            if (8 < A$1 >>> 0) _val$12 = A$1 + 3 & -4;
-            else _val$12 = 8;
+            _val$12 = 8 < A$1 >>> 0 ? A$1 + 3 & -4 : 8;
             var _val$13 = _val$12;
             A$1 = _val$13;
             if (_val$13 >>> 0 <= 127) i$1 = (_val$13 >>> 3 | 0) - 1 | 0;
@@ -659,8 +648,7 @@ var _fun$5 = function(A) {
                     var _val$23 = 71 + ((_val$13 >>> 30 - _val$22 ^ 2) - (_val$22 << 1) | 0) | 0;
                     b = _val$23;
                     var _val$24;
-                    if (_val$23 >>> 0 < 63) _val$24 = _val$23;
-                    else _val$24 = 63;
+                    _val$24 = _val$23 >>> 0 < 63 ? _val$23 : 63;
                     i$1 = _val$24;
                 }
             }
@@ -694,8 +682,7 @@ var _fun$5 = function(A) {
                         c$2 = _val$36;
                         var _val$37 = AA(_val$23 ^ f$1);
                         var _val$38;
-                        if (32 == (0 | _val$37)) _val$38 = _val$36;
-                        else _val$38 = _val$37;
+                        _val$38 = 32 == (0 | _val$37) ? _val$36 : _val$37;
                         var _val$39 = _val$38;
                         b = _val$39;
                         eA = 0 - (63 < _val$39 >>> 0) | 0;
@@ -810,8 +797,7 @@ var _fun$5 = function(A) {
             }
             var _val$17 = AA(e);
             var _val$18;
-            if (32 == (0 | _val$17)) _val$18 = AA(c$2) + 32 | 0;
-            else _val$18 = _val$17;
+            _val$18 = 32 == (0 | _val$17) ? AA(c$2) + 32 | 0 : _val$17;
             var _val$19 = 63 - _val$18 << 4;
             var _val$20 = 10032 + _val$19 | 0;
             b = _val$20;
@@ -894,8 +880,7 @@ var _fun$6 = function(A, r, i$1) {
                             var _val$12 = f$1 + 1 | 0;
                             a = _val$12;
                             var _val$13;
-                            if (_val$12 >>> 0 < r >>> 0) _val$13 = r;
-                            else _val$13 = _val$12;
+                            _val$13 = _val$12 >>> 0 < r >>> 0 ? r : _val$12;
                             n$1 = _val$13 + -1 | 0;
                             k$1 = 0;
                             for(;;){
@@ -913,8 +898,7 @@ var _fun$6 = function(A, r, i$1) {
                                 if (_prd$1) ;
                                 else {
                                     var _val$15;
-                                    if ((0 | i$1) == (0 | _ini$3)) _val$15 = _val$14;
-                                    else _val$15 = 0;
+                                    _val$15 = (0 | i$1) == (0 | _ini$3) ? _val$14 : 0;
                                     _log$1 = _val$15;
                                 }
                                 k$1 = _log$1;
@@ -924,8 +908,7 @@ var _fun$6 = function(A, r, i$1) {
                         k$1 = 0;
                         var _val$10 = r - f$1 | 0;
                         var _val$11;
-                        if (r >>> 0 < _val$10 >>> 0) _val$11 = 0;
-                        else _val$11 = _val$10;
+                        _val$11 = r >>> 0 < _val$10 >>> 0 ? 0 : _val$10;
                         a = _val$11;
                         c$2 = 0;
                         for(;;){
@@ -938,16 +921,14 @@ var _fun$6 = function(A, r, i$1) {
                                     var _val$12 = Dr[A + f$1 | 0];
                                     a = _val$12;
                                     var _val$13;
-                                    if (96 == (0 | _val$12)) _val$13 = n$1 + 1 | 0;
-                                    else _val$13 = 0;
+                                    _val$13 = 96 == (0 | _val$12) ? n$1 + 1 | 0 : 0;
                                     n$1 = _val$13;
                                     var _prd$1 = k$1;
                                     var _log$1 = _prd$1;
                                     if (_prd$1) ;
                                     else {
                                         var _val$14;
-                                        if ((0 | i$1) == (0 | _val$12)) _val$14 = f$1;
-                                        else _val$14 = 0;
+                                        _val$14 = (0 | i$1) == (0 | _val$12) ? f$1 : 0;
                                         _log$1 = _val$14;
                                     }
                                     k$1 = _log$1;
@@ -992,8 +973,7 @@ var _fun$6 = function(A, r, i$1) {
                         if (_prd$1) ;
                         else {
                             var _val$12;
-                            if ((0 | i$1) == (0 | _val$11)) _val$12 = _val$10;
-                            else _val$12 = 0;
+                            _val$12 = (0 | i$1) == (0 | _val$11) ? _val$10 : 0;
                             _log$1 = _val$12;
                         }
                         k$1 = _log$1;
@@ -1142,8 +1122,7 @@ var _fun$8 = function(A, r, i$1, e) {
             vr[e + 120 >> 2] = 0;
             if (3 <= i$1 >>> 0) {
                 var _val$12;
-                if (_fun$50(r, 1857, 3)) _val$12 = 0;
-                else _val$12 = 3;
+                _val$12 = _fun$50(r, 1857, 3) ? 0 : 3;
                 n$1 = _val$12;
             }
             k$1 = e + 116 | 0;
@@ -1247,13 +1226,11 @@ var _fun$8 = function(A, r, i$1, e) {
                                             if (_prd$4) ;
                                             else _log$4 = 10 != (0 | G);
                                             var _val$30;
-                                            if (_log$4) _val$30 = _val$29;
-                                            else _val$30 = J + 2 | 0;
+                                            _val$30 = _log$4 ? _val$29 : J + 2 | 0;
                                             J = _val$30;
                                         }
                                         var _val$22;
-                                        if (_ini$5 >>> 0 < J >>> 0) _val$22 = J;
-                                        else _val$22 = _ini$5;
+                                        _val$22 = _ini$5 >>> 0 < J >>> 0 ? J : _ini$5;
                                         s = _val$22;
                                         for(;;){
                                             if ((0 | J) == (0 | s)) break e$2;
@@ -1265,8 +1242,7 @@ var _fun$8 = function(A, r, i$1, e) {
                                         var _ini$8 = (60 == (0 | G)) + J | 0;
                                         C = _ini$8;
                                         var _val$23;
-                                        if (_ini$8 >>> 0 < _ini$5 >>> 0) _val$23 = _ini$5;
-                                        else _val$23 = _ini$8;
+                                        _val$23 = _ini$8 >>> 0 < _ini$5 >>> 0 ? _ini$5 : _ini$8;
                                         s = _val$23;
                                         J = _ini$8;
                                         for(;;){
@@ -1294,13 +1270,11 @@ var _fun$8 = function(A, r, i$1, e) {
                                         }
                                         var _val$24 = J + -1 | 0;
                                         var _val$25;
-                                        if (62 == Dr[_ini$3 + _val$24 | 0]) _val$25 = _val$24;
-                                        else _val$25 = J;
+                                        _val$25 = 62 == Dr[_ini$3 + _val$24 | 0] ? _val$24 : J;
                                         var _ini$9 = _val$25;
                                         B = _ini$9;
                                         var _val$26;
-                                        if (_ini$5 >>> 0 < J >>> 0) _val$26 = J;
-                                        else _val$26 = _ini$5;
+                                        _val$26 = _ini$5 >>> 0 < J >>> 0 ? J : _ini$5;
                                         s = _val$26;
                                         f$2: {
                                             for(;;){
@@ -1347,15 +1321,13 @@ var _fun$8 = function(A, r, i$1, e) {
                                         if (_prd$3) ;
                                         else _log$3 = 13 != Dr[_ini$3 + _ini$10 | 0];
                                         var _val$27;
-                                        if (_log$3) _val$27 = Z;
-                                        else _val$27 = _ini$10;
+                                        _val$27 = _log$3 ? Z : _ini$10;
                                         var _val$28 = _val$27;
                                         G = _val$28;
                                         if (_val$28) {
                                             var _val$29 = _val$28 + 1 | 0;
                                             var _val$30;
-                                            if (_val$29 >>> 0 < _ini$5 >>> 0) _val$30 = _ini$5;
-                                            else _val$30 = _val$29;
+                                            _val$30 = _val$29 >>> 0 < _ini$5 >>> 0 ? _ini$5 : _val$29;
                                             var _val$31 = _val$30;
                                             s = _val$31;
                                             Z = _val$31 + -1 | 0;
@@ -1387,8 +1359,7 @@ var _fun$8 = function(A, r, i$1, e) {
                                                 o$1 = 0;
                                             } else {
                                                 var _val$29;
-                                                if (o$1 >>> 0 < m >>> 0) _val$29 = m;
-                                                else _val$29 = o$1;
+                                                _val$29 = o$1 >>> 0 < m >>> 0 ? m : o$1;
                                                 Q = _val$29;
                                                 s = m;
                                                 for(;;){
@@ -1480,8 +1451,7 @@ var _fun$8 = function(A, r, i$1, e) {
                             continue;
                         }
                         var _val$16;
-                        if (i$2 >>> 0 < n$1 >>> 0) _val$16 = n$1;
-                        else _val$16 = i$2;
+                        _val$16 = i$2 >>> 0 < n$1 >>> 0 ? n$1 : i$2;
                         b = _val$16;
                         m = n$1;
                         for(;;){
@@ -1700,8 +1670,7 @@ var _fun$9 = function(A) {
             else {
                 var _val$20 = 71 + ((_val$13 >>> 30 - _val$19 ^ 2) - (_val$19 << 1) | 0) | 0;
                 var _val$21;
-                if (_val$20 >>> 0 < 63) _val$21 = _val$20;
-                else _val$21 = 63;
+                _val$21 = _val$20 >>> 0 < 63 ? _val$20 : 63;
                 A$1 = _val$21;
             }
         }
@@ -1749,8 +1718,7 @@ var _fun$10 = function(A, r, i$1) {
                 var _val$12;
                 if (32 == Dr[A + 1 | 0]) {
                     var _val$13;
-                    if (32 == Dr[A + 2 | 0]) _val$13 = 3;
-                    else _val$13 = 2;
+                    _val$13 = 32 == Dr[A + 2 | 0] ? 3 : 2;
                     _val$12 = _val$13;
                 } else _val$12 = 1;
                 _val$11 = _val$12;
@@ -1774,8 +1742,7 @@ var _fun$10 = function(A, r, i$1) {
                                 f$1 = n$1;
                             }
                             var _val$12;
-                            if (b >>> 0 < 3) _val$12 = 0;
-                            else _val$12 = f$1;
+                            _val$12 = b >>> 0 < 3 ? 0 : f$1;
                             a = _val$12;
                             break r$2;
                         }
@@ -1789,8 +1756,7 @@ var _fun$10 = function(A, r, i$1) {
         f$1 = _val$10;
         if (_val$10) {
             var _val$11;
-            if (r >>> 0 < _val$10 >>> 0) _val$11 = _val$10;
-            else _val$11 = r;
+            _val$11 = r >>> 0 < _val$10 >>> 0 ? _val$10 : r;
             var _val$12 = _val$11;
             n$1 = _val$12;
             a = _val$12 + A | 0;
@@ -1811,8 +1777,7 @@ var _fun$10 = function(A, r, i$1) {
                                     a = _val$19;
                                 }
                                 var _val$17;
-                                if (r$1 >>> 0 < n$1 >>> 0) _val$17 = n$1;
-                                else _val$17 = r$1;
+                                _val$17 = r$1 >>> 0 < n$1 >>> 0 ? n$1 : r$1;
                                 var _val$18 = _val$17;
                                 f$1 = _val$18;
                                 e = _val$18 - n$1 | 0;
@@ -1830,8 +1795,7 @@ var _fun$10 = function(A, r, i$1) {
                             }
                             var _val$14 = f$1 + 1 | 0;
                             var _val$15;
-                            if (_val$14 >>> 0 < r$1 >>> 0) _val$15 = r$1;
-                            else _val$15 = _val$14;
+                            _val$15 = _val$14 >>> 0 < r$1 >>> 0 ? r$1 : _val$14;
                             var _ini$3 = _val$15;
                             c$2 = _ini$3;
                             b = _ini$3 + -1 | 0;
@@ -1888,8 +1852,7 @@ var _fun$10 = function(A, r, i$1) {
                             vr[i$2 >> 2] = a;
                         }
                         var _val$13;
-                        if (r$1 >>> 0 < f$1 >>> 0) _val$13 = f$1;
-                        else _val$13 = r$1;
+                        _val$13 = r$1 >>> 0 < f$1 >>> 0 ? f$1 : r$1;
                         r$1 = _val$13;
                         for(;;){
                             e$1: {
@@ -2013,8 +1976,7 @@ var _fun$11 = function(A, r) {
                                 b = ((0 | f$1) == (0 | _val$15)) + b | 0;
                             }
                             var _val$14;
-                            if ((0 | r$1) == (0 | b)) _val$14 = i$1;
-                            else _val$14 = _val$12;
+                            _val$14 = (0 | r$1) == (0 | b) ? i$1 : _val$12;
                             i$1 = _val$14;
                         }
                     }
@@ -2025,8 +1987,7 @@ var _fun$11 = function(A, r) {
                 if (_prd) ;
                 else _log = 38 != Dr[A + c$2 | 0];
                 var _val$11;
-                if (_log) _val$11 = k$1;
-                else _val$11 = c$2;
+                _val$11 = _log ? k$1 : c$2;
                 r$1 = _val$11;
             }
         }
@@ -2130,8 +2091,7 @@ var _fun$12 = function $A(A, r, i$1, e) {
                 o$1 = _ini$4;
                 t$1 = 0;
                 var _val$10;
-                if (_ini$4 >>> 0 < 6) _val$10 = _ini$4;
-                else _val$10 = 6;
+                _val$10 = _ini$4 >>> 0 < 6 ? _ini$4 : 6;
                 u = _val$10;
                 for(;;){
                     e$1: {
@@ -2140,8 +2100,7 @@ var _fun$12 = function $A(A, r, i$1, e) {
                             u = t$1;
                         }
                         var _val$11;
-                        if (o$1 >>> 0 < u >>> 0) _val$11 = u;
-                        else _val$11 = o$1;
+                        _val$11 = o$1 >>> 0 < u >>> 0 ? u : o$1;
                         J = _val$11;
                         t$1 = u;
                         for(;;){
@@ -2151,8 +2110,7 @@ var _fun$12 = function $A(A, r, i$1, e) {
                                     J = t$1;
                                 }
                                 var _val$12;
-                                if (o$1 >>> 0 < J >>> 0) _val$12 = J;
-                                else _val$12 = o$1;
+                                _val$12 = o$1 >>> 0 < J >>> 0 ? J : o$1;
                                 Z = _val$12;
                                 t$1 = J;
                                 for(;;){
@@ -2226,8 +2184,7 @@ var _fun$12 = function $A(A, r, i$1, e) {
                 var _val$11 = vr[r + 20 >> 2];
                 if (_val$11) _ini[_val$11](A, vr[r + 112 >> 2]);
                 var _val$12;
-                if (e >>> 0 < a >>> 0) _val$12 = a;
-                else _val$12 = e;
+                _val$12 = e >>> 0 < a >>> 0 ? a : e;
                 var _val$13 = _val$12;
                 n$1 = _val$13;
                 f$1 = a;
@@ -2292,8 +2249,7 @@ var _fun$12 = function $A(A, r, i$1, e) {
                                             var _arg = G;
                                             var _arg$1 = l;
                                             var _val$17;
-                                            if (vr[20 + s >> 2]) _val$17 = 16 + s | 0;
-                                            else _val$17 = 0;
+                                            _val$17 = vr[20 + s >> 2] ? 16 + s | 0 : 0;
                                             _ini[_val$16](_arg, _arg$1, _val$17, vr[m + 112 >> 2]);
                                         }
                                         _fun$63(m, 0);
@@ -2388,8 +2344,7 @@ var _fun$12 = function $A(A, r, i$1, e) {
                                     var _val$14 = z - (124 == Dr[0 | _ini$7]) | 0;
                                     var _lhs = lr[r + 436 >> 2];
                                     var _val$15;
-                                    if (L) _val$15 = _val$14;
-                                    else _val$15 = _val$14 - (124 == Dr[(_ini$7 + _ | 0) - 1 | 0]) | 0;
+                                    _val$15 = L ? _val$14 : _val$14 - (124 == Dr[(_ini$7 + _ | 0) - 1 | 0]) | 0;
                                     var _val$16 = _val$15;
                                     z = _val$16;
                                     L = 0;
@@ -2404,13 +2359,11 @@ var _fun$12 = function $A(A, r, i$1, e) {
                                         z = _val$19;
                                         if (_val$19 >>> 0 < _ini$8 >>> 0) {
                                             var _val$21;
-                                            if (124 == Dr[_ini$7 + _val$19 | 0]) _val$21 = U + 2 | 0;
-                                            else _val$21 = _val$19;
+                                            _val$21 = 124 == Dr[_ini$7 + _val$19 | 0] ? U + 2 | 0 : _val$19;
                                             z = _val$21;
                                         }
                                         var _val$20;
-                                        if (_ini$8 >>> 0 < z >>> 0) _val$20 = z;
-                                        else _val$20 = _ini$8;
+                                        _val$20 = _ini$8 >>> 0 < z >>> 0 ? z : _ini$8;
                                         P = _val$20;
                                         U = z;
                                         for(;;){
@@ -2453,8 +2406,7 @@ var _fun$12 = function $A(A, r, i$1, e) {
                                                         z = z + 1 | 0;
                                                     }
                                                     var _val$21;
-                                                    if (P >>> 0 < z >>> 0) _val$21 = z;
-                                                    else _val$21 = P;
+                                                    _val$21 = P >>> 0 < z >>> 0 ? z : P;
                                                     var _val$22 = _val$21;
                                                     U = _val$22;
                                                     p = (_val$22 + L | 0) - z | 0;
@@ -2483,8 +2435,7 @@ var _fun$12 = function $A(A, r, i$1, e) {
                                                         U = z + 1 | 0;
                                                     }
                                                     var _val$23;
-                                                    if (P >>> 0 < U >>> 0) _val$23 = U;
-                                                    else _val$23 = P;
+                                                    _val$23 = P >>> 0 < U >>> 0 ? U : P;
                                                     var _val$24 = _val$23;
                                                     z = _val$24;
                                                     n$2: {
@@ -2984,8 +2935,7 @@ var _fun$13 = function(A, r) {
                 else {
                     var _val$24 = 71 + ((_val$16 >>> 30 - _val$23 ^ 2) - (_val$23 << 1) | 0) | 0;
                     var _val$25;
-                    if (_val$24 >>> 0 < 63) _val$25 = _val$24;
-                    else _val$25 = 63;
+                    _val$25 = _val$24 >>> 0 < 63 ? _val$24 : 63;
                     n$1 = _val$25;
                 }
             }
@@ -3031,8 +2981,7 @@ var _fun$14 = function(A, r, i$1, e, f$1, a, n$1) {
     A$1: if (!(!vr[r + 44 >> 2] | !vr[r + 40 >> 2])) {
         o$1 = _fun$44(r, 1);
         var _val$11;
-        if (e) _val$11 = 124 == Dr[0 | i$1];
-        else _val$11 = 0;
+        _val$11 = e ? 124 == Dr[0 | i$1] : 0;
         b = _val$11;
         r$1: for(;;){
             i$3: {
@@ -3061,8 +3010,7 @@ var _fun$14 = function(A, r, i$1, e, f$1, a, n$1) {
                 break A$1;
             }
             var _val$12;
-            if (e >>> 0 < b >>> 0) _val$12 = b;
-            else _val$12 = e;
+            _val$12 = e >>> 0 < b >>> 0 ? b : e;
             t$1 = _val$12;
             u = b;
             for(;;){
@@ -3075,8 +3023,7 @@ var _fun$14 = function(A, r, i$1, e, f$1, a, n$1) {
                     }
                     var _val$13 = t$1 + -1 | 0;
                     var _val$14;
-                    if (b >>> 0 < _val$13 >>> 0) _val$14 = _ini$3;
-                    else _val$14 = _val$13;
+                    _val$14 = b >>> 0 < _val$13 >>> 0 ? _ini$3 : _val$13;
                     Z = _val$14 + 1 | 0;
                     u = t$1;
                     for(;;){
@@ -3220,8 +3167,7 @@ var _fun$16 = function(A) {
             else {
                 var _val$25 = 71 + ((_val$17 >>> 30 - _val$24 ^ 2) - (_val$24 << 1) | 0) | 0;
                 var _val$26;
-                if (_val$25 >>> 0 < 63) _val$26 = _val$25;
-                else _val$26 = 63;
+                _val$26 = _val$25 >>> 0 < 63 ? _val$25 : 63;
                 A$1 = _val$26;
             }
         }
@@ -3321,8 +3267,7 @@ var _fun$17 = function(A) {
             var _val$18 = vr[A + 4 >> 2];
             var _ini$3 = _val$11 - _val$18 | 0;
             var _val$19;
-            if (_val$17 >>> 0 < _ini$3 >>> 0) _val$19 = 0;
-            else _val$19 = 1;
+            _val$19 = _val$17 >>> 0 < _ini$3 >>> 0 ? 0 : 1;
             var _val$20 = _ini$3 >> 31;
             var _prd = (0 | _val$20) < (0 | i$1);
             var _log = _prd;
@@ -3354,8 +3299,7 @@ var _fun$17 = function(A) {
         vr[A + 120 >> 2] = _val$17;
         var _obj$2 = vr;
         var _val$19;
-        if (_val$17 >>> 0 < _val$16 >>> 0) _val$19 = _val$18 + 1 | 0;
-        else _val$19 = _val$18;
+        _val$19 = _val$17 >>> 0 < _val$16 >>> 0 ? _val$18 + 1 | 0 : _val$18;
         _obj$2[A + 124 >> 2] = _val$19;
     } else A$1 = vr[A$1 + 4 >> 2];
     var _obj = Dr;
@@ -3472,8 +3416,7 @@ var _fun$19 = function(A, r, i$1, e) {
     A$1: if (!(lr[r + 432 >> 2] < vr[r + 408 >> 2] + vr[r + 420 >> 2] >>> 0)) r$1: for(;;){
         if (e >>> 0 <= k$1 >>> 0) break A$1;
         var _val$11;
-        if (e >>> 0 < n$1 >>> 0) _val$11 = n$1;
-        else _val$11 = e;
+        _val$11 = e >>> 0 < n$1 >>> 0 ? n$1 : e;
         f$1 = _val$11;
         for(;;){
             i$2: {
@@ -3496,12 +3439,10 @@ var _fun$19 = function(A, r, i$1, e) {
                 var _val$14 = _val$13 + f$1 | 0;
                 k$1 = _val$14;
                 var _val$15;
-                if (_val$13) _val$15 = _val$14;
-                else _val$15 = b;
+                _val$15 = _val$13 ? _val$14 : b;
                 b = _val$15;
                 var _val$16;
-                if (_val$13) _val$16 = _val$14;
-                else _val$16 = f$1 + 1 | 0;
+                _val$16 = _val$13 ? _val$14 : f$1 + 1 | 0;
                 n$1 = _val$16;
                 continue r$1;
             }
@@ -3522,8 +3463,7 @@ var _fun$20 = function(A, r) {
         if (61 != (0 | _val$10)) {
             if (45 != (0 | _val$10)) break A$1;
             var _val$12;
-            if (1 < r >>> 0) _val$12 = r;
-            else _val$12 = 1;
+            _val$12 = 1 < r >>> 0 ? r : 1;
             e = _val$12;
             f$1 = 1;
             for(;;){
@@ -3533,8 +3473,7 @@ var _fun$20 = function(A, r) {
                         e = f$1;
                     }
                     var _val$13;
-                    if (r$1 >>> 0 < e >>> 0) _val$13 = e;
-                    else _val$13 = r$1;
+                    _val$13 = r$1 >>> 0 < e >>> 0 ? e : r$1;
                     f$1 = _val$13;
                     for(;;){
                         if ((0 | f$1) == (0 | e)) return 2;
@@ -3551,8 +3490,7 @@ var _fun$20 = function(A, r) {
             }
         }
         var _val$11;
-        if (1 < r$1 >>> 0) _val$11 = r$1;
-        else _val$11 = 1;
+        _val$11 = 1 < r$1 >>> 0 ? r$1 : 1;
         e = _val$11;
         f$1 = 1;
         for(;;){
@@ -3562,8 +3500,7 @@ var _fun$20 = function(A, r) {
                     e = f$1;
                 }
                 var _val$12;
-                if (r$1 >>> 0 < e >>> 0) _val$12 = e;
-                else _val$12 = r$1;
+                _val$12 = r$1 >>> 0 < e >>> 0 ? e : r$1;
                 f$1 = _val$12;
                 i$1 = 1;
                 for(;;){
@@ -3635,8 +3572,7 @@ var _fun$22 = function(A, r, i$1, e, f$1) {
     var c$2;
     if (!vr[r + 64 >> 2]) return 0;
     var _val$10;
-    if (Dr[0 | i$1] == (0 | f$1)) _val$10 = Dr[i$1 + 1 | 0] == (0 | f$1);
-    else _val$10 = 0;
+    _val$10 = Dr[0 | i$1] == (0 | f$1) ? Dr[i$1 + 1 | 0] == (0 | f$1) : 0;
     a = _val$10;
     n$1 = 95 != (0 | f$1);
     A$1: {
@@ -3686,8 +3622,7 @@ var _fun$22 = function(A, r, i$1, e, f$1) {
         var _val$12 = 0 | _ini[vr[r + 64 >> 2]](A, _val$11, vr[r + 112 >> 2]);
         _fun$63(r, 1);
         var _val$13;
-        if (_val$12) _val$13 = k$1;
-        else _val$13 = 0;
+        _val$13 = _val$12 ? k$1 : 0;
         k$1 = _val$13;
     }
     return k$1;
@@ -3702,8 +3637,7 @@ var _fun$23 = function(A, r) {
             var _val$11;
             if (32 == Dr[A + 1 | 0]) {
                 var _val$12;
-                if (32 == Dr[A + 2 | 0]) _val$12 = 3;
-                else _val$12 = 2;
+                _val$12 = 32 == Dr[A + 2 | 0] ? 3 : 2;
                 _val$11 = _val$12;
             } else _val$11 = 1;
             _val$10 = _val$11;
@@ -3843,8 +3777,7 @@ var _fun$25 = function(A, r, i$1, e) {
                     var _val$11 = o$1 + _ini$6 | 0;
                     o$1 = _val$11;
                     var _val$12;
-                    if (_val$11 >>> 0 < _ini$5 >>> 0) _val$12 = _fun$49(_val$11 + _ini$4 | 0, _ini$5 - _val$11 | 0);
-                    else _val$12 = 0;
+                    _val$12 = _val$11 >>> 0 < _ini$5 >>> 0 ? _fun$49(_val$11 + _ini$4 | 0, _ini$5 - _val$11 | 0) : 0;
                     Z = _val$12 + _val$11 | 0;
                 }
                 var _val$10 = Z;
@@ -3911,16 +3844,14 @@ var _fun$27 = function(A, r) {
     var f$1;
     var i$1;
     var _val$10;
-    if (r) _val$10 = 32 == Dr[0 | A];
-    else _val$10 = 0;
+    _val$10 = r ? 32 == Dr[0 | A] : 0;
     var _ini$3 = _val$10;
     var e = _ini$3;
     if (_ini$3 >>> 0 < r >>> 0) e = (32 == Dr[A + _ini$3 | 0]) + _ini$3 | 0;
     if (e >>> 0 < r >>> 0) e = (32 == Dr[A + e | 0]) + e | 0;
     if (!(9 < (Dr[A + e | 0] + -48 & 255) >>> 0 | r >>> 0 <= e >>> 0)) {
         var _val$11;
-        if (r >>> 0 < e >>> 0) _val$11 = e;
-        else _val$11 = r;
+        _val$11 = r >>> 0 < e >>> 0 ? e : r;
         i$1 = _val$11;
         for(;;){
             f$1 = e;
@@ -3944,8 +3875,7 @@ var _fun$27 = function(A, r) {
         }
         if (!_log) {
             var _val$12;
-            if (_fun$48(i$1, r - f$1 | 0)) _val$12 = 0;
-            else _val$12 = f$1 + 2 | 0;
+            _val$12 = _fun$48(i$1, r - f$1 | 0) ? 0 : f$1 + 2 | 0;
             return _val$12;
         }
     }
@@ -3955,8 +3885,7 @@ var _fun$28 = function(A, r) {
     var a;
     var i$1 = 0;
     var _val$10;
-    if (r) _val$10 = 32 == Dr[0 | A];
-    else _val$10 = 0;
+    _val$10 = r ? 32 == Dr[0 | A] : 0;
     var _ini$3 = _val$10;
     var e = _ini$3;
     if (_ini$3 >>> 0 < r >>> 0) e = (32 == Dr[A + _ini$3 | 0]) + _ini$3 | 0;
@@ -3983,8 +3912,7 @@ var _fun$28 = function(A, r) {
                 i$1 = _val$12;
                 if (!(r >>> 0 <= _val$12 >>> 0)) {
                     var _val$13;
-                    if (32 == Dr[A + _val$12 | 0]) _val$13 = e + 3 | 0;
-                    else _val$13 = _val$12;
+                    _val$13 = 32 == Dr[A + _val$12 | 0] ? e + 3 | 0 : _val$12;
                     return _val$13;
                 }
             }
@@ -4033,8 +3961,7 @@ var _fun$30 = function(A, r, i$1, e, f$1) {
     var n$1 = 0;
     var _obj = vr;
     var _val$10;
-    if (126 == (0 | f$1)) _val$10 = 88;
-    else _val$10 = 60;
+    _val$10 = 126 == (0 | f$1) ? 88 : 60;
     var _ini$3 = _obj[_val$10 + r >> 2];
     A$1: if (_ini$3) {
         for(;;){
@@ -4062,8 +3989,7 @@ var _fun$30 = function(A, r, i$1, e, f$1) {
         var _val$12 = 0 | _ini[_ini$3](A, _val$11, vr[r + 112 >> 2]);
         _fun$63(r, 1);
         var _val$13;
-        if (_val$12) _val$13 = c$2 + 2 | 0;
-        else _val$13 = 0;
+        _val$13 = _val$12 ? c$2 + 2 | 0 : 0;
         n$1 = _val$13;
     }
     return n$1;
@@ -4174,8 +4100,7 @@ var _fun$33 = function(A, r) {
 var _fun$34 = function(A, r) {
     var e;
     var _val$10;
-    if (r) _val$10 = 32 == Dr[0 | A];
-    else _val$10 = 0;
+    _val$10 = r ? 32 == Dr[0 | A] : 0;
     var _ini$3 = _val$10;
     var i$1 = _ini$3;
     if (_ini$3 >>> 0 < r >>> 0) i$1 = (32 == Dr[A + _ini$3 | 0]) + _ini$3 | 0;
@@ -4244,8 +4169,7 @@ var _fun$35 = function(A, r, i$1, e, f$1) {
                 C = 0;
                 s = 0;
                 var _val$13;
-                if (_ini$3 >>> 0 < 3) _val$13 = _ini$3;
-                else _val$13 = 3;
+                _val$13 = _ini$3 >>> 0 < 3 ? _ini$3 : 3;
                 B = _val$13;
                 for(;;){
                     r$1: {
@@ -4267,8 +4191,7 @@ var _fun$35 = function(A, r, i$1, e, f$1) {
                             break A$1;
                         }
                         var _val$14;
-                        if (t$1 >>> 0 < G >>> 0) _val$14 = G;
-                        else _val$14 = t$1;
+                        _val$14 = t$1 >>> 0 < G >>> 0 ? G : t$1;
                         m = _val$14;
                         J = G;
                         for(;;){
@@ -4321,8 +4244,7 @@ var _fun$35 = function(A, r, i$1, e, f$1) {
                                                             var _lhs$2 = m;
                                                             J = 0;
                                                             var _val$20;
-                                                            if (_lhs$2 >>> 0 < g >>> 0) _val$20 = 0;
-                                                            else _val$20 = g;
+                                                            _val$20 = _lhs$2 >>> 0 < g >>> 0 ? 0 : g;
                                                             k$1 = _val$20;
                                                             for(;;){
                                                                 b$1: {
@@ -4380,8 +4302,7 @@ var _fun$35 = function(A, r, i$1, e, f$1) {
                                                                             if (!k$1) break b$1;
                                                                         }
                                                                         var _val$22;
-                                                                        if (_val$21) _val$22 = 1;
-                                                                        else _val$22 = C;
+                                                                        _val$22 = _val$21 ? 1 : C;
                                                                         C = _val$22;
                                                                         if ((0 | G) == (0 | B)) break c$3;
                                                                         if (Z) break n$1;
@@ -4551,8 +4472,7 @@ var _fun$38 = function(A, r, i$1) {
     var e;
     A$2: if (!(60 != Dr[0 | A] | r >>> 0 < 3)) {
         var _val$10;
-        if (47 == Dr[A + 1 | 0]) _val$10 = 2;
-        else _val$10 = 1;
+        _val$10 = 47 == Dr[A + 1 | 0] ? 2 : 1;
         var _val$11 = _val$10;
         e = _val$11;
         for(;;){
@@ -4566,20 +4486,17 @@ var _fun$38 = function(A, r, i$1) {
         var _val$12 = Dr[A + e | 0];
         A$1 = _val$12;
         var _val$13;
-        if (_fun$68(_val$12)) _val$13 = _val$11;
-        else _val$13 = 0;
+        _val$13 = _fun$68(_val$12) ? _val$11 : 0;
         var _val$14 = _val$13;
         var _val$15;
-        if (62 == (0 | _val$12)) _val$15 = _val$11;
-        else _val$15 = _val$14;
+        _val$15 = 62 == (0 | _val$12) ? _val$11 : _val$14;
         return _val$15;
     }
     return 0;
 };
 var _fun$39 = function(A, r) {
     var _val$10;
-    if (r) _val$10 = 32 == Dr[0 | A];
-    else _val$10 = 0;
+    _val$10 = r ? 32 == Dr[0 | A] : 0;
     var _ini$3 = _val$10;
     var i$1 = _ini$3;
     if (_ini$3 >>> 0 < r >>> 0) i$1 = (32 == Dr[A + _ini$3 | 0]) + _ini$3 | 0;
@@ -4590,8 +4507,7 @@ var _fun$39 = function(A, r) {
         var _ini$6 = Dr[0 | _ini$5] + -42 | 0;
         if (!(3 < _ini$6 >>> 0 | 2 == (0 | _ini$6) | 32 != Dr[A + _ini$4 | 0])) {
             var _val$11;
-            if (_fun$48(_ini$5, r - i$1 | 0)) _val$11 = 0;
-            else _val$11 = i$1 + 2 | 0;
+            _val$11 = _fun$48(_ini$5, r - i$1 | 0) ? 0 : i$1 + 2 | 0;
             return _val$11;
         }
     }
@@ -4609,8 +4525,7 @@ var _fun$40 = function(A, r, i$1) {
         }
         if (_log) {
             var _val$10;
-            if (i$1 >>> 0 < 6) _val$10 = i$1;
-            else _val$10 = 6;
+            _val$10 = i$1 >>> 0 < 6 ? i$1 : 6;
             A$1 = _val$10;
             e = 0;
             for(;;){
@@ -4700,8 +4615,7 @@ var _fun$43 = function(A, r) {
     if (!_fun$64(Dr[0 | A])) return 0;
     var _val$10 = r + -1 | 0;
     var _val$11;
-    if (1 < _val$10 >>> 0) _val$11 = _val$10;
-    else _val$11 = 1;
+    _val$11 = 1 < _val$10 >>> 0 ? _val$10 : 1;
     e = _val$11;
     r$1 = 1;
     for(;;){
@@ -4715,8 +4629,7 @@ var _fun$43 = function(A, r) {
                 if (_fun$64(_ini$3) | 45 == (0 | _ini$3)) break A$1;
             } else r$1 = e;
             var _val$12;
-            if (i$1) _val$12 = r$1;
-            else _val$12 = 0;
+            _val$12 = i$1 ? r$1 : 0;
             return _val$12;
         }
         r$1 = r$1 + 1 | 0;
@@ -5030,8 +4943,7 @@ var _fun$58 = function(A) {
 var _fun$59 = function(A, r) {
     var _arg = 0 | A;
     var _val$10;
-    if (256 & vr[16 + (0 | r) >> 2]) _val$10 = 3094;
-    else _val$10 = 3088;
+    _val$10 = 256 & vr[16 + (0 | r) >> 2] ? 3094 : 3088;
     _fun$71(_arg, _val$10);
     return 1;
 };
@@ -5063,8 +4975,7 @@ var _fun$63 = function(A, r) {
 };
 var _fun$64 = function(A) {
     var _val$10;
-    if ((32 | A) - 97 >>> 0 < 26) _val$10 = 1;
-    else _val$10 = 0 != (A + -48 >>> 0 < 10 | 0);
+    _val$10 = (32 | A) - 97 >>> 0 < 26 ? 1 : 0 != (A + -48 >>> 0 < 10 | 0);
     return _val$10;
 };
 var _fun$65 = function(A, r) {
@@ -5078,8 +4989,7 @@ var _fun$66 = function(A, r) {
 };
 var _fun$67 = function(A) {
     var _val$10;
-    if (A + -65 >>> 0 < 26) _val$10 = 32 | A;
-    else _val$10 = A;
+    _val$10 = A + -65 >>> 0 < 26 ? 32 | A : A;
     return _val$10;
 };
 var _fun$68 = function(A) {
@@ -5191,13 +5101,11 @@ _ini[2] = function(A, r, i$1, e, f$1, a) {
                         var _val$19 = 0 | _ini[n$1](A$1, _val$18, vr[_val$10 + 112 >> 2]);
                         _fun$63(_val$10, 1);
                         var _val$20;
-                        if (_val$19) _val$20 = r$1 + 1 | 0;
-                        else _val$20 = 0;
+                        _val$20 = _val$19 ? r$1 + 1 | 0 : 0;
                         A$1 = _val$20;
                     }
                     var _val$16;
-                    if (A$1) _val$16 = A$1 + 2 | 0;
-                    else _val$16 = 0;
+                    _val$16 = A$1 ? A$1 + 2 | 0 : 0;
                     return 0 | _val$16;
                 }
                 if (a$1 >>> 0 < 3) break r$2;
@@ -5212,8 +5120,7 @@ _ini[2] = function(A, r, i$1, e, f$1, a) {
                 var _val$12 = _fun$22(A$1, r$1, i$2 + 1 | 0, a$1 + -1 | 0, e$1);
                 A$1 = _val$12;
                 var _val$13;
-                if (_val$12) _val$13 = _val$12 + 1 | 0;
-                else _val$13 = 0;
+                _val$13 = _val$12 ? _val$12 + 1 | 0 : 0;
                 return 0 | _val$13;
             }
         }
@@ -5228,8 +5135,7 @@ _ini[2] = function(A, r, i$1, e, f$1, a) {
                 var _val$12 = _fun$30(A$1, r$1, i$2 + 2 | 0, a$1 + -2 | 0, e$1);
                 A$1 = _val$12;
                 var _val$13;
-                if (_val$12) _val$13 = _val$12 + 2 | 0;
-                else _val$13 = 0;
+                _val$13 = _val$12 ? _val$12 + 2 | 0 : 0;
                 return 0 | _val$13;
             }
             var _prd = a$1 >>> 0 < 5;
@@ -5282,8 +5188,7 @@ _ini[2] = function(A, r, i$1, e, f$1, a) {
                                 var _val$22 = 0 | _ini[vr[r$1 + 84 >> 2]](A$1, _val$21, vr[r$1 + 112 >> 2]);
                                 _fun$63(r$1, 1);
                                 var _val$23;
-                                if (_val$22) _val$23 = f$2 + 3 | 0;
-                                else _val$23 = 0;
+                                _val$23 = _val$22 ? f$2 + 3 | 0 : 0;
                                 A$1 = _val$23;
                                 break r$2;
                             }
@@ -5294,8 +5199,7 @@ _ini[2] = function(A, r, i$1, e, f$1, a) {
                             var _val$19 = _fun$30(A$1, r$1, _val$13 + -1 | 0, a$1 + 1 | 0, e$1);
                             A$1 = _val$19;
                             var _val$20;
-                            if (_val$19) _val$20 = _val$19 + -1 | 0;
-                            else _val$20 = 0;
+                            _val$20 = _val$19 ? _val$19 + -1 | 0 : 0;
                             k$1 = _val$20;
                         }
                         A$1 = k$1;
@@ -5303,13 +5207,11 @@ _ini[2] = function(A, r, i$1, e, f$1, a) {
                     }
                     var _val$15 = _fun$22(A$1, r$1, _val$13 + -2 | 0, a$1 + 2 | 0, e$1);
                     var _val$16;
-                    if (_val$15) _val$16 = _val$15 + -2 | 0;
-                    else _val$16 = 0;
+                    _val$16 = _val$15 ? _val$15 + -2 | 0 : 0;
                     A$1 = _val$16;
                 }
                 var _val$12;
-                if (A$1) _val$12 = A$1 + 3 | 0;
-                else _val$12 = 0;
+                _val$12 = A$1 ? A$1 + 3 | 0 : 0;
                 f$2 = _val$12;
             }
         }
@@ -5344,8 +5246,7 @@ _ini[3] = function(A, r, i$1, _, f$1, a) {
         if (!(a$1 >>> 0 <= c$2 >>> 0 | e >>> 0 <= f$2 >>> 0)) ;
         else break;
         var _val$14;
-        if (96 == Dr[i$2 + c$2 | 0]) _val$14 = f$2 + 1 | 0;
-        else _val$14 = 0;
+        _val$14 = 96 == Dr[i$2 + c$2 | 0] ? f$2 + 1 | 0 : 0;
         f$2 = _val$14;
         c$2 = c$2 + 1 | 0;
     }
@@ -5359,8 +5260,7 @@ _ini[3] = function(A, r, i$1, _, f$1, a) {
         }
         if (!_log) {
             var _val$14;
-            if (c$2 >>> 0 < e >>> 0) _val$14 = e;
-            else _val$14 = c$2;
+            _val$14 = c$2 >>> 0 < e >>> 0 ? e : c$2;
             b = _val$14;
             f$2 = e;
             for(;;){
@@ -5374,8 +5274,7 @@ _ini[3] = function(A, r, i$1, _, f$1, a) {
                         var _val$17 = c$2 - e | 0;
                         f$2 = _val$17;
                         var _val$18;
-                        if (_lhs < _val$17 >>> 0) _val$18 = e;
-                        else _val$18 = _val$17;
+                        _val$18 = _lhs < _val$17 >>> 0 ? e : _val$17;
                         k$1 = _val$18;
                         for(;;){
                             var _val$20 = f$2;
@@ -5395,8 +5294,7 @@ _ini[3] = function(A, r, i$1, _, f$1, a) {
                         vr[4 + _val$13 >> 2] = a$1 - b;
                         vr[_val$13 >> 2] = i$2 + b;
                         var _val$19;
-                        if (0 | _ini[vr[_val$11 + 52 >> 2]](A$1, _val$13, vr[_val$11 + 112 >> 2])) _val$19 = c$2;
-                        else _val$19 = 0;
+                        _val$19 = 0 | _ini[vr[_val$11 + 52 >> 2]](A$1, _val$13, vr[_val$11 + 112 >> 2]) ? c$2 : 0;
                         a$1 = _val$19;
                         break A$2;
                     }
@@ -5409,8 +5307,7 @@ _ini[3] = function(A, r, i$1, _, f$1, a) {
             A$1 = _val$15;
             Mr = 16 + _val$13 | 0;
             var _val$16;
-            if (_val$15) _val$16 = c$2;
-            else _val$16 = 0;
+            _val$16 = _val$15 ? c$2 : 0;
             return 0 | _val$16;
         }
     }
@@ -5484,8 +5381,7 @@ _ini[5] = function(A, r, i$1, e, f$1, a) {
                     if (!vr[_val$11 + 76 >> 2]) break i$3;
                 }
                 var _val$14;
-                if (1 < _val$13 >>> 0) _val$14 = _val$13;
-                else _val$14 = 1;
+                _val$14 = 1 < _val$13 >>> 0 ? _val$13 : 1;
                 f$2 = _val$14;
                 e$1 = 1;
                 n$1 = 1;
@@ -5535,8 +5431,7 @@ _ini[5] = function(A, r, i$1, e, f$1, a) {
                                 if (40 == (0 | Z)) {
                                     var _val$24 = f$2 + 1 | 0;
                                     var _val$25;
-                                    if (_val$24 >>> 0 < _val$13 >>> 0) _val$25 = _val$13;
-                                    else _val$25 = _val$24;
+                                    _val$25 = _val$24 >>> 0 < _val$13 >>> 0 ? _val$13 : _val$24;
                                     var _val$26 = _val$25;
                                     u = _val$26;
                                     Z = _val$26 + -1 | 0;
@@ -5596,8 +5491,7 @@ _ini[5] = function(A, r, i$1, e, f$1, a) {
                                             else if (!(41 != (0 | _ini$3) | c$2)) {
                                                 var _val$28 = Z + -1 | 0;
                                                 var _val$29;
-                                                if (u >>> 0 < _val$28 >>> 0) _val$29 = b;
-                                                else _val$29 = _val$28;
+                                                _val$29 = u >>> 0 < _val$28 >>> 0 ? b : _val$28;
                                                 a$1 = _val$29;
                                                 c$2 = Z;
                                                 for(;;){
@@ -5712,8 +5606,7 @@ _ini[5] = function(A, r, i$1, e, f$1, a) {
                         break e$2;
                     }
                     var _val$16;
-                    if (u >>> 0 < f$2 >>> 0) _val$16 = u;
-                    else _val$16 = f$2;
+                    _val$16 = u >>> 0 < f$2 >>> 0 ? u : f$2;
                     n$1 = _val$16;
                     for(;;){
                         var _val$21 = u;
@@ -5737,13 +5630,11 @@ _ini[5] = function(A, r, i$1, e, f$1, a) {
                     s = 0;
                     n$1 = 0;
                     var _val$17;
-                    if (60 == Dr[_val$12 + f$2 | 0]) _val$17 = C + 2 | 0;
-                    else _val$17 = f$2;
+                    _val$17 = 60 == Dr[_val$12 + f$2 | 0] ? C + 2 | 0 : f$2;
                     var _val$18 = _val$17;
                     f$2 = _val$18;
                     var _val$19;
-                    if (62 == (255 & a$1)) _val$19 = u;
-                    else _val$19 = k$1;
+                    _val$19 = 62 == (255 & a$1) ? u : k$1;
                     var _val$20 = _val$19;
                     a$1 = _val$20;
                     if (_val$18 >>> 0 < _val$20 >>> 0) {
@@ -5833,8 +5724,7 @@ _ini[6] = function(A, r, i$1, _, f$1, a) {
                     a$1 = _val$15;
                     if (!(_lhs | _val$15 >>> 0 < 3)) {
                         var _val$16;
-                        if (47 == Dr[_val$12 + 1 | 0]) _val$16 = 2;
-                        else _val$16 = 1;
+                        _val$16 = 47 == Dr[_val$12 + 1 | 0] ? 2 : 1;
                         var _ini$4 = _val$16;
                         c$2 = _ini$4;
                         if (_fun$64(Dr[_ini$4 + _val$12 | 0])) {
@@ -5896,8 +5786,7 @@ _ini[6] = function(A, r, i$1, _, f$1, a) {
                                                 break;
                                             }
                                             var _val$20;
-                                            if (1 == (0 | o$1)) _val$20 = w + 1 | 0;
-                                            else _val$20 = 0;
+                                            _val$20 = 1 == (0 | o$1) ? w + 1 | 0 : 0;
                                             t$1 = _val$20;
                                         }
                                         var _val$19 = t$1;
@@ -5959,8 +5848,7 @@ _ini[6] = function(A, r, i$1, _, f$1, a) {
             vr[_ini$3 >> 2] = 0;
         }
         var _val$14;
-        if (a$1 >>> 0 < c$2 >>> 0) _val$14 = c$2;
-        else _val$14 = a$1;
+        _val$14 = a$1 >>> 0 < c$2 >>> 0 ? c$2 : a$1;
         k$1 = _val$14;
         for(;;){
             r$1: {
@@ -5969,8 +5857,7 @@ _ini[6] = function(A, r, i$1, _, f$1, a) {
                     k$1 = c$2;
                 }
                 var _val$15;
-                if (k$1 >>> 0 < a$1 >>> 0) _val$15 = k$1 + 1 | 0;
-                else _val$15 = 0;
+                _val$15 = k$1 >>> 0 < a$1 >>> 0 ? k$1 + 1 | 0 : 0;
                 a$1 = _val$15;
                 break A$1;
             }
@@ -6071,8 +5958,7 @@ _ini[8] = function(A, r, i$1, e, f$1, a) {
         var _val$17 = 35 == (0 | _val$16);
         k$1 = _val$17;
         var _val$18;
-        if (_val$17) _val$18 = 2;
-        else _val$18 = 1;
+        _val$18 = _val$17 ? 2 : 1;
         var _val$19 = _val$18;
         f$2 = _val$19;
         if (35 != (0 | _val$16) | _val$13 >>> 0 <= _val$19 >>> 0) ;
@@ -6084,8 +5970,7 @@ _ini[8] = function(A, r, i$1, e, f$1, a) {
         }
     }
     var _val$15;
-    if (_val$13 >>> 0 < f$2 >>> 0) _val$15 = f$2;
-    else _val$15 = _val$13;
+    _val$15 = _val$13 >>> 0 < f$2 >>> 0 ? f$2 : _val$13;
     var b = _val$15;
     var w = f$2;
     A$1: {
@@ -6115,8 +6000,7 @@ _ini[8] = function(A, r, i$1, e, f$1, a) {
                 if (k$1) {
                     if (7 < w - f$2 >>> 0) break A$1;
                     var _val$18;
-                    if (c$2) _val$18 = 16;
-                    else _val$18 = 10;
+                    _val$18 = c$2 ? 16 : 10;
                     var _val$19 = _val$18;
                     b = _val$19;
                     var _val$20 = Mr - 144 | 0;
@@ -6129,8 +6013,7 @@ _ini[8] = function(A, r, i$1, e, f$1, a) {
                     vr[_val$20 + 76 >> 2] = -1;
                     var _obj = vr;
                     var _val$22;
-                    if ((0 | _val$21) < 0) _val$22 = -1;
-                    else _val$22 = _val$21 + 2147483647 | 0;
+                    _val$22 = (0 | _val$21) < 0 ? -1 : _val$21 + 2147483647 | 0;
                     _obj[_val$20 + 8 >> 2] = _val$22;
                     _fun$55(_val$20);
                     o$1 = _val$20;
@@ -6163,8 +6046,7 @@ _ini[8] = function(A, r, i$1, e, f$1, a) {
                                 break i$2;
                         }
                         var _val$25;
-                        if (45 == (0 | G)) _val$25 = -1;
-                        else _val$25 = 0;
+                        _val$25 = 45 == (0 | G) ? -1 : 0;
                         B = _val$25;
                         var _val$26 = vr[_val$20 + 4 >> 2];
                         var _val$27;
@@ -6352,31 +6234,26 @@ _ini[8] = function(A, r, i$1, e, f$1, a) {
                                             var _ini$8 = _lhs + _val$44 | 0;
                                             var _ini$9 = eA;
                                             var _val$45;
-                                            if (_ini$8 >>> 0 < _val$44 >>> 0) _val$45 = _ini$9 + 1 | 0;
-                                            else _val$45 = _ini$9;
+                                            _val$45 = _ini$8 >>> 0 < _val$44 >>> 0 ? _ini$9 + 1 | 0 : _ini$9;
                                             var _val$46 = _val$45;
                                             var _ini$10 = _val$46 + _ini$5 | 0;
                                             var _ini$11 = _fun$46(_ini$4, 0, _val$43) + _ini$8 | 0;
                                             var _ini$12 = eA;
                                             var _obj$2 = vr;
                                             var _val$47;
-                                            if (_ini$11 >>> 0 < _ini$8 >>> 0) _val$47 = _ini$12 + 1 | 0;
-                                            else _val$47 = _ini$12;
+                                            _val$47 = _ini$11 >>> 0 < _ini$8 >>> 0 ? _ini$12 + 1 | 0 : _ini$12;
                                             var _val$48 = _val$47;
                                             var _val$49 = _val$48 + _ini$10 | 0;
                                             _obj$2[8 + _ini$3 >> 2] = _val$49;
                                             var _val$50;
-                                            if (_ini$5 >>> 0 < 0) _val$50 = _ini$6 + 1 | 0;
-                                            else _val$50 = _ini$6;
+                                            _val$50 = _ini$5 >>> 0 < 0 ? _ini$6 + 1 | 0 : _ini$6;
                                             var _val$51 = _val$50;
                                             var _val$52;
-                                            if (_ini$10 >>> 0 < _val$46 >>> 0) _val$52 = _val$51 + 1 | 0;
-                                            else _val$52 = _val$51;
+                                            _val$52 = _ini$10 >>> 0 < _val$46 >>> 0 ? _val$51 + 1 | 0 : _val$51;
                                             var _val$53 = _val$52;
                                             var _obj$3 = vr;
                                             var _val$54;
-                                            if (_val$49 >>> 0 < _val$48 >>> 0) _val$54 = _val$53 + 1 | 0;
-                                            else _val$54 = _val$53;
+                                            _val$54 = _val$49 >>> 0 < _val$48 >>> 0 ? _val$53 + 1 | 0 : _val$53;
                                             _obj$3[12 + _ini$3 >> 2] = _val$54;
                                             vr[_ini$3 >> 2] = _ini$7;
                                             vr[4 + _ini$3 >> 2] = _ini$11;
@@ -6652,8 +6529,7 @@ _ini[9] = function(A, r, i$1, e, _, a) {
                 var _val$17 = _val$16 + 3 | 0;
                 b = _val$17;
                 var _val$18;
-                if (_val$17 >>> 0 < _val$12 >>> 0) _val$18 = _val$12;
-                else _val$18 = _val$17;
+                _val$18 = _val$17 >>> 0 < _val$12 >>> 0 ? _val$12 : _val$17;
                 k$1 = _val$18;
                 for(;;){
                     var _ini$5 = i$2;
@@ -6835,8 +6711,7 @@ _ini[11] = function(A, r, i$1, e, _, a) {
             }
             if (_log) {
                 var _val$18;
-                if (_val$13 >>> 0 < e$1 >>> 0) _val$18 = e$1;
-                else _val$18 = _val$13;
+                _val$18 = _val$13 >>> 0 < e$1 >>> 0 ? e$1 : _val$13;
                 c$2 = _val$18;
                 for(;;){
                     var _val$19 = i$2;
@@ -6927,8 +6802,7 @@ _ini[12] = function(A, r, i$1, e, f$1, a) {
                                         s = _ini$5;
                                         if (_ini$5 >>> 0 < o$1 >>> 0) {
                                             var _val$22;
-                                            if (_fun$36(w + J | 0, 1317, 2)) _val$22 = J;
-                                            else _val$22 = _ini$5;
+                                            _val$22 = _fun$36(w + J | 0, 1317, 2) ? J : _ini$5;
                                             Z = _val$22;
                                         }
                                         if (!_fun$64(Dr[w + Z | 0])) break i$3;
@@ -6936,8 +6810,7 @@ _ini[12] = function(A, r, i$1, e, f$1, a) {
                                         C = 24;
                                     }
                                     var _val$20;
-                                    if (o$1 >>> 0 < Z >>> 0) _val$20 = Z;
-                                    else _val$20 = o$1;
+                                    _val$20 = o$1 >>> 0 < Z >>> 0 ? Z : o$1;
                                     s = _val$20;
                                     for(;;){
                                         n$1: {
@@ -6976,8 +6849,7 @@ _ini[12] = function(A, r, i$1, e, f$1, a) {
                             }
                             f$2: if (!(47 != Dr[_val$11 + Z | 0] | _val$14 >>> 0 <= Z >>> 0)) {
                                 var _val$20;
-                                if (_val$14 >>> 0 < Z >>> 0) _val$20 = Z;
-                                else _val$20 = _val$14;
+                                _val$20 = _val$14 >>> 0 < Z >>> 0 ? Z : _val$14;
                                 s = _val$20;
                                 for(;;){
                                     if ((0 | Z) == (0 | s)) {
@@ -7036,8 +6908,7 @@ _ini[12] = function(A, r, i$1, e, f$1, a) {
                     s = _val$22;
                     o$1 = 0;
                     var _val$23;
-                    if (45 != (0 | _val$21)) _val$23 = _val$22;
-                    else _val$23 = 0;
+                    _val$23 = 45 != (0 | _val$21) ? _val$22 : 0;
                     _log$1 = _val$23;
                 }
                 if (!_log$1) {
@@ -7357,8 +7228,7 @@ _ini[24] = function(A, r, i$1, e) {
                         if (_fun$68(_ini$5)) f$1 = f$1 + 1 | 0;
                         else {
                             var _val$13;
-                            if (n$1 >>> 0 < f$1 >>> 0) _val$13 = f$1;
-                            else _val$13 = n$1;
+                            _val$13 = n$1 >>> 0 < f$1 >>> 0 ? f$1 : n$1;
                             n$1 = _val$13;
                             e$1 = f$1;
                             for(;;){
@@ -7478,8 +7348,7 @@ _ini[29] = function(A, _lhs) {
     var _val$11 = A | 0;
     if (vr[4 + _val$11 >> 2]) _fun$52(_val$11, 10);
     var _val$12;
-    if (256 & vr[_val$10 + 16 >> 2]) _val$12 = 3329;
-    else _val$12 = 3323;
+    _val$12 = 256 & vr[_val$10 + 16 >> 2] ? 3329 : 3323;
     _fun$71(_val$11, _val$12);
 };
 _ini[30] = function(A, r, i$1) {
@@ -7489,13 +7358,11 @@ _ini[30] = function(A, r, i$1) {
     if (vr[4 + _val$12 >> 2]) _fun$52(_val$12, 10);
     var _val$13 = _val$11 & 1;
     var _val$14;
-    if (_val$13) _val$14 = 3297;
-    else _val$14 = 3303;
+    _val$14 = _val$13 ? 3297 : 3303;
     _fun$51(_val$12, _val$14, 5);
     if (_val$10) _fun$51(_val$12, vr[_val$10 >> 2], vr[_val$10 + 4 >> 2]);
     var _val$15;
-    if (_val$13) _val$15 = 3309;
-    else _val$15 = 3316;
+    _val$15 = _val$13 ? 3309 : 3316;
     _fun$51(_val$12, _val$15, 6);
 };
 _ini[31] = function(A, r, i$1, e) {
@@ -7604,8 +7471,7 @@ _ini[35] = function(A, r, i$1, _, f$1) {
     var _val$13 = i$1 | 0;
     var _val$14 = 4 & _val$13;
     var _val$15;
-    if (_val$14 >>> 2 | 0) _val$15 = 3132;
-    else _val$15 = 3136;
+    _val$15 = _val$14 >>> 2 | 0 ? 3132 : 3136;
     _fun$51(_val$12, _val$15, 3);
     if (2 <= (0 | _val$11)) {
         _fun$51(_val$12, 3140, 10);
@@ -7628,8 +7494,7 @@ _ini[35] = function(A, r, i$1, _, f$1) {
     }
     if (_val$10) _fun$51(_val$12, vr[_val$10 >> 2], vr[_val$10 + 4 >> 2]);
     var _val$16;
-    if (_val$14) _val$16 = 3204;
-    else _val$16 = 3211;
+    _val$16 = _val$14 ? 3204 : 3211;
     _fun$51(_val$12, _val$16, 6);
 };
 _ini[36] = function(A, r, i$1, e) {
@@ -7723,8 +7588,7 @@ _ini[37] = function(A, r, i$1, e, f$1) {
             _fun$29(_val$10, vr[_val$11 >> 2], vr[_val$11 + 4 >> 2]);
         }
         var _val$15;
-        if (256 & vr[_val$13 + 16 >> 2]) _val$15 = 3120;
-        else _val$15 = 2927;
+        _val$15 = 256 & vr[_val$13 + 16 >> 2] ? 3120 : 2927;
         _fun$71(_val$10, _val$15);
         a = 1;
     }
@@ -7880,8 +7744,7 @@ _ini[40] = function(A, r, i$1) {
                                             }
                                             if (_log) continue;
                                             var _val$15;
-                                            if (f$1) _val$15 = w;
-                                            else _val$15 = b;
+                                            _val$15 = f$1 ? w : b;
                                             _fun$52(_val$15, o$1);
                                             k$1 = _val$14;
                                             e = f$1;
