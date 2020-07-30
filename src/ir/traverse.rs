@@ -224,152 +224,146 @@ fn fold_block(this: &mut impl Folder, block: ir::Block, ty: ScopeTy) -> ir::Bloc
     this.wrap_scope(&ty, block, |this, block| {
         let ir::Block(children) = block;
 
-        let folded_children = children
-            .into_iter()
-            .flat_map(|child| {
-                this.fold(child)
-                    .into_iter()
-                    .map(|stmt| match stmt {
-                        ir::Stmt::Expr { target, expr } => ir::Stmt::Expr {
-                            target,
-                            expr: match expr {
-                                ir::Expr::Read { source } => ir::Expr::Read {
-                                    source: this.fold_ref_use(source),
-                                },
-                                ir::Expr::ReadMember { obj, prop } => ir::Expr::ReadMember {
-                                    obj: this.fold_ref_use(obj),
-                                    prop: this.fold_ref_use(prop),
-                                },
-                                ir::Expr::Array { elems } => ir::Expr::Array {
-                                    elems: elems
-                                        .into_iter()
-                                        .map(|opt| {
-                                            opt.map(|(kind, ele)| (kind, this.fold_ref_use(ele)))
-                                        })
-                                        .collect(),
-                                },
-                                ir::Expr::Object { props } => ir::Expr::Object {
-                                    props: props
-                                        .into_iter()
-                                        .map(|(kind, key, val)| {
-                                            (kind, this.fold_ref_use(key), this.fold_ref_use(val))
-                                        })
-                                        .collect(),
-                                },
-                                ir::Expr::Unary { op, val } => ir::Expr::Unary {
-                                    op,
-                                    val: this.fold_ref_use(val),
-                                },
-                                ir::Expr::Binary { op, left, right } => ir::Expr::Binary {
-                                    op,
-                                    left: this.fold_ref_use(left),
-                                    right: this.fold_ref_use(right),
-                                },
-                                ir::Expr::Delete { obj, prop } => ir::Expr::Delete {
-                                    obj: this.fold_ref_use(obj),
-                                    prop: this.fold_ref_use(prop),
-                                },
-                                ir::Expr::Yield { kind, val } => ir::Expr::Yield {
-                                    kind,
-                                    val: this.fold_ref_use(val),
-                                },
-                                ir::Expr::Await { val } => ir::Expr::Await {
-                                    val: this.fold_ref_use(val),
-                                },
-                                ir::Expr::Call {
-                                    kind,
-                                    base,
-                                    prop,
-                                    args,
-                                } => ir::Expr::Call {
-                                    kind,
-                                    base: this.fold_ref_use(base),
-                                    prop: prop.map(|prop| this.fold_ref_use(prop)),
-                                    args: args
-                                        .into_iter()
-                                        .map(|(kind, arg)| (kind, this.fold_ref_use(arg)))
-                                        .collect(),
-                                },
-                                ir::Expr::Function { kind, body } => ir::Expr::Function {
-                                    kind,
-                                    body: fold_block(this, body, ScopeTy::Function),
-                                },
-                                ir::Expr::Bool { value: _ }
-                                | ir::Expr::Number { value: _ }
-                                | ir::Expr::String { value: _ }
-                                | ir::Expr::Null
-                                | ir::Expr::Undefined
-                                | ir::Expr::This
-                                | ir::Expr::ReadMutable { source: _ }
-                                | ir::Expr::ReadGlobal { source: _ }
-                                | ir::Expr::RegExp { regex: _, flags: _ }
-                                | ir::Expr::CurrentFunction
-                                | ir::Expr::Argument { index: _ } => expr,
-                            },
+        let mut folded_children = Vec::with_capacity(children.len());
+        for child in children {
+            let folded_child = this.fold(child).into_iter().map(|stmt| match stmt {
+                ir::Stmt::Expr { target, expr } => ir::Stmt::Expr {
+                    target,
+                    expr: match expr {
+                        ir::Expr::Read { source } => ir::Expr::Read {
+                            source: this.fold_ref_use(source),
                         },
-                        ir::Stmt::DeclareMutable { target, val } => ir::Stmt::DeclareMutable {
-                            target,
-                            val: this.fold_ref_use(val),
-                        },
-                        ir::Stmt::WriteMutable { target, val } => ir::Stmt::WriteMutable {
-                            target,
-                            val: this.fold_ref_use(val),
-                        },
-                        ir::Stmt::WriteGlobal { target, val } => ir::Stmt::WriteGlobal {
-                            target,
-                            val: this.fold_ref_use(val),
-                        },
-                        ir::Stmt::WriteMember { obj, prop, val } => ir::Stmt::WriteMember {
+                        ir::Expr::ReadMember { obj, prop } => ir::Expr::ReadMember {
                             obj: this.fold_ref_use(obj),
                             prop: this.fold_ref_use(prop),
+                        },
+                        ir::Expr::Array { elems } => ir::Expr::Array {
+                            elems: elems
+                                .into_iter()
+                                .map(|opt| opt.map(|(kind, ele)| (kind, this.fold_ref_use(ele))))
+                                .collect(),
+                        },
+                        ir::Expr::Object { props } => ir::Expr::Object {
+                            props: props
+                                .into_iter()
+                                .map(|(kind, key, val)| {
+                                    (kind, this.fold_ref_use(key), this.fold_ref_use(val))
+                                })
+                                .collect(),
+                        },
+                        ir::Expr::Unary { op, val } => ir::Expr::Unary {
+                            op,
                             val: this.fold_ref_use(val),
                         },
-                        ir::Stmt::Return { val } => ir::Stmt::Return {
-                            val: this.fold_ref_use(val),
+                        ir::Expr::Binary { op, left, right } => ir::Expr::Binary {
+                            op,
+                            left: this.fold_ref_use(left),
+                            right: this.fold_ref_use(right),
                         },
-                        ir::Stmt::Throw { val } => ir::Stmt::Throw {
-                            val: this.fold_ref_use(val),
+                        ir::Expr::Delete { obj, prop } => ir::Expr::Delete {
+                            obj: this.fold_ref_use(obj),
+                            prop: this.fold_ref_use(prop),
                         },
-                        ir::Stmt::Label { label, body } => ir::Stmt::Label {
-                            label,
-                            body: fold_block(this, body, ScopeTy::Normal),
-                        },
-                        ir::Stmt::Loop { body } => ir::Stmt::Loop {
-                            body: fold_block(this, body, ScopeTy::Nonlinear),
-                        },
-                        ir::Stmt::ForEach { kind, init, body } => ir::Stmt::ForEach {
+                        ir::Expr::Yield { kind, val } => ir::Expr::Yield {
                             kind,
-                            init: this.fold_ref_use(init),
-                            body: fold_block(this, body, ScopeTy::Nonlinear),
+                            val: this.fold_ref_use(val),
                         },
-                        ir::Stmt::IfElse { cond, cons, alt } => ir::Stmt::IfElse {
-                            cond: this.fold_ref_use(cond),
-                            cons: fold_block(this, cons, ScopeTy::Normal),
-                            alt: fold_block(this, alt, ScopeTy::Normal),
+                        ir::Expr::Await { val } => ir::Expr::Await {
+                            val: this.fold_ref_use(val),
                         },
-                        ir::Stmt::Switch { discr, body } => ir::Stmt::Switch {
-                            discr: this.fold_ref_use(discr),
-                            body: fold_block(this, body, ScopeTy::Normal),
+                        ir::Expr::Call {
+                            kind,
+                            base,
+                            prop,
+                            args,
+                        } => ir::Expr::Call {
+                            kind,
+                            base: this.fold_ref_use(base),
+                            prop: prop.map(|prop| this.fold_ref_use(prop)),
+                            args: args
+                                .into_iter()
+                                .map(|(kind, arg)| (kind, this.fold_ref_use(arg)))
+                                .collect(),
                         },
-                        ir::Stmt::SwitchCase { val } => ir::Stmt::SwitchCase {
-                            val: val.map(|val| this.fold_ref_use(val)),
+                        ir::Expr::Function { kind, body } => ir::Expr::Function {
+                            kind,
+                            body: fold_block(this, body, ScopeTy::Function),
                         },
-                        ir::Stmt::Try {
-                            body,
-                            catch,
-                            finally,
-                        } => ir::Stmt::Try {
-                            body: fold_block(this, body, ScopeTy::Normal),
-                            catch: fold_block(this, catch, ScopeTy::Normal),
-                            finally: Box::new(fold_block(this, *finally, ScopeTy::Normal)),
-                        },
-                        ir::Stmt::Break { label: _ }
-                        | ir::Stmt::Continue { label: _ }
-                        | ir::Stmt::Debugger => stmt,
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .collect();
+                        ir::Expr::Bool { value: _ }
+                        | ir::Expr::Number { value: _ }
+                        | ir::Expr::String { value: _ }
+                        | ir::Expr::Null
+                        | ir::Expr::Undefined
+                        | ir::Expr::This
+                        | ir::Expr::ReadMutable { source: _ }
+                        | ir::Expr::ReadGlobal { source: _ }
+                        | ir::Expr::RegExp { regex: _, flags: _ }
+                        | ir::Expr::CurrentFunction
+                        | ir::Expr::Argument { index: _ } => expr,
+                    },
+                },
+                ir::Stmt::DeclareMutable { target, val } => ir::Stmt::DeclareMutable {
+                    target,
+                    val: this.fold_ref_use(val),
+                },
+                ir::Stmt::WriteMutable { target, val } => ir::Stmt::WriteMutable {
+                    target,
+                    val: this.fold_ref_use(val),
+                },
+                ir::Stmt::WriteGlobal { target, val } => ir::Stmt::WriteGlobal {
+                    target,
+                    val: this.fold_ref_use(val),
+                },
+                ir::Stmt::WriteMember { obj, prop, val } => ir::Stmt::WriteMember {
+                    obj: this.fold_ref_use(obj),
+                    prop: this.fold_ref_use(prop),
+                    val: this.fold_ref_use(val),
+                },
+                ir::Stmt::Return { val } => ir::Stmt::Return {
+                    val: this.fold_ref_use(val),
+                },
+                ir::Stmt::Throw { val } => ir::Stmt::Throw {
+                    val: this.fold_ref_use(val),
+                },
+                ir::Stmt::Label { label, body } => ir::Stmt::Label {
+                    label,
+                    body: fold_block(this, body, ScopeTy::Normal),
+                },
+                ir::Stmt::Loop { body } => ir::Stmt::Loop {
+                    body: fold_block(this, body, ScopeTy::Nonlinear),
+                },
+                ir::Stmt::ForEach { kind, init, body } => ir::Stmt::ForEach {
+                    kind,
+                    init: this.fold_ref_use(init),
+                    body: fold_block(this, body, ScopeTy::Nonlinear),
+                },
+                ir::Stmt::IfElse { cond, cons, alt } => ir::Stmt::IfElse {
+                    cond: this.fold_ref_use(cond),
+                    cons: fold_block(this, cons, ScopeTy::Normal),
+                    alt: fold_block(this, alt, ScopeTy::Normal),
+                },
+                ir::Stmt::Switch { discr, body } => ir::Stmt::Switch {
+                    discr: this.fold_ref_use(discr),
+                    body: fold_block(this, body, ScopeTy::Normal),
+                },
+                ir::Stmt::SwitchCase { val } => ir::Stmt::SwitchCase {
+                    val: val.map(|val| this.fold_ref_use(val)),
+                },
+                ir::Stmt::Try {
+                    body,
+                    catch,
+                    finally,
+                } => ir::Stmt::Try {
+                    body: fold_block(this, body, ScopeTy::Normal),
+                    catch: fold_block(this, catch, ScopeTy::Normal),
+                    finally: Box::new(fold_block(this, *finally, ScopeTy::Normal)),
+                },
+                ir::Stmt::Break { label: _ }
+                | ir::Stmt::Continue { label: _ }
+                | ir::Stmt::Debugger => stmt,
+            });
+            folded_children.extend(folded_child);
+        }
 
         ir::Block(folded_children)
     })
