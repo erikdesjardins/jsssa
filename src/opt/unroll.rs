@@ -15,51 +15,90 @@ use crate::ir::traverse::{Folder, ScopeTy};
 #[derive(Debug, Default)]
 pub struct Loops {
     refs_used_in_only_one_fn_scope: HashSet<ir::WeakRef<ir::Ssa>>,
-    local_small_objects: HashMap<ir::WeakRef<ir::Ssa>, Option<ir::Ref<ir::Ssa>>>,
-    nonlocal_small_objects: HashMap<ir::WeakRef<ir::Ssa>, Option<ir::Ref<ir::Ssa>>>,
-    invalid_in_parent: Invalid,
+    local: Objects,
+    nonlocal: Objects,
 }
 
 #[derive(Debug, Default)]
-struct Invalid {
-    all_nonlocal: bool,
-    objects: HashSet<ir::WeakRef<ir::Ssa>>,
+struct Objects {
+    small_objects: HashMap<ir::WeakRef<ir::Ssa>, Option<ir::Ref<ir::Ssa>>>,
+    invalid_in_parent: Invalid,
+}
+
+#[derive(Debug)]
+enum Invalid {
+    All,
+    Objects(HashSet<ir::WeakRef<ir::Ssa>>),
+}
+
+impl Default for Invalid {
+    fn default() -> Self {
+        Self::Objects(Default::default())
+    }
+}
+
+impl Invalid {
+    fn insert_obj(&mut self, obj: ir::WeakRef<ir::Ssa>) {
+        match self {
+            Self::All => {
+                // all objects already invalid
+            }
+            Self::Objects(objects) => {
+                objects.insert(obj);
+            }
+        }
+    }
 }
 
 impl Loops {
     fn invalidate_from_child(&mut self, child: Self) {
-        if child.invalid_in_parent.all_nonlocal {
-            self.invalidate_everything_used_across_fn_scopes();
+        fn invalidate(this: &mut Objects, child: Objects) {
+            match child.invalid_in_parent {
+                Invalid::All => {
+                    this.small_objects.clear();
+                    this.invalid_in_parent = Invalid::All;
+                }
+                Invalid::Objects(objects) => {
+                    for obj in objects {
+                        this.small_objects.remove(&obj);
+                        this.invalid_in_parent.insert_obj(obj);
+                    }
+                }
+            }
         }
-        for invalid_ref in child.invalid_in_parent.objects {
-            self.invalidate_ref(invalid_ref);
-        }
+        invalidate(&mut self.local, child.local);
+        invalidate(&mut self.nonlocal, child.nonlocal);
     }
 
     fn invalidate_everything_used_across_fn_scopes(&mut self) {
-        self.nonlocal_small_objects.clear();
-        self.invalid_in_parent.all_nonlocal = true;
+        self.nonlocal.small_objects.clear();
+        self.nonlocal.invalid_in_parent = Invalid::All;
     }
 
     fn invalidate_ref(&mut self, ref_: ir::WeakRef<ir::Ssa>) {
-        self.local_small_objects
-            .remove(&ref_)
-            .or_else(|| self.nonlocal_small_objects.remove(&ref_));
-        self.invalid_in_parent.objects.insert(ref_);
+        let objects = if self.refs_used_in_only_one_fn_scope.contains(&ref_) {
+            &mut self.local
+        } else {
+            &mut self.nonlocal
+        };
+        objects.small_objects.remove(&ref_);
+        objects.invalid_in_parent.insert_obj(ref_);
     }
 
     fn declare_small_object(&mut self, ref_: ir::WeakRef<ir::Ssa>, prop: Option<ir::Ref<ir::Ssa>>) {
-        if self.refs_used_in_only_one_fn_scope.contains(&ref_) {
-            self.local_small_objects.insert(ref_, prop);
+        let objects = if self.refs_used_in_only_one_fn_scope.contains(&ref_) {
+            &mut self.local
         } else {
-            self.nonlocal_small_objects.insert(ref_, prop);
-        }
+            &mut self.nonlocal
+        };
+        objects.small_objects.insert(ref_, prop);
     }
 
     fn get_small_object(&self, ref_: &ir::WeakRef<ir::Ssa>) -> Option<&Option<ir::Ref<ir::Ssa>>> {
-        self.local_small_objects
+        self.local
+            .small_objects
             .get(ref_)
-            .or_else(|| self.nonlocal_small_objects.get(ref_))
+            .or_else(|| self.nonlocal.small_objects.get(ref_))
     }
 }
 
