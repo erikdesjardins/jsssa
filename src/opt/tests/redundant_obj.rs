@@ -267,6 +267,30 @@ something[_prp$1] <- _val$1
 "###);
 
 case!(
+    invalidate_escape_local_nonlocal_for_write,
+    |cx| passes!(cx),
+    r#"
+    let something = {};
+    something.x = 1; // do not drop
+    g = something;
+    something.x = 2;
+    h = function() { return something }
+"#,
+@r###"
+something = {  }
+_prp = "x"
+_val = 1
+something[_prp] <- _val
+<global g> <- something
+_prp$1 = "x"
+_val$1 = 2
+something[_prp$1] <- _val$1
+_val$2 = <function>:
+    <return> something
+<global h> <- _val$2
+"###);
+
+case!(
     invalidate_escape_deep_for_write,
     |cx| passes!(cx),
     r#"

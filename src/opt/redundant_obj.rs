@@ -67,15 +67,20 @@ struct CollectLoadStoreInfo<'a> {
     obj_ops_to_replace: HashMap<StmtIndex, What>,
     cur_index: StmtIndex,
     known_strings: HashMap<&'a ir::Ref<ir::Ssa>, &'a str>,
-    for_reads: Ops<'a>,
-    for_writes: Ops<'a>,
+    for_reads: Locality<'a>,
+    for_writes: Locality<'a>,
     last_use_was_safe: bool,
 }
 
 #[derive(Debug, Default)]
+struct Locality<'a> {
+    local: Ops<'a>,
+    nonlocal: Ops<'a>,
+}
+
+#[derive(Debug, Default)]
 struct Ops<'a> {
-    local_last_op: HashMap<&'a ir::Ref<ir::Ssa>, HashMap<&'a str, (StmtIndex, Op<'a>)>>,
-    nonlocal_last_op: HashMap<&'a ir::Ref<ir::Ssa>, HashMap<&'a str, (StmtIndex, Op<'a>)>>,
+    last_op: HashMap<&'a ir::Ref<ir::Ssa>, HashMap<&'a str, (StmtIndex, Op<'a>)>>,
     invalid_in_parent: Invalid<'a>,
 }
 
@@ -86,12 +91,16 @@ enum Op<'a> {
     Read(&'a ir::Ref<ir::Ssa>),
 }
 
-// todo opt: change this to enum Everything, NonlocalAnd(HashSet), Refs(HashSet)
-#[derive(Debug, Default)]
-struct Invalid<'a> {
-    all_local: bool,
-    all_nonlocal: bool,
-    objects: HashMap<&'a ir::Ref<ir::Ssa>, InvalidProps<'a>>,
+#[derive(Debug)]
+enum Invalid<'a> {
+    All,
+    Objects(HashMap<&'a ir::Ref<ir::Ssa>, InvalidProps<'a>>),
+}
+
+impl Default for Invalid<'_> {
+    fn default() -> Self {
+        Self::Objects(Default::default())
+    }
 }
 
 #[derive(Debug)]
@@ -108,16 +117,30 @@ impl Default for InvalidProps<'_> {
 
 impl<'a> Invalid<'a> {
     fn insert_obj(&mut self, obj: &'a ir::Ref<ir::Ssa>) {
-        self.objects.insert(obj, InvalidProps::All);
+        match self {
+            Self::All => {
+                // all objects already invalid
+            }
+            Self::Objects(objects) => {
+                objects.insert(obj, InvalidProps::All);
+            }
+        }
     }
 
     fn insert_prop(&mut self, obj: &'a ir::Ref<ir::Ssa>, prop: &'a str) {
-        match self.objects.entry(obj).or_default() {
-            InvalidProps::All => {
-                // entire object already invalid
+        match self {
+            Self::All => {
+                // all objects already invalid
             }
-            InvalidProps::Props(props) => {
-                props.insert(prop);
+            Self::Objects(objects) => {
+                match objects.entry(obj).or_default() {
+                    InvalidProps::All => {
+                        // entire object already invalid
+                    }
+                    InvalidProps::Props(props) => {
+                        props.insert(prop);
+                    }
+                }
             }
         }
     }
@@ -125,44 +148,44 @@ impl<'a> Invalid<'a> {
 
 impl<'a> CollectLoadStoreInfo<'a> {
     fn invalidate_from_child(&mut self, child: Self) {
-        fn invalidate<'a>(this: &mut Ops<'a>, invalid: Invalid<'a>) {
-            if invalid.all_local {
-                this.local_last_op.clear();
-                this.invalid_in_parent.all_local = true;
-            }
-            if invalid.all_nonlocal {
-                this.nonlocal_last_op.clear();
-                this.invalid_in_parent.all_nonlocal = true;
-            }
-            for (obj, inval) in invalid.objects {
-                match inval {
-                    InvalidProps::All => {
-                        this.local_last_op
-                            .remove(&obj)
-                            .or_else(|| this.nonlocal_last_op.remove(&obj));
-                        this.invalid_in_parent.insert_obj(obj);
+        fn invalidate<'a>(this: &mut Locality<'a>, child: Locality<'a>) {
+            fn invalidate<'a>(this: &mut Ops<'a>, child: Ops<'a>) {
+                match child.invalid_in_parent {
+                    Invalid::All => {
+                        this.last_op.clear();
+                        this.invalid_in_parent = Invalid::All;
                     }
-                    InvalidProps::Props(props) => {
-                        for prop in props {
-                            let ops = match this.local_last_op.get_mut(&obj) {
-                                Some(o) => Some(o),
-                                None => this.nonlocal_last_op.get_mut(&obj),
-                            };
-                            ops.and_then(|ops| ops.remove(&prop));
-                            this.invalid_in_parent.insert_prop(obj, prop);
+                    Invalid::Objects(objects) => {
+                        for (obj, inval) in objects {
+                            match inval {
+                                InvalidProps::All => {
+                                    this.last_op.remove(&obj);
+                                    this.invalid_in_parent.insert_obj(obj);
+                                }
+                                InvalidProps::Props(props) => {
+                                    for prop in props {
+                                        if let Some(props) = this.last_op.get_mut(&obj) {
+                                            props.remove(&prop);
+                                        };
+                                        this.invalid_in_parent.insert_prop(obj, prop);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
+            invalidate(&mut this.local, child.local);
+            invalidate(&mut this.nonlocal, child.nonlocal);
         }
-        invalidate(&mut self.for_reads, child.for_reads.invalid_in_parent);
-        invalidate(&mut self.for_writes, child.for_writes.invalid_in_parent);
+        invalidate(&mut self.for_reads, child.for_reads);
+        invalidate(&mut self.for_writes, child.for_writes);
     }
 
     fn invalidate_everything_used_across_fn_scopes(&mut self) {
-        fn invalidate(this: &mut Ops<'_>) {
-            this.nonlocal_last_op.clear();
-            this.invalid_in_parent.all_nonlocal = true;
+        fn invalidate(this: &mut Locality<'_>) {
+            this.nonlocal.last_op.clear();
+            this.nonlocal.invalid_in_parent = Invalid::All;
         }
         invalidate(&mut self.for_reads);
         invalidate(&mut self.for_writes);
@@ -170,53 +193,62 @@ impl<'a> CollectLoadStoreInfo<'a> {
 
     fn invalidate_object(&mut self, obj: &'a ir::Ref<ir::Ssa>) {
         fn invalidate<'a>(this: &mut Ops<'a>, obj: &'a ir::Ref<ir::Ssa>) {
-            this.local_last_op
-                .remove(&obj)
-                .or_else(|| this.nonlocal_last_op.remove(&obj));
+            this.last_op.remove(&obj);
             this.invalid_in_parent.insert_obj(obj);
         }
-        invalidate(&mut self.for_reads, obj);
-        invalidate(&mut self.for_writes, obj);
+        let (for_reads, for_writes) = if self.refs_used_in_only_one_fn_scope.contains(&obj) {
+            (&mut self.for_reads.local, &mut self.for_writes.local)
+        } else {
+            (&mut self.for_reads.nonlocal, &mut self.for_writes.nonlocal)
+        };
+        invalidate(for_reads, obj);
+        invalidate(for_writes, obj);
     }
 
     fn invalidate_everything_for_writes(&mut self) {
-        self.for_writes.local_last_op.clear();
-        self.for_writes.nonlocal_last_op.clear();
-        self.for_writes.invalid_in_parent.all_local = true;
-        self.for_writes.invalid_in_parent.all_nonlocal = true;
+        fn invalidate(this: &mut Ops<'_>) {
+            this.last_op.clear();
+            this.invalid_in_parent = Invalid::All;
+        }
+        invalidate(&mut self.for_writes.local);
+        invalidate(&mut self.for_writes.nonlocal);
     }
 
     fn invalidate_current_scope(&mut self) {
-        fn invalidate(this: &mut Ops<'_>) {
-            this.local_last_op.clear();
-            this.nonlocal_last_op.clear();
+        fn invalidate(this: &mut Locality<'_>) {
+            this.local.last_op.clear();
+            this.nonlocal.last_op.clear();
         }
         invalidate(&mut self.for_reads);
         invalidate(&mut self.for_writes);
     }
 
     fn set_last_op(&mut self, obj: &'a ir::Ref<ir::Ssa>, prop: &'a str, op: (StmtIndex, Op<'a>)) {
-        #[rustfmt::skip]
-            let (ops_reads, ops_writes) = if self.refs_used_in_only_one_fn_scope.contains(&obj) {
-            (&mut self.for_reads.local_last_op, &mut self.for_writes.local_last_op)
+        let (for_reads, for_writes) = if self.refs_used_in_only_one_fn_scope.contains(&obj) {
+            (&mut self.for_reads.local, &mut self.for_writes.local)
         } else {
-            (&mut self.for_reads.nonlocal_last_op, &mut self.for_writes.nonlocal_last_op)
+            (&mut self.for_reads.nonlocal, &mut self.for_writes.nonlocal)
         };
-        ops_reads.entry(obj).or_default().insert(prop, op.clone());
-        ops_writes.entry(obj).or_default().insert(prop, op);
-        self.for_reads.invalid_in_parent.insert_prop(obj, prop);
-        self.for_writes.invalid_in_parent.insert_prop(obj, prop);
+        for_reads
+            .last_op
+            .entry(obj)
+            .or_default()
+            .insert(prop, op.clone());
+        for_writes.last_op.entry(obj).or_default().insert(prop, op);
+        for_reads.invalid_in_parent.insert_prop(obj, prop);
+        for_writes.invalid_in_parent.insert_prop(obj, prop);
     }
 
     fn get_last_op<'op>(
         &self,
-        ops: &'op Ops<'a>,
+        ops: &'op Locality<'a>,
         obj: &'a ir::Ref<ir::Ssa>,
         prop: &'a str,
     ) -> Option<&'op (StmtIndex, Op<'a>)> {
-        ops.local_last_op
+        ops.local
+            .last_op
             .get(obj)
-            .or_else(|| ops.nonlocal_last_op.get(obj))
+            .or_else(|| ops.nonlocal.last_op.get(obj))
             .and_then(|props| props.get(prop))
     }
 
@@ -312,8 +344,8 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 mem::swap(&mut inner.known_strings, &mut self.known_strings);
                 // todo avoid these clones
-                inner.for_reads.local_last_op = self.for_reads.local_last_op.clone();
-                inner.for_reads.nonlocal_last_op = self.for_reads.nonlocal_last_op.clone();
+                inner.for_reads.local.last_op = self.for_reads.local.last_op.clone();
+                inner.for_reads.nonlocal.last_op = self.for_reads.nonlocal.last_op.clone();
                 let r = enter(&mut inner, block);
                 mem::swap(
                     &mut inner.refs_used_in_only_one_fn_scope,
