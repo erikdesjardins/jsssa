@@ -703,3 +703,39 @@ _val = <function>:
 <global h> <- _val
 <dead> = _val
 "###);
+
+case!(
+    aba_problem_with_level_numbers,
+    |cx| cx.run::<redundant::LoadStore>("redundant-load-store"),
+    r#"
+    var a = x;
+    if (a < 0) a++;
+    if (a < 0) a++;
+"#,
+@r###"
+<dead> = <void>
+_ini = <global x>
+a <= _ini
+_lhs = _ini
+_rhs = 0
+_iff = _lhs < _rhs
+<if> _iff:
+    _rdr = _ini
+    _one = 1
+    _wri = _rdr + _one
+    a <- _wri
+    <dead> = _rdr
+<else>:
+    <empty>
+_lhs$1 = *a
+_rhs$1 = 0
+_iff$1 = _lhs$1 < _rhs$1
+<if> _iff$1:
+    _rdr = *a
+    _one = 1
+    _wri = _rdr + _one
+    a <- _wri
+    <dead> = _rdr
+<else>:
+    <empty>
+"###);
