@@ -119,7 +119,7 @@ _val$1 = something[_prp$1]
 "###);
 
 case!(
-    invalidate_escape,
+    no_invalidate_escape,
     |cx| passes!(cx),
     r#"
     let something = { x: 1 };
@@ -128,7 +128,7 @@ case!(
         g = something;
     }
     g1 = something.x;
-    g2 = no_escape.y; // forward
+    g2 = no_escape.y;
 "#,
 @r###"
 _key = "x"
@@ -142,8 +142,8 @@ _iff = <global foo>
     <global g> <- something
 <else>:
     <empty>
-_prp = "x"
-_val$2 = something[_prp]
+<dead> = "x"
+_val$2 = _val
 <global g1> <- _val$2
 <dead> = "y"
 _val$3 = _val$1
@@ -151,30 +151,30 @@ _val$3 = _val$1
 "###);
 
 case!(
-    invalidate_escape_local,
+    no_invalidate_escape_local,
     |cx| passes!(cx),
     r#"
     let something = { x: 1 };
     g = something;
-    g1 = something.x; // do not forward
+    g1 = something.x;
 "#,
 @r###"
 _key = "x"
 _val = 1
 something = { [_key]: _val }
 <global g> <- something
-_prp = "x"
-_val$1 = something[_prp]
+<dead> = "x"
+_val$1 = _val
 <global g1> <- _val$1
 "###);
 
 case!(
-    invalidate_escape_local_nonlocal,
+    no_invalidate_escape_local_nonlocal,
     |cx| passes!(cx),
     r#"
     let something = { x: 1 };
     g = something;
-    g1 = something.x; // do not forward
+    g1 = something.x;
     h = function() { return something }
 "#,
 @r###"
@@ -182,8 +182,8 @@ _key = "x"
 _val = 1
 something = { [_key]: _val }
 <global g> <- something
-_prp = "x"
-_val$1 = something[_prp]
+<dead> = "x"
+_val$1 = _val
 <global g1> <- _val$1
 _val$2 = <function>:
     <return> something
@@ -191,7 +191,7 @@ _val$2 = <function>:
 "###);
 
 case!(
-    invalidate_escape_deep,
+    no_invalidate_escape_deep,
     |cx| passes!(cx),
     r#"
     let something = { x: 1 };
@@ -213,17 +213,17 @@ _iff = <global foo>
         <empty>
 <else>:
     <empty>
-_prp = "x"
-_val$1 = something[_prp]
+<dead> = "x"
+_val$1 = _val
 <global g1> <- _val$1
 "###);
 
 case!(
-    invalidate_escape_for_write,
+    no_invalidate_escape_for_write,
     |cx| passes!(cx),
     r#"
     let something = { x: 1 };
-    something.x = 1; // do not remove
+    something.x = 1;
     if (foo) {
         g = something;
     }
@@ -233,69 +233,66 @@ case!(
 _key = "x"
 _val = 1
 something = { [_key]: _val }
-_prp = "x"
-_val$1 = 1
-something[_prp] <- _val$1
+<dead> = "x"
+<dead> = 1
 _iff = <global foo>
 <if> _iff:
     <global g> <- something
 <else>:
     <empty>
-_prp$1 = "x"
-_val$2 = 2
-something[_prp$1] <- _val$2
+_prp = "x"
+_val$1 = 2
+something[_prp] <- _val$1
 "###);
 
 case!(
-    invalidate_escape_local_for_write,
+    no_invalidate_escape_local_for_write,
     |cx| passes!(cx),
     r#"
     let something = {};
-    something.x = 1; // do not drop
+    something.x = 1;
     g = something;
     something.x = 2;
 "#,
 @r###"
 something = {  }
-_prp = "x"
-_val = 1
-something[_prp] <- _val
+<dead> = "x"
+<dead> = 1
 <global g> <- something
-_prp$1 = "x"
-_val$1 = 2
-something[_prp$1] <- _val$1
+_prp = "x"
+_val = 2
+something[_prp] <- _val
 "###);
 
 case!(
-    invalidate_escape_local_nonlocal_for_write,
+    no_invalidate_escape_local_nonlocal_for_write,
     |cx| passes!(cx),
     r#"
     let something = {};
-    something.x = 1; // do not drop
+    something.x = 1;
     g = something;
     something.x = 2;
     h = function() { return something }
 "#,
 @r###"
 something = {  }
-_prp = "x"
-_val = 1
-something[_prp] <- _val
+<dead> = "x"
+<dead> = 1
 <global g> <- something
-_prp$1 = "x"
-_val$1 = 2
-something[_prp$1] <- _val$1
-_val$2 = <function>:
+_prp = "x"
+_val = 2
+something[_prp] <- _val
+_val$1 = <function>:
     <return> something
-<global h> <- _val$2
+<global h> <- _val$1
 "###);
 
 case!(
-    invalidate_escape_deep_for_write,
+    no_invalidate_escape_deep_for_write,
     |cx| passes!(cx),
     r#"
     let something = { x: 1 };
-    something.x = 1; // do not remove
+    something.x = 1;
     if (foo) if (foo) {
         g = something;
     }
@@ -305,9 +302,8 @@ case!(
 _key = "x"
 _val = 1
 something = { [_key]: _val }
-_prp = "x"
-_val$1 = 1
-something[_prp] <- _val$1
+<dead> = "x"
+<dead> = 1
 _iff = <global foo>
 <if> _iff:
     _iff$1 = <global foo>
@@ -317,9 +313,9 @@ _iff = <global foo>
         <empty>
 <else>:
     <empty>
-_prp$1 = "x"
-_val$2 = 2
-something[_prp$1] <- _val$2
+_prp = "x"
+_val$1 = 2
+something[_prp] <- _val$1
 "###);
 
 case!(
@@ -344,18 +340,18 @@ _val$1 = 2
 no_write = { [_key$1]: _val$1 }
 _iff = <global foo>
 <if> _iff:
-    _prp$1 = <global foo>
-    _val$4 = 1
-    something[_prp$1] <- _val$4
     _prp$2 = <global foo>
-    <dead> = no_write[_prp$2]
+    _val$4 = 1
+    something[_prp$2] <- _val$4
+    _prp$3 = <global foo>
+    <dead> = no_write[_prp$3]
 <else>:
     <empty>
 _prp = "x"
 _val$2 = something[_prp]
 <global g1> <- _val$2
-<dead> = "y"
-_val$3 = _val$1
+_prp$1 = "y"
+_val$3 = no_write[_prp$1]
 <global g2> <- _val$3
 "###);
 
@@ -1083,18 +1079,18 @@ case!(
 @r###"
 _key = "f"
 _val = 1
-<dead> = { [_key]: _val }
+obj = { [_key]: _val }
 _fun = <global invalidate>
 <dead> = _fun()
 _iff = <global bar>
 <if> _iff:
-    <dead> = "f"
-    _val$2 = _val
+    _prp$1 = "f"
+    _val$2 = obj[_prp$1]
     <global g> <- _val$2
 <else>:
     <empty>
-<dead> = "f"
-_val$1 = _val
+_prp = "f"
+_val$1 = obj[_prp]
 <global i> <- _val$1
 "###);
 
@@ -1326,10 +1322,8 @@ _ini = { [_key]: _val }
 <global g> <- _ini
 "###);
 
-// todo this pass is actually very unsound with aliasing
-/*
 case!(
-    unsound,
+    aliasing,
     all_passes,
     r#"
     var o = {};
@@ -1352,4 +1346,23 @@ _prp$2 = "x"
 _val$2 = _ini[_prp$2]
 <global h> <- _val$2
 "###);
-*/
+
+case!(
+    fully_unknown,
+    all_passes,
+    r#"
+    g = function(a, b, c) {
+      a.foo = 1;
+      return a.foo + 1;
+    }
+"#,
+@r###"
+_val = <function>:
+    a = <argument 0>
+    _prp = "foo"
+    _val$1 = 1
+    a[_prp] <- _val$1
+    _ret = 2
+    <return> _ret
+<global g> <- _val
+"###);
