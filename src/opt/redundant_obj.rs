@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::mem;
 
+use crate::collections::SmallMap;
 use crate::ir;
 use crate::ir::traverse::{Folder, RunVisitor, ScopeTy, Visitor};
 
@@ -71,15 +72,8 @@ struct CollectLoadStoreInfo<'a> {
 
 #[derive(Debug, Default)]
 struct Ops<'a> {
-    last_op_for_prop: HashMap<&'a str, FullOp<'a>>,
+    last_op_for_prop: HashMap<&'a str, SmallMap<&'a ir::Ref<ir::Ssa>, (StmtIndex, Op<'a>)>>,
     invalid_in_parent: Invalid<'a>,
-}
-
-#[derive(Debug, Clone)]
-struct FullOp<'a> {
-    obj: &'a ir::Ref<ir::Ssa>,
-    index: StmtIndex,
-    op: Op<'a>,
 }
 
 #[derive(Debug, Clone)]
@@ -159,15 +153,33 @@ impl<'a> CollectLoadStoreInfo<'a> {
         invalidate(&mut self.for_writes);
     }
 
-    fn set_last_op(&mut self, obj: &'a ir::Ref<ir::Ssa>, prop: &'a str, op: (StmtIndex, Op<'a>)) {
-        let op = FullOp {
-            obj,
-            index: op.0,
-            op: op.1,
-        };
-        self.for_reads.last_op_for_prop.insert(prop, op.clone());
-        self.for_writes.last_op_for_prop.insert(prop, op);
+    fn set_last_write_op(
+        &mut self,
+        obj: &'a ir::Ref<ir::Ssa>,
+        prop: &'a str,
+        op: (StmtIndex, Op<'a>),
+    ) {
+        assert!(matches!(op.1, Op::Declare(_) | Op::Write(_)));
+        let ops = SmallMap::One(obj, op);
+        self.for_reads.last_op_for_prop.insert(prop, ops.clone());
+        self.for_writes.last_op_for_prop.insert(prop, ops);
         self.for_reads.invalid_in_parent.insert_prop(prop);
+        self.for_writes.invalid_in_parent.insert_prop(prop);
+    }
+
+    fn set_last_read_op(
+        &mut self,
+        obj: &'a ir::Ref<ir::Ssa>,
+        prop: &'a str,
+        op: (StmtIndex, Op<'a>),
+    ) {
+        assert!(matches!(op.1, Op::Read(_)));
+        self.for_reads
+            .last_op_for_prop
+            .entry(prop)
+            .or_default()
+            .insert(obj, op);
+        self.for_writes.last_op_for_prop.remove(prop);
         self.for_writes.invalid_in_parent.insert_prop(prop);
     }
 
@@ -176,11 +188,10 @@ impl<'a> CollectLoadStoreInfo<'a> {
         ops: &'op Ops<'a>,
         obj: &'a ir::Ref<ir::Ssa>,
         prop: &'a str,
-    ) -> Option<(StmtIndex, &'op Op<'a>)> {
-        match ops.last_op_for_prop.get(prop) {
-            Some(op) if op.obj == obj => Some((op.index, &op.op)),
-            _ => None,
-        }
+    ) -> Option<&'op (StmtIndex, Op<'a>)> {
+        ops.last_op_for_prop
+            .get(prop)
+            .and_then(|objs| objs.get(obj))
     }
 
     fn declare_prop(
@@ -190,14 +201,14 @@ impl<'a> CollectLoadStoreInfo<'a> {
         val: &'a ir::Ref<ir::Ssa>,
     ) {
         let op = (self.cur_index, Op::Declare(val));
-        self.set_last_op(obj, prop, op);
+        self.set_last_write_op(obj, prop, op);
     }
 
     fn write_prop(&mut self, obj: &'a ir::Ref<ir::Ssa>, prop: &'a str, val: &'a ir::Ref<ir::Ssa>) {
         let op = match self.get_last_op(&self.for_writes, &obj, &prop) {
             // write -> write (write)
             Some((write_index, Op::Write(_))) => {
-                self.obj_ops_to_replace.insert(write_index, What::Remove);
+                self.obj_ops_to_replace.insert(*write_index, What::Remove);
                 (self.cur_index, Op::Write(val))
             }
             // write -> write (decl: can't overwrite decl)
@@ -205,7 +216,7 @@ impl<'a> CollectLoadStoreInfo<'a> {
                 (self.cur_index, Op::Write(val))
             }
         };
-        self.set_last_op(obj, prop, op);
+        self.set_last_write_op(obj, prop, op);
     }
 
     fn read_prop(
@@ -225,7 +236,7 @@ impl<'a> CollectLoadStoreInfo<'a> {
             None => Some((self.cur_index, Op::Read(target))),
         };
         if let Some(op) = op {
-            self.set_last_op(obj, prop, op);
+            self.set_last_read_op(obj, prop, op);
         }
     }
 }
@@ -299,7 +310,8 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
                             self.read_prop(target, obj, prop);
                         }
                         None => {
-                            // no need to invalidate obj itself, reading an unknown prop is fine
+                            // read from unknown prop: do not drop previous writes (because it might have read them)
+                            self.invalidate_everything_for_writes();
                         }
                     }
                 }
