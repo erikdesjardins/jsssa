@@ -51,3 +51,79 @@ mod stacked_map {
         m1.insert_self(1, 1);
     }
 }
+
+mod small_map {
+    use crate::collections::SmallMap;
+
+    #[test]
+    fn insert() {
+        let mut m = SmallMap::default();
+
+        assert_eq!(m.get(&0), None);
+
+        assert_eq!(m.insert(0, 1), None);
+        assert_eq!(m.get(&0), Some(&1));
+        assert_eq!(m.get(&1), None);
+
+        assert_eq!(m.insert(0, 2), Some(1));
+        assert_eq!(m.get(&0), Some(&2));
+        assert_eq!(m.get(&1), None);
+
+        assert_eq!(m.insert(1, 3), None);
+        assert_eq!(m.get(&0), Some(&2));
+        assert_eq!(m.get(&1), Some(&3));
+        assert_eq!(m.get(&2), None);
+
+        assert_eq!(m.insert(1, 4), Some(3));
+        assert_eq!(m.get(&0), Some(&2));
+        assert_eq!(m.get(&1), Some(&4));
+        assert_eq!(m.get(&2), None);
+
+        assert_eq!(m.insert(2, 5), None);
+        assert_eq!(m.get(&0), Some(&2));
+        assert_eq!(m.get(&1), Some(&4));
+        assert_eq!(m.get(&2), Some(&5));
+        assert_eq!(m.get(&3), None);
+
+        assert_eq!(m.insert(2, 6), Some(5));
+        assert_eq!(m.get(&0), Some(&2));
+        assert_eq!(m.get(&1), Some(&4));
+        assert_eq!(m.get(&2), Some(&6));
+        assert_eq!(m.get(&3), None);
+    }
+
+    #[test]
+    fn remove() {
+        let mut m = SmallMap::default();
+
+        assert_eq!(m.remove(&0), None);
+
+        assert_eq!(m.insert(0, 1), None);
+        assert_eq!(m.remove(&1), None);
+        assert_eq!(m.remove(&0), Some(1));
+
+        assert_eq!(m.insert(0, 2), None);
+        assert_eq!(m.insert(1, 3), None);
+        assert_eq!(m.remove(&2), None);
+        assert_eq!(m.remove(&1), Some(3));
+        assert_eq!(m.remove(&0), Some(2));
+    }
+
+    #[test]
+    fn clear() {
+        let mut m = SmallMap::default();
+
+        m.clear();
+        assert_eq!(m.get(&0), None);
+
+        m.insert(0, 1);
+        m.clear();
+        assert_eq!(m.get(&0), None);
+
+        m.insert(0, 2);
+        m.insert(1, 3);
+        m.clear();
+        assert_eq!(m.get(&0), None);
+        assert_eq!(m.get(&1), None);
+    }
+}
