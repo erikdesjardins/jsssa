@@ -98,7 +98,7 @@ fn main() -> Result<(), NiceError> {
             log::info!("Done ir2ast @ {}", Time(start.elapsed()));
 
             let ast = if opt_ast {
-                let ast = opt_ast::run(g, ast);
+                let ast = opt_ast::run(g, ast, opt_ast::Opt { minify });
                 log::info!("Done ast optimization @ {}", Time(start.elapsed()));
                 ast
             } else {

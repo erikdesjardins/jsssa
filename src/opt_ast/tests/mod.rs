@@ -19,7 +19,7 @@ macro_rules! case {
             use crate::{emit, opt_ast, parse, swc_globals};
             swc_globals::with(|g| {
                 let (ast, files) = parse::parse(g, $string)?;
-                let ast = opt_ast::run(g, ast);
+                let ast = opt_ast::run(g, ast, opt_ast::Opt { minify: false });
                 let js = emit::emit(g, ast, files, emit::Opt { minify: false })?;
                 insta::assert_snapshot!(js, @ $expected);
                 Ok(())
@@ -29,4 +29,5 @@ macro_rules! case {
 }
 
 mod if2cond;
+mod merge_vars;
 mod swc;

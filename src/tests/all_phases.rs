@@ -23,7 +23,7 @@ macro_rules! case {
                         minify: false,
                     },
                 );
-                let ast = opt_ast::run(g, ast);
+                let ast = opt_ast::run(g, ast, opt_ast::Opt { minify: false });
                 let js = emit::emit(g, ast, files, emit::Opt { minify: false })?;
                 insta::assert_snapshot!(js, @ $expected);
                 Ok(())
@@ -48,7 +48,7 @@ macro_rules! extern_case {
                         minify: false,
                     },
                 );
-                let ast = opt_ast::run(g, ast);
+                let ast = opt_ast::run(g, ast, opt_ast::Opt { minify: false });
                 let js = emit::emit(g, ast, files, emit::Opt { minify: false })?;
                 insta::assert_snapshot!(stringify!($name), js);
                 Ok(())
