@@ -1481,7 +1481,7 @@ case!(
     call_receiver,
     |cx| passes!(cx),
     r#"
-    let something = { x: function() {} };
+    let something = { x: function() { h = this; } };
     something.x(); // receives `this`: do not opt
     let something2 = { x: function() {} };
     (0, something2.x)(); // does not receive `this`: opt
@@ -1489,7 +1489,8 @@ case!(
 @r###"
 _key = "x"
 _val = <function>:
-    <empty>
+    _val$2 = <this>
+    <global h> <- _val$2
 _obj = { [_key]: _val }
 _prp = "x"
 <dead> = _obj[_prp]()
@@ -1500,6 +1501,92 @@ _val$1 = <function>:
 <dead> = "x"
 _fun = _val$1
 <dead> = _fun()
+"###);
+
+case!(
+    call_receiver_constructor,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: function() {} };
+    new something.x(); // does not receive `this`: opt
+"#,
+@r###"
+_key = "x"
+_val = <function>:
+    <empty>
+<dead> = { [_key]: _val }
+<dead> = "x"
+_fun = _val
+<dead> = <new> _fun()
+"###);
+
+case!(
+    call_no_receiver,
+    |cx| passes!(cx),
+    r#"
+    g = function(a) {
+        a.x = function() {};
+        a.x();
+    };
+"#,
+@r###"
+_val = <function>:
+    a = <argument 0>
+    _prp = "x"
+    _val$1 = <function>:
+        <empty>
+    a[_prp] <- _val$1
+    <dead> = "x"
+    <dead> = _val$1()
+<global g> <- _val
+"###);
+
+case!(
+    invalidate_call_unknown_function,
+    |cx| passes!(cx),
+    r#"
+    g = function(a) {
+        a.x = 1;
+        a.y();
+        return a.x;
+    };
+"#,
+@r###"
+_val = <function>:
+    a = <argument 0>
+    _prp = "x"
+    _val$1 = 1
+    a[_prp] <- _val$1
+    _prp$1 = "y"
+    <dead> = a[_prp$1]()
+    _prp$2 = "x"
+    _ret = a[_prp$2]
+    <return> _ret
+<global g> <- _val
+"###);
+
+case!(
+    invalidate_call_unknown_prop,
+    |cx| passes!(cx),
+    r#"
+    g = function(a) {
+        a.x = 1;
+        a[x]();
+        return a.x;
+    };
+"#,
+@r###"
+_val = <function>:
+    a = <argument 0>
+    _prp = "x"
+    _val$1 = 1
+    a[_prp] <- _val$1
+    _prp$1 = <global x>
+    <dead> = a[_prp$1]()
+    _prp$2 = "x"
+    _ret = a[_prp$2]
+    <return> _ret
+<global g> <- _val
 "###);
 
 case!(

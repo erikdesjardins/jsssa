@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::mem;
 
+use crate::anal;
 use crate::collections::SmallMap;
 use crate::ir;
 use crate::ir::traverse::{Folder, RunVisitor, ScopeTy, Visitor};
@@ -63,6 +64,7 @@ enum What {
 
 #[derive(Debug, Default)]
 struct CollectLoadStoreInfo<'a> {
+    fns_without_this: HashSet<&'a ir::Ref<ir::Ssa>>,
     obj_ops_to_replace: HashMap<StmtIndex, What>,
     cur_index: StmtIndex,
     known_strings: HashMap<&'a ir::Ref<ir::Ssa>, &'a str>,
@@ -205,7 +207,7 @@ impl<'a> CollectLoadStoreInfo<'a> {
     }
 
     fn write_prop(&mut self, obj: &'a ir::Ref<ir::Ssa>, prop: &'a str, val: &'a ir::Ref<ir::Ssa>) {
-        let op = match self.get_last_op(&self.for_writes, &obj, &prop) {
+        let op = match self.get_last_op(&self.for_writes, obj, prop) {
             // write -> write (write)
             Some((write_index, Op::Write(_))) => {
                 self.obj_ops_to_replace.insert(*write_index, What::Remove);
@@ -225,7 +227,7 @@ impl<'a> CollectLoadStoreInfo<'a> {
         obj: &'a ir::Ref<ir::Ssa>,
         prop: &'a str,
     ) {
-        let op = match self.get_last_op(&self.for_reads, &obj, &prop) {
+        let op = match self.get_last_op(&self.for_reads, obj, prop) {
             // write -> read, read -> read
             Some((_, Op::Declare(val))) | Some((_, Op::Write(val))) | Some((_, Op::Read(val))) => {
                 self.obj_ops_to_replace
@@ -239,6 +241,23 @@ impl<'a> CollectLoadStoreInfo<'a> {
             self.set_last_read_op(obj, prop, op);
         }
     }
+
+    fn call_prop(&mut self, obj: &'a ir::Ref<ir::Ssa>, prop: &'a str) {
+        match self.get_last_op(&self.for_reads, obj, prop) {
+            // write -> read, read -> read
+            Some((_, Op::Declare(val))) | Some((_, Op::Write(val))) | Some((_, Op::Read(val)))
+                if self.fns_without_this.contains(val) =>
+            {
+                self.obj_ops_to_replace
+                    .insert(self.cur_index, What::ReadSsa((*val).clone()));
+                // this read will be dropped, don't add an op (see above)
+            }
+            _ => {
+                // call of unknown function: invalidate
+                self.invalidate_everything();
+            }
+        }
+    }
 }
 
 impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
@@ -248,14 +267,20 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
         block: &'a ir::Block,
         enter: impl FnOnce(&mut Self, &'a ir::Block) -> R,
     ) -> R {
+        if let ScopeTy::Toplevel = ty {
+            self.fns_without_this = anal::fns::without_this(&block);
+        }
+
         match ty {
             ScopeTy::Function => {
                 // function scopes are analyzed separately
                 let mut inner = Self::default();
+                mem::swap(&mut inner.fns_without_this, &mut self.fns_without_this);
                 mem::swap(&mut inner.obj_ops_to_replace, &mut self.obj_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 mem::swap(&mut inner.known_strings, &mut self.known_strings);
                 let r = enter(&mut inner, block);
+                mem::swap(&mut inner.fns_without_this, &mut self.fns_without_this);
                 mem::swap(&mut inner.obj_ops_to_replace, &mut self.obj_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 mem::swap(&mut inner.known_strings, &mut self.known_strings);
@@ -265,12 +290,14 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
                 // r->r and w->r can go into scopes, but not w->w (since it might not execute)
                 // and in particular, r->r can't go _out_ of scopes
                 let mut inner = Self::default();
+                mem::swap(&mut inner.fns_without_this, &mut self.fns_without_this);
                 mem::swap(&mut inner.obj_ops_to_replace, &mut self.obj_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 mem::swap(&mut inner.known_strings, &mut self.known_strings);
                 // todo avoid these clones
                 inner.for_reads.last_op_for_prop = self.for_reads.last_op_for_prop.clone();
                 let r = enter(&mut inner, block);
+                mem::swap(&mut inner.fns_without_this, &mut self.fns_without_this);
                 mem::swap(&mut inner.obj_ops_to_replace, &mut self.obj_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 mem::swap(&mut inner.known_strings, &mut self.known_strings);
@@ -281,10 +308,12 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
             ScopeTy::Nonlinear => {
                 // forwarding can happen across nonlinear scopes, but not into them
                 let mut inner = Self::default();
+                mem::swap(&mut inner.fns_without_this, &mut self.fns_without_this);
                 mem::swap(&mut inner.obj_ops_to_replace, &mut self.obj_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 mem::swap(&mut inner.known_strings, &mut self.known_strings);
                 let r = enter(&mut inner, block);
+                mem::swap(&mut inner.fns_without_this, &mut self.fns_without_this);
                 mem::swap(&mut inner.obj_ops_to_replace, &mut self.obj_ops_to_replace);
                 mem::swap(&mut inner.cur_index, &mut self.cur_index);
                 mem::swap(&mut inner.known_strings, &mut self.known_strings);
@@ -334,6 +363,21 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
                         }
                     }
                 }
+                ir::Expr::Call {
+                    kind: _,
+                    base,
+                    prop: Some(prop),
+                    args: _,
+                } => match self.known_strings.get(prop) {
+                    Some(prop) => {
+                        let prop = *prop;
+                        self.call_prop(base, prop);
+                    }
+                    None => {
+                        // call of unknown prop: invalidate
+                        self.invalidate_everything();
+                    }
+                },
                 ir::Expr::Yield { .. } | ir::Expr::Await { .. } | ir::Expr::Call { .. } => {
                     self.invalidate_everything()
                 }
@@ -419,6 +463,36 @@ impl Folder for LoadStore {
                 None => Some(ir::Stmt::Expr {
                     target,
                     expr: ir::Expr::ReadMember { obj, prop },
+                }),
+            },
+            ir::Stmt::Expr {
+                target,
+                expr:
+                    ir::Expr::Call {
+                        kind,
+                        base,
+                        prop: Some(prop),
+                        args,
+                    },
+            } => match self.obj_ops_to_replace.remove(&self.cur_index) {
+                Some(What::ReadSsa(ssa_ref)) => Some(ir::Stmt::Expr {
+                    target,
+                    expr: ir::Expr::Call {
+                        kind,
+                        base: ssa_ref,
+                        prop: None,
+                        args,
+                    },
+                }),
+                Some(What::Remove) => unreachable!("cannot remove read"),
+                None => Some(ir::Stmt::Expr {
+                    target,
+                    expr: ir::Expr::Call {
+                        kind,
+                        base,
+                        prop: Some(prop),
+                        args,
+                    },
                 }),
             },
             ir::Stmt::WriteMember { obj, prop, val } => {
