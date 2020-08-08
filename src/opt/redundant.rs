@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::mem;
 
-use crate::anal;
+use crate::anl;
 use crate::ir;
 use crate::ir::traverse::{Folder, RunVisitor, ScopeTy, Visitor};
 
@@ -234,7 +234,7 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
     ) -> R {
         if let ScopeTy::Toplevel = ty {
             self.refs_used_in_only_one_fn_scope =
-                anal::refs::used_in_only_one_fn_scope(&block).collect();
+                anl::refs::used_in_only_one_fn_scope(&block).collect();
         }
 
         match ty {

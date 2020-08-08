@@ -772,3 +772,33 @@ _val = <function>:
 <global g> <- _val
 <dead> = _val
 "###);
+
+case!(
+    decr_object,
+    r#"
+    obj.x--;
+"#,
+@r###"
+_obj = <global obj>
+_prp = "x"
+_rdr = _obj[_prp]
+_one = 1
+_wri = _rdr - _one
+_obj[_prp] <- _wri
+<dead> = _rdr
+"###);
+
+case!(
+    incr_object,
+    r#"
+    ++obj.x;
+"#,
+@r###"
+_obj = <global obj>
+_prp = "x"
+_rdr = _obj[_prp]
+_one = 1
+_wri = _rdr + _one
+_obj[_prp] <- _wri
+<dead> = _wri
+"###);

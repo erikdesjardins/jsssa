@@ -1,4 +1,4 @@
-use crate::anal::fns;
+use crate::anl::fns;
 use crate::ir;
 
 macro_rules! case {

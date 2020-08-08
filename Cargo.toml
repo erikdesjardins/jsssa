@@ -1,6 +1,6 @@
 [package]
 name = "jsssa"
-version = "0.0.2"
+version = "0.0.3"
 description = "JS optimizer with SSA-based IR"
 edition = "2018"
 

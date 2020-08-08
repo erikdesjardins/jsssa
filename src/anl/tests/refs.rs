@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::anal::refs;
+use crate::anl::refs;
 use crate::ir;
 
 macro_rules! case {

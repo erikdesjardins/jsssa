@@ -329,7 +329,7 @@ case!(
         no_write[foo];
     }
     g1 = something.x;
-    g2 = no_write.y; // forward
+    g2 = no_write.y;
 "#,
 @r###"
 _key = "x"
@@ -383,6 +383,216 @@ _val$1 = something[_prp]
 _val$2 = <function>:
     <return> something
 <global h> <- _val$2
+"###);
+
+case!(
+    invalidate_read,
+    |cx| passes!(cx),
+    r#"
+    g = function(a, b) {
+        a.x = 1; // do not drop
+        h = b.x;
+        i = a.x; // forward
+        a.x = 2;
+    };
+"#,
+@r###"
+_val = <function>:
+    a = <argument 0>
+    b = <argument 1>
+    _prp = "x"
+    _val$1 = 1
+    a[_prp] <- _val$1
+    _prp$1 = "x"
+    _val$2 = b[_prp$1]
+    <global h> <- _val$2
+    <dead> = "x"
+    _val$3 = _val$1
+    <global i> <- _val$3
+    _prp$2 = "x"
+    _val$4 = 2
+    a[_prp$2] <- _val$4
+<global g> <- _val
+"###);
+
+case!(
+    invalidate_read_unknown_prop,
+    |cx| passes!(cx),
+    r#"
+    g = function(a, b) {
+        a.x = 1; // do not drop
+        h = b[x];
+        i = a.x; // forward
+        a.x = 2;
+    };
+"#,
+@r###"
+_val = <function>:
+    a = <argument 0>
+    b = <argument 1>
+    _prp = "x"
+    _val$1 = 1
+    a[_prp] <- _val$1
+    _prp$1 = <global x>
+    _val$2 = b[_prp$1]
+    <global h> <- _val$2
+    <dead> = "x"
+    _val$3 = _val$1
+    <global i> <- _val$3
+    _prp$2 = "x"
+    _val$4 = 2
+    a[_prp$2] <- _val$4
+<global g> <- _val
+"###);
+
+case!(
+    invalidate_inner_scope_read,
+    |cx| passes!(cx),
+    r#"
+    g = function(a, b) {
+        a.x = 1; // do not drop
+        for (;;)
+            h = b.x;
+        i = a.x; // forward
+        a.x = 2;
+    };
+"#,
+@r###"
+_val = <function>:
+    a = <argument 0>
+    b = <argument 1>
+    _prp = "x"
+    _val$1 = 1
+    a[_prp] <- _val$1
+    <loop>:
+        _prp$2 = "x"
+        _val$4 = b[_prp$2]
+        <global h> <- _val$4
+    <dead> = "x"
+    _val$2 = _val$1
+    <global i> <- _val$2
+    _prp$1 = "x"
+    _val$3 = 2
+    a[_prp$1] <- _val$3
+<global g> <- _val
+"###);
+
+case!(
+    invalidate_inner_scope_read_unknown_prop,
+    |cx| passes!(cx),
+    r#"
+    g = function(a, b) {
+        a.x = 1; // do not drop
+        for (;;)
+            h = b[x];
+        i = a.x; // forward
+        a.x = 2;
+    };
+"#,
+@r###"
+_val = <function>:
+    a = <argument 0>
+    b = <argument 1>
+    _prp = "x"
+    _val$1 = 1
+    a[_prp] <- _val$1
+    <loop>:
+        _prp$2 = <global x>
+        _val$4 = b[_prp$2]
+        <global h> <- _val$4
+    <dead> = "x"
+    _val$2 = _val$1
+    <global i> <- _val$2
+    _prp$1 = "x"
+    _val$3 = 2
+    a[_prp$1] <- _val$3
+<global g> <- _val
+"###);
+
+case!(
+    no_invalidate_inner_scope_read_different_prop,
+    |cx| passes!(cx),
+    r#"
+    g = function(a, b) {
+        a.x = 1; // drop
+        for (;;)
+            h = b.y;
+        i = a.x; // forward
+        a.x = 2;
+    };
+"#,
+@r###"
+_val = <function>:
+    a = <argument 0>
+    b = <argument 1>
+    <dead> = "x"
+    _val$1 = 1
+    <loop>:
+        _prp$1 = "y"
+        _val$4 = b[_prp$1]
+        <global h> <- _val$4
+    <dead> = "x"
+    _val$2 = _val$1
+    <global i> <- _val$2
+    _prp = "x"
+    _val$3 = 2
+    a[_prp] <- _val$3
+<global g> <- _val
+"###);
+
+case!(
+    invalidate_write,
+    |cx| passes!(cx),
+    r#"
+    g = function(a, b) {
+        a.x = 1; // do not drop
+        b.x = 2;
+        return a.x; // do not forward
+    };
+"#,
+@r###"
+_val = <function>:
+    a = <argument 0>
+    b = <argument 1>
+    _prp = "x"
+    _val$1 = 1
+    a[_prp] <- _val$1
+    _prp$1 = "x"
+    _val$2 = 2
+    b[_prp$1] <- _val$2
+    _prp$2 = "x"
+    _ret = a[_prp$2]
+    <return> _ret
+<global g> <- _val
+"###);
+
+case!(
+    invalidate_inner_scope_write,
+    |cx| passes!(cx),
+    r#"
+    g = function(a, b) {
+        a.x = 1; // do not drop
+        for (;;) {
+            b.x = 2;
+        }
+        return a.x; // do not forward
+    };
+"#,
+@r###"
+_val = <function>:
+    a = <argument 0>
+    b = <argument 1>
+    _prp = "x"
+    _val$1 = 1
+    a[_prp] <- _val$1
+    <loop>:
+        _prp$2 = "x"
+        _val$2 = 2
+        b[_prp$2] <- _val$2
+    _prp$1 = "x"
+    _ret = a[_prp$1]
+    <return> _ret
+<global g> <- _val
 "###);
 
 case!(
@@ -1271,7 +1481,7 @@ case!(
     call_receiver,
     |cx| passes!(cx),
     r#"
-    let something = { x: function() {} };
+    let something = { x: function() { h = this; } };
     something.x(); // receives `this`: do not opt
     let something2 = { x: function() {} };
     (0, something2.x)(); // does not receive `this`: opt
@@ -1279,7 +1489,8 @@ case!(
 @r###"
 _key = "x"
 _val = <function>:
-    <empty>
+    _val$2 = <this>
+    <global h> <- _val$2
 _obj = { [_key]: _val }
 _prp = "x"
 <dead> = _obj[_prp]()
@@ -1290,6 +1501,92 @@ _val$1 = <function>:
 <dead> = "x"
 _fun = _val$1
 <dead> = _fun()
+"###);
+
+case!(
+    call_receiver_constructor,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: function() {} };
+    new something.x(); // does not receive `this`: opt
+"#,
+@r###"
+_key = "x"
+_val = <function>:
+    <empty>
+<dead> = { [_key]: _val }
+<dead> = "x"
+_fun = _val
+<dead> = <new> _fun()
+"###);
+
+case!(
+    call_no_receiver,
+    |cx| passes!(cx),
+    r#"
+    g = function(a) {
+        a.x = function() {};
+        a.x();
+    };
+"#,
+@r###"
+_val = <function>:
+    a = <argument 0>
+    _prp = "x"
+    _val$1 = <function>:
+        <empty>
+    a[_prp] <- _val$1
+    <dead> = "x"
+    <dead> = _val$1()
+<global g> <- _val
+"###);
+
+case!(
+    invalidate_call_unknown_function,
+    |cx| passes!(cx),
+    r#"
+    g = function(a) {
+        a.x = 1;
+        a.y();
+        return a.x;
+    };
+"#,
+@r###"
+_val = <function>:
+    a = <argument 0>
+    _prp = "x"
+    _val$1 = 1
+    a[_prp] <- _val$1
+    _prp$1 = "y"
+    <dead> = a[_prp$1]()
+    _prp$2 = "x"
+    _ret = a[_prp$2]
+    <return> _ret
+<global g> <- _val
+"###);
+
+case!(
+    invalidate_call_unknown_prop,
+    |cx| passes!(cx),
+    r#"
+    g = function(a) {
+        a.x = 1;
+        a[x]();
+        return a.x;
+    };
+"#,
+@r###"
+_val = <function>:
+    a = <argument 0>
+    _prp = "x"
+    _val$1 = 1
+    a[_prp] <- _val$1
+    _prp$1 = <global x>
+    <dead> = a[_prp$1]()
+    _prp$2 = "x"
+    _ret = a[_prp$2]
+    <return> _ret
+<global g> <- _val
 "###);
 
 case!(
@@ -1320,49 +1617,4 @@ _val = <function>:
     <return> _ret
 _ini = { [_key]: _val }
 <global g> <- _ini
-"###);
-
-case!(
-    aliasing,
-    all_passes,
-    r#"
-    var o = {};
-    g = o;
-    o.x = 1;
-    g.x = 2;
-    h = o.x; // do not forward
-"#,
-@r###"
-_ini = {  }
-<global g> <- _ini
-_prp = "x"
-_val = 1
-_ini[_prp] <- _val
-_obj = <global g>
-_prp$1 = "x"
-_val$1 = 2
-_obj[_prp$1] <- _val$1
-_prp$2 = "x"
-_val$2 = _ini[_prp$2]
-<global h> <- _val$2
-"###);
-
-case!(
-    fully_unknown,
-    all_passes,
-    r#"
-    g = function(a, b, c) {
-      a.foo = 1;
-      return a.foo + 1;
-    }
-"#,
-@r###"
-_val = <function>:
-    a = <argument 0>
-    _prp = "foo"
-    _val$1 = 1
-    a[_prp] <- _val$1
-    _ret = 2
-    <return> _ret
-<global g> <- _val
 "###);

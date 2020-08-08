@@ -574,6 +574,25 @@ x$1 = *x
 "###);
 
 case!(
+    safe_call_receiver_constructor,
+    |cx| passes!(cx),
+    r#"
+    let something = { x: function() { h = this; } };
+    new something.x(); // does not receive this: opt
+"#,
+@r###"
+<dead> = "x"
+_val = <function>:
+    _val$1 = <this>
+    <global h> <- _val$1
+<dead> = <void>
+x <= _val
+<dead> = "x"
+_fun = *x
+<dead> = <new> _fun()
+"###);
+
+case!(
     safe_call_receiver_reassign,
     |cx| passes!(cx),
     r#"
