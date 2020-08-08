@@ -1023,37 +1023,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                 // need to preserve member access
                 ast::UnaryOp::Delete => match *arg {
                     ast::Expr::Member(expr) => {
-                        let ast::MemberExpr {
-                            obj,
-                            prop,
-                            computed,
-                            span: _,
-                        } = expr;
-                        let obj_ref = ir::Ref::new("_obj");
-                        let (mut stmts, obj_value) = convert_expr_or_super(obj, scope);
-                        stmts.push(ir::Stmt::Expr {
-                            target: obj_ref.clone(),
-                            expr: obj_value,
-                        });
-                        let prop_ref = ir::Ref::new("_prp");
-                        let (prop_stmts, prop_value) = if computed {
-                            convert_expression(*prop, scope)
-                        } else {
-                            match *prop {
-                                ast::Expr::Ident(ast::Ident {
-                                    sym,
-                                    span: _,
-                                    type_ann: _,
-                                    optional: _,
-                                }) => (vec![], ir::Expr::String { value: sym }),
-                                e => unreachable!("non-computed property is not an ident: {:?}", e),
-                            }
-                        };
-                        stmts.extend(prop_stmts);
-                        stmts.push(ir::Stmt::Expr {
-                            target: prop_ref.clone(),
-                            expr: prop_value,
-                        });
+                        let (stmts, obj_ref, prop_ref) = convert_member_expr(expr, scope);
                         return (
                             stmts,
                             ir::Expr::Delete {
@@ -1082,7 +1052,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             let one_ref = ir::Ref::new("_one");
             let read_ref = ir::Ref::new("_rdr");
             let write_ref = ir::Ref::new("_wri");
-            let (read, write) = match *arg {
+            let (mut stmts, read, write) = match *arg {
                 ast::Expr::Ident(ast::Ident {
                     sym,
                     span: _,
@@ -1090,6 +1060,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                     optional: _,
                 }) => match scope.get_mutable(&sym) {
                     Some(ref_) => (
+                        vec![],
                         ir::Expr::ReadMutable {
                             source: ref_.clone(),
                         },
@@ -1099,6 +1070,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         },
                     ),
                     None => (
+                        vec![],
                         ir::Expr::ReadGlobal {
                             source: sym.clone(),
                         },
@@ -1108,33 +1080,46 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         },
                     ),
                 },
+                ast::Expr::Member(expr) => {
+                    let (stmts, obj_ref, prop_ref) = convert_member_expr(expr, scope);
+                    (
+                        stmts,
+                        ir::Expr::ReadMember {
+                            obj: obj_ref.clone(),
+                            prop: prop_ref.clone(),
+                        },
+                        ir::Stmt::WriteMember {
+                            obj: obj_ref,
+                            prop: prop_ref,
+                            val: write_ref.clone(),
+                        },
+                    )
+                }
                 arg => unimplemented!("unexpected UpdateExpression argument: {:?}", arg),
             };
             let op = match op {
                 ast::UpdateOp::PlusPlus => ir::BinaryOp::Add,
                 ast::UpdateOp::MinusMinus => ir::BinaryOp::Sub,
             };
-            let stmts = vec![
-                ir::Stmt::Expr {
-                    target: read_ref.clone(),
-                    expr: read,
+            stmts.push(ir::Stmt::Expr {
+                target: read_ref.clone(),
+                expr: read,
+            });
+            stmts.push(ir::Stmt::Expr {
+                target: one_ref.clone(),
+                expr: ir::Expr::Number {
+                    value: ir::F64::from(1.0),
                 },
-                ir::Stmt::Expr {
-                    target: one_ref.clone(),
-                    expr: ir::Expr::Number {
-                        value: ir::F64::from(1.0),
-                    },
+            });
+            stmts.push(ir::Stmt::Expr {
+                target: write_ref.clone(),
+                expr: ir::Expr::Binary {
+                    op,
+                    left: read_ref.clone(),
+                    right: one_ref,
                 },
-                ir::Stmt::Expr {
-                    target: write_ref.clone(),
-                    expr: ir::Expr::Binary {
-                        op,
-                        left: read_ref.clone(),
-                        right: one_ref,
-                    },
-                },
-                write,
-            ];
+            });
+            stmts.push(write);
             let value = if prefix { write_ref } else { read_ref };
             (stmts, ir::Expr::Read { source: value })
         }
@@ -1288,37 +1273,8 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         },
                     ),
                 },
-                Either::B(ast::MemberExpr {
-                    obj,
-                    prop,
-                    computed,
-                    span: _,
-                }) => {
-                    let obj_ref = ir::Ref::new("_obj");
-                    let prop_ref = ir::Ref::new("_prp");
-                    let (mut stmts, obj_value) = convert_expr_or_super(obj, scope);
-                    stmts.push(ir::Stmt::Expr {
-                        target: obj_ref.clone(),
-                        expr: obj_value,
-                    });
-                    let (prop_stmts, prop_value) = if computed {
-                        convert_expression(*prop, scope)
-                    } else {
-                        match *prop {
-                            ast::Expr::Ident(ast::Ident {
-                                sym,
-                                span: _,
-                                type_ann: _,
-                                optional: _,
-                            }) => (vec![], ir::Expr::String { value: sym }),
-                            e => unreachable!("non-computed property is not an ident: {:?}", e),
-                        }
-                    };
-                    stmts.extend(prop_stmts);
-                    stmts.push(ir::Stmt::Expr {
-                        target: prop_ref.clone(),
-                        expr: prop_value,
-                    });
+                Either::B(expr) => {
+                    let (stmts, obj_ref, prop_ref) = convert_member_expr(expr, scope);
                     (
                         stmts,
                         ir::Expr::ReadMember {
@@ -1400,37 +1356,8 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             }
             (stmts, ir::Expr::Read { source: value_ref })
         }
-        ast::Expr::Member(ast::MemberExpr {
-            obj,
-            prop,
-            computed,
-            span: _,
-        }) => {
-            let obj_ref = ir::Ref::new("_obj");
-            let (mut stmts, obj_value) = convert_expr_or_super(obj, scope);
-            stmts.push(ir::Stmt::Expr {
-                target: obj_ref.clone(),
-                expr: obj_value,
-            });
-            let prop_ref = ir::Ref::new("_prp");
-            let (prop_stmts, prop_value) = if computed {
-                convert_expression(*prop, scope)
-            } else {
-                match *prop {
-                    ast::Expr::Ident(ast::Ident {
-                        sym,
-                        span: _,
-                        type_ann: _,
-                        optional: _,
-                    }) => (vec![], ir::Expr::String { value: sym }),
-                    e => unreachable!("non-computed property is not an ident: {:?}", e),
-                }
-            };
-            stmts.extend(prop_stmts);
-            stmts.push(ir::Stmt::Expr {
-                target: prop_ref.clone(),
-                expr: prop_value,
-            });
+        ast::Expr::Member(expr) => {
+            let (stmts, obj_ref, prop_ref) = convert_member_expr(expr, scope);
             (
                 stmts,
                 ir::Expr::ReadMember {
@@ -1661,6 +1588,44 @@ fn convert_expr_or_super(
         ast::ExprOrSuper::Expr(expr) => convert_expression(*expr, scope),
         ast::ExprOrSuper::Super(_) => unimplemented!("classes (and thus super) not supported"),
     }
+}
+
+fn convert_member_expr(
+    expr: ast::MemberExpr,
+    scope: &scope::Ast,
+) -> (Vec<ir::Stmt>, ir::Ref<ir::Ssa>, ir::Ref<ir::Ssa>) {
+    let ast::MemberExpr {
+        obj,
+        prop,
+        computed,
+        span: _,
+    } = expr;
+    let obj_ref = ir::Ref::new("_obj");
+    let (mut stmts, obj_value) = convert_expr_or_super(obj, scope);
+    stmts.push(ir::Stmt::Expr {
+        target: obj_ref.clone(),
+        expr: obj_value,
+    });
+    let prop_ref = ir::Ref::new("_prp");
+    let (prop_stmts, prop_value) = if computed {
+        convert_expression(*prop, scope)
+    } else {
+        match *prop {
+            ast::Expr::Ident(ast::Ident {
+                sym,
+                span: _,
+                type_ann: _,
+                optional: _,
+            }) => (vec![], ir::Expr::String { value: sym }),
+            e => unreachable!("non-computed property is not an ident: {:?}", e),
+        }
+    };
+    stmts.extend(prop_stmts);
+    stmts.push(ir::Stmt::Expr {
+        target: prop_ref.clone(),
+        expr: prop_value,
+    });
+    (stmts, obj_ref, prop_ref)
 }
 
 fn pat_to_ident(pat: ast::Pat) -> JsWord {
