@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::mem;
 
-use crate::anal;
+use crate::anl;
 use crate::collections::ZeroOneMany::{self, Many, One, Zero};
 use crate::ir;
 use crate::ir::traverse::{Folder, ScopeTy};
@@ -112,7 +112,7 @@ impl Folder for Loops {
         enter: impl FnOnce(&mut Self, ir::Block) -> R,
     ) -> R {
         if let ScopeTy::Toplevel = ty {
-            self.refs_used_in_only_one_fn_scope = anal::refs::used_in_only_one_fn_scope(&block)
+            self.refs_used_in_only_one_fn_scope = anl::refs::used_in_only_one_fn_scope(&block)
                 .map(ir::Ref::weak)
                 .collect();
         }

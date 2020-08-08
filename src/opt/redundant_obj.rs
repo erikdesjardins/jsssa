@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::mem;
 
-use crate::anal;
+use crate::anl;
 use crate::collections::SmallMap;
 use crate::ir;
 use crate::ir::traverse::{Folder, RunVisitor, ScopeTy, Visitor};
@@ -268,7 +268,7 @@ impl<'a> Visitor<'a> for CollectLoadStoreInfo<'a> {
         enter: impl FnOnce(&mut Self, &'a ir::Block) -> R,
     ) -> R {
         if let ScopeTy::Toplevel = ty {
-            self.fns_without_this = anal::fns::without_this(&block);
+            self.fns_without_this = anl::fns::without_this(&block);
         }
 
         match ty {
