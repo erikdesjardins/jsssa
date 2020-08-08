@@ -59,8 +59,8 @@ fn no_octal_escapes() -> Result<(), NiceError> {
         let js = emit::emit(g, ast, files, emit::Opt { minify: false })?;
         assert_eq!(
             js,
-            r#"'\x001';
-'\x008';
+            r#""\x001";
+"\x008";
 "#
         );
         Ok(())

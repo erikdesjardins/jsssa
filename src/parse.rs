@@ -1,14 +1,14 @@
 use std::fmt::{self, Display};
 use std::io;
 use std::io::Write;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-use swc_common::{
-    errors::{EmitterWriter, Handler},
-    FileName, FilePathMapping, SourceMap,
-};
+use swc_common::errors::emitter::EmitterWriter;
+use swc_common::errors::Handler;
+use swc_common::{FileName, FilePathMapping, SourceMap};
 use swc_ecma_ast as ast;
-use swc_ecma_parser::{Parser, Session, SourceFileInput, Syntax};
+use swc_ecma_parser::{Parser, StringInput, Syntax};
 
 use crate::swc_globals;
 
@@ -17,34 +17,35 @@ use crate::swc_globals;
 pub fn parse(
     _: &swc_globals::Initialized,
     js: impl Into<String>,
-) -> Result<(ast::Program, Arc<SourceMap>), ParseError> {
-    let files = Arc::new(SourceMap::new(FilePathMapping::empty()));
+) -> Result<(ast::Program, Rc<SourceMap>), ParseError> {
+    let files = Rc::new(SourceMap::new(FilePathMapping::empty()));
 
     let error = BufferedError::default();
-    let session = Session {
-        handler: &{
-            let emitter =
-                EmitterWriter::new(Box::new(error.clone()), Some(files.clone()), false, false);
-            Handler::with_emitter_and_flags(Box::new(emitter), Default::default())
-        },
-    };
+    let emitter = EmitterWriter::new(Box::new(error.clone()), Some(files.clone()), false, false);
+    let handler = Handler::with_emitter_and_flags(Box::new(emitter), Default::default());
 
     let file = files.new_source_file(FileName::Anon, js.into());
 
     let mut parser = Parser::new(
-        session,
         Syntax::Es(Default::default()),
-        SourceFileInput::from(file.as_ref()),
+        StringInput::from(file.as_ref()),
         None,
     );
 
-    // we may still receive an AST for partial parse results, so this error is not reliable...
-    let ast = parser
-        .parse_script()
-        .map(ast::Program::Script)
-        .map_err(|mut diag| diag.emit())
-        .ok();
-    // ...but this error is
+    let ast = match parser.parse_script() {
+        Ok(script) => {
+            // we may still receive an AST for partial parse results, so check for errors
+            for e in parser.take_errors() {
+                e.into_diagnostic(&handler).emit();
+            }
+            Some(ast::Program::Script(script))
+        }
+        Err(e) => {
+            e.into_diagnostic(&handler).emit();
+            None
+        }
+    };
+
     let err = error.read_msg();
 
     match (ast, err) {

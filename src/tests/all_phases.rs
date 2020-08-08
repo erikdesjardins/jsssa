@@ -76,7 +76,7 @@ case!(
     var _val = y.bar;
     var _obj = z;
     var _val$1;
-    _val$1 = _val ? true : 'hi';
+    _val$1 = _val ? true : "hi";
     _obj.foo = _val$1;
     var _wri = g + 1;
     g = _wri;
@@ -221,7 +221,7 @@ for(;;){
     if (e < 5) ;
     else break;
     var _prp = 8 + e;
-    _val$1[_prp] = '\0\0\0\0\0'.charCodeAt(e);
+    _val$1[_prp] = "\0\0\0\0\0".charCodeAt(e);
     e = e + 1;
 }
 "###);
@@ -459,7 +459,7 @@ switch(x){
     case 1:
         one();
         break;
-    case 'foo':
+    case "foo":
     case _tst:
         two();
     default:

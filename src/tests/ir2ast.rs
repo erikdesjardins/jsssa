@@ -58,7 +58,7 @@ f = function f$1(x) {
     if (x$1) {
         _val$1 = true;
     } else {
-        _val$1 = 'hi';
+        _val$1 = "hi";
     }
     var _val$2 = _val$1;
     _obj.foo = _val$2;
@@ -248,7 +248,7 @@ if (x) {
 }
 try {
     good;
-} catch () {
+} catch  {
 }
 try {
     good;
@@ -292,9 +292,9 @@ case!(
     "ba\\z";
 "#,
 @r###"
-'foo';
-'ba\r';
-'ba\\z';
+"foo";
+"ba\r";
+"ba\\z";
 "###);
 
 case!(
@@ -343,17 +343,17 @@ case!(
 var obj;
 obj = {
     x: 1,
-    'bad>': 2,
+    "bad>": 2,
     0: 7
 };
 obj.y = 3;
 3;
-obj['#bad'] = 4;
+obj["#bad"] = 4;
 4;
 obj.z;
-obj['%bad'];
+obj["%bad"];
 delete obj.w;
-delete obj['^bad'];
+delete obj["^bad"];
 obj.some();
-obj['*bad']();
+obj["*bad"]();
 "###);
