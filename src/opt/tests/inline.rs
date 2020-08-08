@@ -243,6 +243,102 @@ _ret = <arrow async>:
 "###);
 
 case!(
+    basic_constructor,
+    |cx| cx.converge::<inline::Inline>("inline"),
+    r#"
+    new function() {
+        return { foo };
+    }();
+"#,
+@r###"
+<dead> = <void>
+_key = "foo"
+_val = <global foo>
+_ret = { [_key]: _val }
+<dead> = _ret
+"###);
+
+case!(
+    bail_constructor_arrow,
+    |cx| cx.converge::<inline::Inline>("inline"),
+    r#"
+    new (() => {
+        return {};
+    })();
+"#,
+@r###"
+_fun = <arrow>:
+    _ret = {  }
+    <return> _ret
+<dead> = <new> _fun()
+"###);
+
+case!(
+    bail_constructor_no_return,
+    |cx| cx.converge::<inline::Inline>("inline"),
+    r#"
+    new function() {
+    }();
+"#,
+@r###"
+_fun = <function>:
+    <empty>
+<dead> = <new> _fun()
+"###);
+
+case!(
+    bail_constructor_return_bad,
+    |cx| cx.converge::<inline::Inline>("inline"),
+    r#"
+    new function() {
+        return 1;
+    }();
+"#,
+@r###"
+_fun = <function>:
+    _ret = 1
+    <return> _ret
+<dead> = <new> _fun()
+"###);
+
+case!(
+    bail_constructor_this,
+    |cx| cx.converge::<inline::Inline>("inline"),
+    r#"
+    new function() {
+        this;
+        return {};
+    }();
+"#,
+@r###"
+_fun = <function>:
+    <dead> = <this>
+    _ret = {  }
+    <return> _ret
+<dead> = <new> _fun()
+"###);
+
+case!(
+    bail_constructor_conditional_return,
+    |cx| cx.converge::<inline::Inline>("inline"),
+    r#"
+    new function() {
+        if (foo) ;
+        else return {};
+    }();
+"#,
+@r###"
+_fun = <function>:
+    _iff = <global foo>
+    <if> _iff:
+        <empty>
+    <else>:
+        _ret = {  }
+        <return> _ret
+<dead> = <new> _fun()
+"###);
+
+case!(
     more_complex,
     all_passes,
     r#"
@@ -283,6 +379,24 @@ case!(
     function f(a, b, c) {
         log();
         return a + b + c + 4;
+    }
+    g = f(1, 2, 3);
+"#,
+@r###"
+_fun = <global log>
+<dead> = _fun()
+_val = 10
+<global g> <- _val
+"###);
+
+case!(
+    no_stmts_after_return,
+    all_passes,
+    r#"
+    function f(a, b, c) {
+        log();
+        return a + b + c + 4;
+        console.log('drop me');
     }
     g = f(1, 2, 3);
 "#,

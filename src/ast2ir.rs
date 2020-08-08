@@ -1,4 +1,5 @@
 use std::iter;
+use std::mem;
 
 use swc_atoms::JsWord;
 use swc_common::Spanned;
@@ -187,6 +188,7 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                 },
             );
 
+            let mut saw_first_evaluated_case = true;
             let body_stmts = cases
                 .into_iter()
                 .flat_map(
@@ -197,13 +199,21 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                      }| {
                         let case_ref = match test {
                             Some(test) => {
+                                let is_first_evaluated_case =
+                                    mem::replace(&mut saw_first_evaluated_case, false);
                                 let test = *test;
                                 let safe_test = match test {
                                     ast::Expr::Lit(_) | ast::Expr::Ident(_) => test,
                                     _ => {
                                         // switch cases aren't evaluated (!) until they're checked for equality,
                                         // which is hard to model correctly without making IR much more complex
-                                        unimplemented!("switch case with side effects: {:?}", test)
+                                        if is_first_evaluated_case {
+                                            // ...but the first non-default case will always be evaluated,
+                                            // so we can safely hoist out its side-effects
+                                            test
+                                        } else {
+                                            unimplemented!("switch case side effects: {:?}", test)
+                                        }
                                     }
                                 };
                                 let test_ref = ir::Ref::new("_tst");
@@ -541,18 +551,28 @@ fn convert_statement(stmt: ast::Stmt, scope: &mut scope::Ast) -> Vec<ir::Stmt> {
                             span: _,
                         } = param;
                         let name = pat_to_ident(pat);
-                        let arg = fn_scope.declare_mutable(name);
-                        let param_ref = ir::Ref::new(arg.name_hint());
-                        vec![
-                            ir::Stmt::Expr {
-                                target: param_ref.clone(),
-                                expr: ir::Expr::Argument { index: i },
-                            },
-                            ir::Stmt::DeclareMutable {
-                                target: arg,
-                                val: param_ref,
-                            },
-                        ]
+                        let param_ref = ir::Ref::new(&name);
+                        let param_expr = ir::Stmt::Expr {
+                            target: param_ref.clone(),
+                            expr: ir::Expr::Argument { index: i },
+                        };
+                        match fn_scope.get_mutable_in_current(&name) {
+                            None => vec![
+                                param_expr,
+                                ir::Stmt::DeclareMutable {
+                                    target: fn_scope.declare_mutable(name),
+                                    val: param_ref,
+                                },
+                            ],
+                            // recursive_ref already declared this var (arg shadows fn name)
+                            Some(arg) => vec![
+                                param_expr,
+                                ir::Stmt::WriteMutable {
+                                    target: arg.clone(),
+                                    val: param_ref,
+                                },
+                            ],
+                        }
                     })
                     .collect::<Vec<_>>();
                 let body = match body {
@@ -953,18 +973,28 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                         span: _,
                     } = param;
                     let name = pat_to_ident(pat);
-                    let arg = fn_scope.declare_mutable(name);
-                    let param_ref = ir::Ref::new(arg.name_hint());
-                    vec![
-                        ir::Stmt::Expr {
-                            target: param_ref.clone(),
-                            expr: ir::Expr::Argument { index: i },
-                        },
-                        ir::Stmt::DeclareMutable {
-                            target: arg,
-                            val: param_ref,
-                        },
-                    ]
+                    let param_ref = ir::Ref::new(&name);
+                    let param_expr = ir::Stmt::Expr {
+                        target: param_ref.clone(),
+                        expr: ir::Expr::Argument { index: i },
+                    };
+                    match fn_scope.get_mutable_in_current(&name) {
+                        None => vec![
+                            param_expr,
+                            ir::Stmt::DeclareMutable {
+                                target: fn_scope.declare_mutable(name),
+                                val: param_ref,
+                            },
+                        ],
+                        // recursive_ref already declared this var (arg shadows fn name)
+                        Some(arg) => vec![
+                            param_expr,
+                            ir::Stmt::WriteMutable {
+                                target: arg.clone(),
+                                val: param_ref,
+                            },
+                        ],
+                    }
                 })
                 .collect::<Vec<_>>();
             let body = match body {

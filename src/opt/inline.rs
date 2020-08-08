@@ -29,13 +29,20 @@ impl Drop for Inline {
 
 #[derive(Debug, Default)]
 struct CollectFnCallInfo<'a> {
+    known_objs: HashSet<&'a ir::Ref<ir::Ssa>>,
     fns_to_inline: HashSet<&'a ir::Ref<ir::Ssa>>,
-    fn_def_is_good: HashSet<&'a ir::Ref<ir::Ssa>>,
+    fn_def_is_good: HashMap<&'a ir::Ref<ir::Ssa>, FnInfo>,
     about_to_enter_arrow_fn: bool,
-    about_to_enter_fn: Option<&'a ir::Ref<ir::Ssa>>,
-    current_fn: Option<&'a ir::Ref<ir::Ssa>>,
+    about_to_enter_fn: Option<(&'a ir::Ref<ir::Ssa>, FnInfo)>,
+    current_fn: Option<(&'a ir::Ref<ir::Ssa>, FnInfo)>,
     depth_in_current_fn: u32,
     used_this: bool,
+}
+
+#[derive(Debug)]
+struct FnInfo {
+    is_arrow: bool,
+    returns_an_object: bool,
 }
 
 impl<'a> Visitor<'a> for CollectFnCallInfo<'a> {
@@ -76,6 +83,9 @@ impl<'a> Visitor<'a> for CollectFnCallInfo<'a> {
     fn visit(&mut self, stmt: &'a ir::Stmt) {
         match stmt {
             ir::Stmt::Expr { target, expr } => match expr {
+                ir::Expr::Object { .. } => {
+                    self.known_objs.insert(target);
+                }
                 ir::Expr::Function {
                     kind:
                         ir::FnKind::Func {
@@ -85,30 +95,49 @@ impl<'a> Visitor<'a> for CollectFnCallInfo<'a> {
                     body: _,
                 } if target.used().is_once() => {
                     // fn is simple, used once: def is good if its body is good
-                    self.about_to_enter_fn = Some(target);
+                    self.about_to_enter_fn = Some((
+                        target,
+                        FnInfo {
+                            is_arrow: false,
+                            returns_an_object: false,
+                        },
+                    ));
                 }
                 ir::Expr::Function { kind, body: _ } => {
                     self.about_to_enter_arrow_fn = true;
                     match kind {
                         ir::FnKind::Arrow { is_async: false } if target.used().is_once() => {
                             // fn is simple, used once: def is good if its body is good
-                            self.about_to_enter_fn = Some(target);
+                            self.about_to_enter_fn = Some((
+                                target,
+                                FnInfo {
+                                    is_arrow: true,
+                                    returns_an_object: false,
+                                },
+                            ));
                         }
                         _ => {}
                     }
                 }
                 ir::Expr::Call {
-                    kind: ir::CallKind::Call,
+                    kind,
                     base,
                     prop: None,
                     args,
-                } if self.fn_def_is_good.contains(base) => {
-                    if args.iter().all(|(kind, _)| match kind {
-                        ir::EleKind::Single => true,
-                        ir::EleKind::Spread => false,
-                    }) {
-                        // fn def is good, and call is simple: mark for inlining
-                        self.fns_to_inline.insert(base);
+                } => {
+                    if let Some(info) = self.fn_def_is_good.get(base) {
+                        let kind_is_good = match kind {
+                            ir::CallKind::Call => true,
+                            ir::CallKind::New => !info.is_arrow && info.returns_an_object,
+                        };
+                        let args_are_good = args.iter().all(|(kind, _)| match kind {
+                            ir::EleKind::Single => true,
+                            ir::EleKind::Spread => false,
+                        });
+                        if kind_is_good && args_are_good {
+                            // fn def is good, and call is simple: mark for inlining
+                            self.fns_to_inline.insert(base);
+                        }
                     }
                 }
                 ir::Expr::This => {
@@ -122,9 +151,16 @@ impl<'a> Visitor<'a> for CollectFnCallInfo<'a> {
                 }
                 _ => {}
             },
-            ir::Stmt::Return { .. } if self.depth_in_current_fn > 0 => {
-                // return statement not at top level: invalidate
-                self.current_fn = None;
+            ir::Stmt::Return { val } => {
+                if self.depth_in_current_fn > 0 {
+                    // return statement not at top level: invalidate
+                    self.current_fn = None;
+                } else {
+                    // return statement is good: check whether we can inline constructor calls
+                    if let Some((_, info)) = &mut self.current_fn {
+                        info.returns_an_object = self.known_objs.contains(val);
+                    }
+                }
             }
             _ => {}
         }
@@ -173,7 +209,7 @@ impl Folder for Inline {
                 target,
                 expr:
                     ir::Expr::Call {
-                        kind: ir::CallKind::Call,
+                        kind,
                         base,
                         prop: None,
                         args,
@@ -229,7 +265,7 @@ impl Folder for Inline {
                     One(ir::Stmt::Expr {
                         target,
                         expr: ir::Expr::Call {
-                            kind: ir::CallKind::Call,
+                            kind,
                             base,
                             prop: None,
                             args,

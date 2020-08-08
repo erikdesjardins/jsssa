@@ -32,6 +32,33 @@ macro_rules! case {
     };
 }
 
+macro_rules! extern_case {
+    ( $name:ident, $file:expr ) => {
+        #[test]
+        fn $name() -> Result<(), NiceError> {
+            swc_globals::with(|g| {
+                let (ast, files) = parse::parse(g, include_str!($file))?;
+                let ir = ast2ir::convert(g, ast);
+                let ir = opt::run_passes(g, ir);
+                let ast = ir2ast::convert(
+                    g,
+                    ir,
+                    ir2ast::Opt {
+                        inline: true,
+                        minify: false,
+                    },
+                );
+                let ast = opt_ast::run(g, ast);
+                let js = emit::emit(g, ast, files, emit::Opt { minify: false })?;
+                insta::assert_snapshot!(stringify!($name), js);
+                Ok(())
+            })
+        }
+    };
+}
+
+extern_case!(snudown_js, "js/snudown.js");
+
 case!(
     basic,
     r#"
@@ -49,8 +76,7 @@ case!(
     var _val = y.bar;
     var _obj = z;
     var _val$1;
-    if (_val) _val$1 = true;
-    else _val$1 = 'hi';
+    _val$1 = _val ? true : "hi";
     _obj.foo = _val$1;
     var _wri = g + 1;
     g = _wri;
@@ -195,7 +221,7 @@ for(;;){
     if (e < 5) ;
     else break;
     var _prp = 8 + e;
-    _val$1[_prp] = '\0\0\0\0\0'.charCodeAt(e);
+    _val$1[_prp] = "\0\0\0\0\0".charCodeAt(e);
     e = e + 1;
 }
 "###);
@@ -433,7 +459,7 @@ switch(x){
     case 1:
         one();
         break;
-    case 'foo':
+    case "foo":
     case _tst:
         two();
     default:
@@ -566,5 +592,68 @@ case!(
 @r###"
 g = function(_, _$1, c) {
     h = c;
+};
+"###);
+
+case!(
+    arg_shadow_fn_name_decl,
+    r#"
+    function f(f, a) {
+        f(a);
+    }
+    g = f;
+"#,
+@r###"
+g = function(f, a) {
+    f(a);
+};
+"###);
+
+case!(
+    arg_shadow_fn_name_expr,
+    r#"
+    g = function f(f, a) {
+        f(a);
+    };
+"#,
+@r###"
+g = function(f, a) {
+    f(a);
+};
+"###);
+
+case!(
+    switch_case_side_effects,
+    r#"
+    g = function(x) {
+        var r = 10;
+        switch (x) {
+            default:
+                def();
+                break;
+            case r = 1337:
+                leet();
+                break;
+            case 123:
+                abc();
+                break;
+        }
+        return r;
+    };
+"#,
+@r###"
+g = function(x) {
+    switch(x){
+        default:
+            def();
+            break;
+        case 1337:
+            leet();
+            break;
+        case 123:
+            abc();
+            break;
+    }
+    return 1337;
 };
 "###);

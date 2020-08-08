@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use swc_common::SourceMap;
 use swc_ecma_ast as ast;
@@ -17,12 +17,12 @@ pub struct Opt {
 pub fn emit(
     _: &swc_globals::Initialized,
     ast: ast::Program,
-    files: Arc<SourceMap>,
+    files: Rc<SourceMap>,
     options: Opt,
 ) -> Result<String, Error> {
     let mut wr = vec![];
 
-    let fixed_ast = ast.fold_with(&mut transforms::fixer());
+    let fixed_ast = ast.fold_with(&mut transforms::fixer(None));
 
     {
         let mut emitter = Emitter {

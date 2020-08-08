@@ -188,6 +188,46 @@ _ini$1 = <function>:
 "###);
 
 case!(
+    bail_call_in_nonlinear_deep,
+    |cx| passes!(cx),
+    r#"
+    let something = {};
+    let foo = function() { g = something; };
+    while (g)
+        while (g)
+            foo();
+    for (var x in something) {
+        log(x);
+    }
+"#,
+@r###"
+_ini = <void>
+x <= _ini
+something = {  }
+_ini$1 = <function>:
+    <global g> <- something
+<loop>:
+    _whl = <global g>
+    <if> _whl:
+        <empty>
+    <else>:
+        <break>
+    <loop>:
+        _whl$1 = <global g>
+        <if> _whl$1:
+            <empty>
+        <else>:
+            <break>
+        <dead> = _ini$1()
+<foreach in> something:
+    _for = <argument 0>
+    x <- _for
+    _fun = <global log>
+    _arg = *x
+    <dead> = _fun(_arg)
+"###);
+
+case!(
     bail_call_cross_scope,
     |cx| passes!(cx),
     r#"
