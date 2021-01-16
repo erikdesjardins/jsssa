@@ -39,6 +39,9 @@ Script(
                                 },
                                 value: Atom('foo' type=inline),
                                 has_escape: false,
+                                kind: Normal {
+                                    contains_quote: true,
+                                },
                             },
                         ),
                     ),
@@ -69,6 +72,9 @@ Script(
                                 },
                                 value: Atom('ba' type=inline),
                                 has_escape: true,
+                                kind: Normal {
+                                    contains_quote: true,
+                                },
                             },
                         ),
                     ),
@@ -99,6 +105,9 @@ Script(
                                 },
                                 value: Atom('ba\z' type=inline),
                                 has_escape: true,
+                                kind: Normal {
+                                    contains_quote: true,
+                                },
                             },
                         ),
                     ),

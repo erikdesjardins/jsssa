@@ -639,6 +639,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
             ast::Lit::Str(ast::Str {
                 value,
                 has_escape: _,
+                kind: _,
                 span: _,
             }) => (vec![], ir::Expr::String { value }),
             ast::Lit::Bool(ast::Bool { value, span: _ }) => (vec![], ir::Expr::Bool { value }),
@@ -777,6 +778,7 @@ fn convert_expression(expr: ast::Expr, scope: &scope::Ast) -> (Vec<ir::Stmt>, ir
                                         span,
                                         value: sym,
                                         has_escape: false,
+                                        kind: ast::StrKind::Synthesized,
                                     }));
                                     (key, ast::Expr::Ident(ident))
                                 }
@@ -1656,9 +1658,11 @@ fn propname_to_expr(propname: ast::PropName) -> ast::Expr {
             span,
             value: sym,
             has_escape: false,
+            kind: ast::StrKind::Synthesized,
         })),
         ast::PropName::Str(s) => ast::Expr::Lit(ast::Lit::Str(s)),
         ast::PropName::Num(n) => ast::Expr::Lit(ast::Lit::Num(n)),
+        ast::PropName::BigInt(n) => ast::Expr::Lit(ast::Lit::BigInt(n)),
         ast::PropName::Computed(ast::ComputedPropName { expr, span: _ }) => *expr,
     }
 }

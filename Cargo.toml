@@ -5,19 +5,19 @@ description = "JS optimizer with SSA-based IR"
 edition = "2018"
 
 [dependencies]
-env_logger = { version = "0.7", default-features = false }
+env_logger = { version = "0.8", default-features = false }
 log = "0.4"
 structopt = { version = "0.3", default-features = false }
 swc_atoms = "0.2"
-swc_common = { version = "0.9", features = ["tty-emitter"] }
-swc_ecma_ast = "0.28"
-swc_ecma_codegen = "0.31"
-swc_ecma_parser = "0.33"
-swc_ecma_transforms = "0.19"
-swc_ecma_visit = "0.13"
+swc_common = { version = "0.10", features = ["tty-emitter"] }
+swc_ecma_ast = "0.37"
+swc_ecma_codegen = "0.43"
+swc_ecma_parser = "0.45"
+swc_ecma_transforms = { version = "0.33", features = ["swc_ecma_transforms_optimization"] }
+swc_ecma_visit = "0.23"
 
 [dev-dependencies]
-insta = "0.16"
+insta = "1.5"
 
 [profile.dev]
 opt-level = 1

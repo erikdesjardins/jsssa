@@ -2,7 +2,7 @@
 source: src/tests/parse.rs
 expression: err
 ---
-Parse error: Unexpected token None
+Parse error: Unexpected token `<eof>`. Expected this, import, async, function, [ for array literal, { for object literal, @ for decorator, function, class, null, true, false, number, bigint, string, regexp, ` for template literal, (, or an identifier
  --> <anon>:1:1
   |
 1 | *

@@ -352,6 +352,9 @@ Script(
                                                                             },
                                                                             value: Atom('hi' type=inline),
                                                                             has_escape: false,
+                                                                            kind: Normal {
+                                                                                contains_quote: true,
+                                                                            },
                                                                         },
                                                                     ),
                                                                 ),

@@ -406,6 +406,7 @@ fn convert_expr(expr: ir::Expr, scope: &scope::Ir, ssa_cache: &mut ssa::Cache) -
             // it appears safe to always assume has_escape: true, since the string content is verbatim
             // see test string_has_escape_behavior
             has_escape: true,
+            kind: ast::StrKind::Synthesized,
         })),
         ir::Expr::Null => ast::Expr::Lit(ast::Lit::Null(ast::Null { span: span() })),
         ir::Expr::Undefined => ast::Expr::Unary(ast::UnaryExpr {
@@ -863,6 +864,7 @@ fn str_as_clean_ident(expr: ast::Expr) -> Result<ast::Ident, ast::Expr> {
             span,
             value,
             has_escape,
+            kind,
         })) => {
             if is_valid_js_ident(&value) {
                 Ok(ast::Ident {
@@ -876,6 +878,7 @@ fn str_as_clean_ident(expr: ast::Expr) -> Result<ast::Ident, ast::Expr> {
                     span,
                     value,
                     has_escape,
+                    kind,
                 })))
             }
         }
