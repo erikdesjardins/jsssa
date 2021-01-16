@@ -18,9 +18,7 @@ var _fun = function(A) {
     if (0 < _ini$3) {
         r = _ini$4 + _ini$3 - 1;
         a = 0;
-        for(;;){
-            if (a < A.length) ;
-            else break;
+        for(; a < A.length;){
             var _ini$6 = A.charCodeAt(a);
             n$1 = _ini$6;
             var _prd = 55296 <= _ini$6;
@@ -79,9 +77,7 @@ var _fun$1 = function(A, r, i$1) {
     var _ini$3 = _fun(r$1);
     var f$1 = 0;
     var a = 0;
-    for(;;){
-        if (a < r$1.length) ;
-        else break;
+    for(; a < r$1.length;){
         var _ini$4 = r$1.charCodeAt(a);
         n$1 = _ini$4;
         var _prd$1 = 55296 <= _ini$4;
@@ -133,9 +129,7 @@ var _fun$1 = function(A, r, i$1) {
         i$2 = _val$18;
         a = _val$18 + NaN;
         n$1 = "";
-        for(;;){
-            if (!(a <= i$2)) ;
-            else break;
+        for(; !(a <= i$2);){
             var _obj = o;
             var _rdr = i$2;
             var _wri = _rdr + 1;
@@ -223,9 +217,7 @@ var _fun$2 = function(A, r, i$1) {
     var a = r;
     var _ini$3 = i$1.length;
     var k$1 = r + (3 * _ini$3 >> 2) - ("=" == i$1[_ini$3 - 2]) - ("=" == i$1[_ini$3 - 1]);
-    for(;;){
-        if (f$1 < _ini$3) ;
-        else break;
+    for(; f$1 < _ini$3;){
         var _obj = c$1;
         var _val$10 = _obj[i$1.charCodeAt(f$1 + 1)];
         var _obj$1 = c$1;
@@ -251,9 +243,7 @@ var _fun$2 = function(A, r, i$1) {
 var _ini$2 = new Uint8Array(123);
 c$1 = _ini$2;
 var f = 25;
-for(;;){
-    if (0 <= f) ;
-    else break;
+for(; 0 <= f;){
     c$1[48 + f] = 52 + f;
     c$1[65 + f] = f;
     c$1[97 + f] = 26 + f;
@@ -525,9 +515,7 @@ var _fun$4 = function(A, r, i$1, e, f$1) {
                         if (45 != Dr[i$1 + 2 | 0] | 45 != Dr[i$1 + 3 | 0]) break A$1;
                         k$1 = 5;
                         e$1: {
-                            for(;;){
-                                if (k$1 >>> 0 < e >>> 0) ;
-                                else break;
+                            for(; k$1 >>> 0 < e >>> 0;){
                                 var _obj$2 = Dr;
                                 var _val$16 = i$2 + k$1 | 0;
                                 c$2 = _val$16;
@@ -915,9 +903,7 @@ var _fun$6 = function(A, r, i$1) {
                             if ((0 | a) == (0 | c$2)) break e;
                             if (96 != Dr[A + f$1 | 0]) {
                                 n$1 = 0;
-                                for(;;){
-                                    if (!(r >>> 0 <= f$1 >>> 0 | c$2 >>> 0 <= n$1 >>> 0)) ;
-                                    else break;
+                                for(; !(r >>> 0 <= f$1 >>> 0 | c$2 >>> 0 <= n$1 >>> 0);){
                                     var _val$12 = Dr[A + f$1 | 0];
                                     a = _val$12;
                                     var _val$13;
@@ -1499,13 +1485,9 @@ var _fun$8 = function(A, r, i$1, e) {
                     _fun$70(f$1);
                     A$1 = k$1;
                     i$2 = 0;
-                    for(;;){
-                        if (8 != (0 | i$2)) ;
-                        else break;
+                    for(; 8 != (0 | i$2);){
                         r$1 = vr[(i$2 << 2) + A$1 >> 2];
-                        for(;;){
-                            if (r$1) ;
-                            else break;
+                        for(; r$1;){
                             var _val$16 = vr[r$1 + 12 >> 2];
                             e$1 = _val$16;
                             _fun$70(vr[r$1 + 4 >> 2]);
@@ -1966,9 +1948,7 @@ var _fun$11 = function(A, r) {
                             }
                             r$1 = 0;
                             c$2 = 0;
-                            for(;;){
-                                if ((0 | c$2) != (0 | i$1)) ;
-                                else break;
+                            for(; (0 | c$2) != (0 | i$1);){
                                 var _val$15 = Dr[A + c$2 | 0];
                                 a = _val$15;
                                 r$1 = ((0 | _val$15) == (0 | n$1) & (0 | f$1) != (0 | _val$15)) + r$1 | 0;
@@ -2188,9 +2168,7 @@ var _fun$12 = function $A(A, r, i$1, e) {
                 var _val$13 = _val$12;
                 n$1 = _val$13;
                 f$1 = a;
-                for(;;){
-                    if ((0 | n$1) != (0 | f$1)) ;
-                    else break;
+                for(; (0 | n$1) != (0 | f$1);){
                     var _val$14 = i$1 + f$1 | 0;
                     k$1 = _val$14;
                     var _val$15 = f$1 + 1 | 0;
@@ -4921,9 +4899,7 @@ var _fun$56 = function(A, r) {
 var _fun$57 = function(A, r) {
     var i$1 = 0;
     var e = 0;
-    for(;;){
-        if ((0 | r) != (0 | i$1)) ;
-        else break;
+    for(; (0 | r) != (0 | i$1);){
         var _lhs = _fun$67(Dr[A + i$1 | 0]);
         e = _lhs + $(e, 65599) | 0;
         i$1 = i$1 + 1 | 0;
@@ -5242,9 +5218,7 @@ _ini[3] = function(A, r, i$1, _, f$1, a) {
     }
     c$2 = e;
     f$2 = 0;
-    for(;;){
-        if (!(a$1 >>> 0 <= c$2 >>> 0 | e >>> 0 <= f$2 >>> 0)) ;
-        else break;
+    for(; !(a$1 >>> 0 <= c$2 >>> 0 | e >>> 0 <= f$2 >>> 0);){
         var _val$14;
         _val$14 = 96 == Dr[i$2 + c$2 | 0] ? f$2 + 1 | 0 : 0;
         f$2 = _val$14;
@@ -5524,9 +5498,7 @@ _ini[5] = function(A, r, i$1, e, f$1, a) {
                                 var _val$24 = _fun$44(_val$11, 1);
                                 a$1 = _val$24;
                                 f$2 = 1;
-                                for(;;){
-                                    if ((0 | e$1) != (0 | f$2)) ;
-                                    else break;
+                                for(; (0 | e$1) != (0 | f$2);){
                                     var _obj = Dr;
                                     var _val$25 = i$2 + f$2 | 0;
                                     Z = _val$25;
@@ -5568,9 +5540,7 @@ _ini[5] = function(A, r, i$1, e, f$1, a) {
                                 var _val$23 = _fun$44(_val$11, 1);
                                 a$1 = _val$23;
                                 f$2 = 1;
-                                for(;;){
-                                    if ((0 | e$1) != (0 | f$2)) ;
-                                    else break;
+                                for(; (0 | e$1) != (0 | f$2);){
                                     var _obj = Dr;
                                     var _val$24 = i$2 + f$2 | 0;
                                     k$1 = _val$24;
@@ -7060,9 +7030,7 @@ _ini[14] = function(A, r, i$1, e) {
         if ((0 | _val$16) < (0 | a)) {
             _fun$51(_val$10, 2873, 6);
             a = vr[_val$13 + 4 >> 2];
-            for(;;){
-                if ((0 | i$2) < (0 | a)) ;
-                else break;
+            for(; (0 | i$2) < (0 | a);){
                 _fun$51(_val$10, 2880, 12);
                 var _obj$1 = vr;
                 var _val$17 = vr[_val$13 + 4 >> 2] + -1 | 0;
@@ -7188,9 +7156,7 @@ _ini[23] = function(A, r) {
     var i$1 = 0;
     var _val$11 = r | 0;
     var e = vr[4 + _val$11 >> 2];
-    for(;;){
-        if (1 <= (0 | e)) ;
-        else break;
+    for(; 1 <= (0 | e);){
         _fun$51(_val$10, 2684, 12);
         var _obj = vr;
         var _val$12 = vr[_val$11 + 4 >> 2] + -1 | 0;
@@ -7763,9 +7729,7 @@ _ini[40] = function(A, r, i$1) {
                                         var _val$14 = _fun$32(_val$13);
                                         k$1 = _val$14;
                                         if ((0 | _val$14) == vr[b + 4 >> 2]) {
-                                            for(;;){
-                                                if ((0 | e) != (0 | k$1)) ;
-                                                else break;
+                                            for(; (0 | e) != (0 | k$1);){
                                                 var _lhs = 0 | _fun$67(K[e + n$1 | 0]);
                                                 if (_lhs != (0 | _fun$67(Dr[vr[b >> 2] + e | 0]))) break a$1;
                                                 e = e + 1 | 0;
