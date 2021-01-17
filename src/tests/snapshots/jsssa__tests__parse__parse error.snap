@@ -2,7 +2,7 @@
 source: src/tests/parse.rs
 expression: err
 ---
-Parse error: TS1005
+Parse error: Expected a semicolon
  --> <anon>:1:7
   |
 1 | var ab-cd = 1;

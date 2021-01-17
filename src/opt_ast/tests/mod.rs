@@ -30,4 +30,5 @@ macro_rules! case {
 
 mod if2cond;
 mod merge_vars;
+mod resugar_loops;
 mod swc;

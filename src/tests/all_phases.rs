@@ -217,9 +217,7 @@ _alt.stackSave;
 _alt.dynCall_iii;
 _alt.dynCall_iiii;
 var e = 0;
-for(;;){
-    if (e < 5) ;
-    else break;
+for(; e < 5;){
     var _prp = 8 + e;
     _val$1[_prp] = "\0\0\0\0\0".charCodeAt(e);
     e = e + 1;

@@ -5,6 +5,7 @@
     clippy::option_map_unit_fn,
     clippy::map_clone,
     clippy::match_bool,
+    clippy::match_like_matches_macro,
     clippy::single_match
 )]
 #![allow(unstable_name_collisions)]
